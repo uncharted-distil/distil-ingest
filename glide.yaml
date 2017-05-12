@@ -1,0 +1,11 @@
+package: github.com/unchartedsoftware/d3m-ingest
+import:
+- package: github.com/colinmarc/hdfs
+- package: github.com/unchartedsoftware/deluge
+  subpackages:
+  - document
+- package: github.com/unchartedsoftware/plog
+  subpackages:
+  - binning
+  - util/json
+- package: gopkg.in/olivere/elastic.v3

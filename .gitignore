@@ -1,0 +1,7 @@
+.DS_Store
+TODO.md
+vendor
+.glide
+.idea
+.vscode
+/d3m-ingest
