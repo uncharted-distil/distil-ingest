@@ -1,0 +1,72 @@
+{
+    "datasetId": "test_dataset",
+    "descriptionFile": "dataDescription.txt",
+    "rawData": false,
+    "redacted": true,
+    "testData": {
+        "numSamples": 1
+    },
+    "testDataSchemaMirrorsTrainDataSchema": true,
+    "trainData": {
+        "numSamples": 1,
+        "trainData": [
+            {
+                "varName": "d3mIndex",
+                "varRole": "index",
+                "varType": "integer"
+            },
+            {
+                "varName": "Alpha",
+                "varRole": "attribute",
+                "varType": "categorical"
+            },
+            {
+                "varName": "Bravo",
+                "varRole": "attribute",
+                "varType": "float"
+            },
+            {
+                "varName": "Charlie",
+                "varRole": "attribute",
+                "varType": "integer"
+            },            
+            {
+                "varName": "Delta",
+                "varRole": "attribute",
+                "varType": "ordinal"
+            },
+            {
+                "varName": "Echo",
+                "varRole": "attribute",
+                "varType": "dateTime"
+            },
+            {
+                "varName": "Foxtrot",
+                "varRole": "attribute",
+                "varType": "text"
+            },
+            {
+                "varName": "Gamma",
+                "varRole": "attribute",
+                "varType": "location"
+            },
+            {
+                "varName": "Hotel",
+                "varRole": "attribute",
+                "varType": "unknown"
+            }
+        ],
+        "trainTargets": [
+            {
+                "varName": "d3mIndex",
+                "varRole": "index",
+                "varType": "integer"
+            },
+            {
+                "varName": "Whiskey",
+                "varRole": "target",
+                "varType": "categorical"
+            }
+        ]
+    }
+}

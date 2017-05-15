@@ -9,3 +9,5 @@ import:
   - binning
   - util/json
 - package: gopkg.in/olivere/elastic.v3
+- package: github.com/stretchr/testify
+- package: github.com/jeffail/gabs

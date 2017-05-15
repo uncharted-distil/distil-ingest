@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	doc := d3mdata.NewD3MData
+	doc := d3mdata.NewD3MData(config.FileInputPath + "/dataSchema.json")
 
 	// create ingestor
 	ingestor, err := deluge.NewIngestor(
