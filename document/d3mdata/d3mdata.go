@@ -17,6 +17,15 @@ type D3MData struct {
 	schema *gabs.Container
 }
 
+func parseAndSetVal(index int, varType string, varName string, varEntry *gabs.Container, parser func() (interface{}, bool)) error {
+	val, success := parser()
+	if !success {
+		return fmt.Errorf("Unabled to parse index %d as %s", index, varType)
+	}
+	varEntry.Set(val, varName)
+	return nil
+}
+
 // NewD3MData instantiates and returns a new document.
 func NewD3MData(schemaPath string) deluge.Constructor {
 	// Open the schema file
@@ -46,26 +55,67 @@ func (d *D3MData) GetType() (string, error) {
 	return "d3m-csv", nil
 }
 
-// GetMapping returns the documents mappings.
+// GetMapping returns the document's mappings.
 func (d *D3MData) GetMapping() (string, error) {
+	// grab the variable description portion of the schema
+	trainingArray, err := d.schema.Path("trainData.trainData").Children()
+	if err != nil {
+		log.Error(err)
+		return "", err
+	}
 
-	return string(""), nil
+	// create the ES mappings based on the variables in the schema
+	mappings := gabs.New()
+	for _, value := range trainingArray {
+		varDesc := value.Data().(map[string]interface{})
+		var varType string
+		if varDesc["varRole"].(string) == "attribute" {
+			switch varDesc["varType"].(string) {
+			case "integer":
+				varType = "long"
+				break
+			case "float":
+				varType = "double"
+				break
+			case "text":
+				varType = "text"
+				break
+			case "categorical":
+				varType = "text"
+				break
+			case "ordinal":
+				varType = "text"
+				break
+			case "unknown":
+				varType = "text"
+				break
+			case "dateTime":
+				varType = "date" // for now
+				break
+			case "location":
+				varType = "text" // for now
+				break
+			default:
+				log.Errorf("Unknown data type %s", varType)
+			}
+			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".type")
+		}
+	}
+
+	return mappings.String(), nil
 }
 
 // GetSource returns the source document in JSON format
 func (d *D3MData) GetSource() (interface{}, error) {
 	// grab the variable description portion of the schema
-
 	trainingArray, err := d.schema.Path("trainData.trainData").Children()
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	// json container for extracted data
-	varEntry := gabs.New()
-
 	// iterate over the variable descriptions
+	varEntry := gabs.New()
 	for index, value := range trainingArray {
 		varDesc := value.Data().(map[string]interface{})
 
@@ -78,60 +128,28 @@ func (d *D3MData) GetSource() (interface{}, error) {
 			// var value will be based on the varType contents
 			switch varType {
 			case "integer":
-				val, success := d.Int64(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.Int64(index) })
 				break
 			case "float":
-				val, success := d.Float64(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.Float64(index) })
 				break
 			case "text":
-				val, success := d.String(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			case "categorical":
-				val, success := d.String(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			case "ordinal":
-				val, success := d.String(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			case "dateTime":
-				val, success := d.Int64(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.Int64(index) })
 				break
 			case "location":
-				val, success := d.String(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			case "unknown":
-				val, success := d.String(index)
-				if !success {
-					return nil, fmt.Errorf("Unabled to parse index %d as %s", index, varType)
-				}
-				varEntry.Set(val, varName)
+				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			default:
 				log.Errorf("Unknown data type %s", varType)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
 	log "github.com/unchartedsoftware/plog"
 )
@@ -52,4 +53,30 @@ func TestGetSource(t *testing.T) {
 	assert.Equal(t, "some text value", r.Foxtrot)
 	assert.Equal(t, "podunk indiana", r.Gamma)
 	assert.Equal(t, "un_1", r.Hotel)
+}
+
+func TestGetMapping(t *testing.T) {
+	// Create a document using the test json schema
+	doc, err := NewD3MData("testdata/dataSchema.json")()
+	if err != nil {
+		assert.Fail(t, "Failed to create document")
+	}
+
+	// Fetch the mappings
+	strMapping, err := doc.GetMapping()
+	if err != nil {
+		log.Error(err)
+		assert.Fail(t, "Failed to create document")
+	}
+
+	mapping, err := gabs.ParseJSON([]byte(strMapping))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Alpha.type").Data().(string))
+	assert.Equal(t, "double", mapping.Path("datum.properties.Bravo.type").Data().(string))
+	assert.Equal(t, "long", mapping.Path("datum.properties.Charlie.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Delta.type").Data().(string))
+	assert.Equal(t, "date", mapping.Path("datum.properties.Echo.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Foxtrot.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Golf.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Hotel.type").Data().(string))
+
 }
