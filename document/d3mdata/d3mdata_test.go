@@ -19,7 +19,7 @@ func TestGetSource(t *testing.T) {
 	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1"
 	doc.SetData(data)
 
-	// Fetch teh doc source
+	// Fetch the doc source
 	output, err := doc.GetSource()
 	if err != nil {
 		log.Error(err)
@@ -79,4 +79,25 @@ func TestGetMapping(t *testing.T) {
 	assert.Equal(t, "text", mapping.Path("datum.properties.Golf.type").Data().(string))
 	assert.Equal(t, "text", mapping.Path("datum.properties.Hotel.type").Data().(string))
 
+}
+
+func TestID(t *testing.T) {
+	// Create a document using the test json schema
+	doc, err := NewD3MData("testdata/dataSchema.json")()
+	if err != nil {
+		assert.Fail(t, "Failed to create document")
+	}
+
+	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1"
+	doc.SetData(data)
+
+	// Fetch id
+	id, err := doc.GetID()
+	if err != nil {
+		log.Error(err)
+		assert.Fail(t, "Failed to create document")
+	}
+
+	// Verify the id
+	assert.Equal(t, "0", id)
 }

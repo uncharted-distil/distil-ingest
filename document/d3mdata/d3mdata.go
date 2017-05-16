@@ -15,6 +15,7 @@ import (
 type D3MData struct {
 	document.CSV
 	schema *gabs.Container
+	idCol  int
 }
 
 func parseAndSetVal(index int, varType string, varName string, varEntry *gabs.Container, parser func() (interface{}, bool)) error {
@@ -40,14 +41,28 @@ func NewD3MData(schemaPath string) deluge.Constructor {
 		log.Error(err)
 	}
 
+	// find the row ID column and store it for quick retrieval
+	trainingArray, err := schema.Path("trainData.trainData").Children()
+	if err != nil {
+		log.Error(err)
+	}
+	var idCol int
+	for index, value := range trainingArray {
+		varDesc := value.Data().(map[string]interface{})
+		if varDesc["varName"].(string) == "d3mIndex" {
+			idCol = index
+			break
+		}
+	}
+
 	return func() (deluge.Document, error) {
-		return &D3MData{schema: schema}, nil
+		return &D3MData{schema: schema, idCol: idCol}, nil
 	}
 }
 
 // GetID returns the document id.
 func (d *D3MData) GetID() (string, error) {
-	return "id", nil
+	return d.Cols[d.idCol], nil
 }
 
 // GetType returns the document type.
