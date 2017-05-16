@@ -1,7 +1,6 @@
 package d3mdata
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/jeffail/gabs"
@@ -26,33 +25,36 @@ func TestGetSource(t *testing.T) {
 		assert.Fail(t, "Failed to create document")
 	}
 
-	type Record struct {
-		Alpha   string
-		Bravo   float64
-		Charlie int64
-		Delta   string
-		Echo    int64
-		Foxtrot string
-		Gamma   string
-		Hotel   string
-	}
-
 	// Extract it from JSON
-	var r Record
-	err = json.Unmarshal([]byte(output.(string)), &r)
+	result, err := gabs.ParseJSON([]byte(output.(string)))
 	if err != nil {
 		log.Error(err)
 		assert.Fail(t, "Failed to create document")
 	}
 
-	assert.Equal(t, "cat_1", r.Alpha)
-	assert.Equal(t, 99.0, r.Bravo)
-	assert.Equal(t, int64(66), r.Charlie)
-	assert.Equal(t, "ord_1", r.Delta)
-	assert.Equal(t, int64(234324), r.Echo)
-	assert.Equal(t, "some text value", r.Foxtrot)
-	assert.Equal(t, "podunk indiana", r.Gamma)
-	assert.Equal(t, "un_1", r.Hotel)
+	assert.Equal(t, "cat_1", result.Path("Alpha.value").Data().(string))
+	assert.Equal(t, "categorical", result.Path("Alpha.schemaType").Data().(string))
+
+	assert.Equal(t, 99.0, result.Path("Bravo.value").Data().(float64))
+	assert.Equal(t, "float", result.Path("Bravo.schemaType").Data().(string))
+
+	assert.Equal(t, float64(66), result.Path("Charlie.value").Data().(float64))
+	assert.Equal(t, "integer", result.Path("Charlie.schemaType").Data().(string))
+
+	assert.Equal(t, "ord_1", result.Path("Delta.value").Data().(string))
+	assert.Equal(t, "ordinal", result.Path("Delta.schemaType").Data().(string))
+
+	assert.Equal(t, float64(234324), result.Path("Echo.value").Data().(float64))
+	assert.Equal(t, "dateTime", result.Path("Echo.schemaType").Data().(string))
+
+	assert.Equal(t, "some text value", result.Path("Foxtrot.value").Data().(string))
+	assert.Equal(t, "text", result.Path("Foxtrot.schemaType").Data().(string))
+
+	assert.Equal(t, "podunk indiana", result.Path("Golf.value").Data().(string))
+	assert.Equal(t, "location", result.Path("Golf.schemaType").Data().(string))
+
+	assert.Equal(t, "un_1", result.Path("Hotel.value").Data().(string))
+	assert.Equal(t, "unknown", result.Path("Hotel.schemaType").Data().(string))
 }
 
 func TestGetMapping(t *testing.T) {
@@ -70,14 +72,22 @@ func TestGetMapping(t *testing.T) {
 	}
 
 	mapping, err := gabs.ParseJSON([]byte(strMapping))
-	assert.Equal(t, "text", mapping.Path("datum.properties.Alpha.type").Data().(string))
-	assert.Equal(t, "double", mapping.Path("datum.properties.Bravo.type").Data().(string))
-	assert.Equal(t, "long", mapping.Path("datum.properties.Charlie.type").Data().(string))
-	assert.Equal(t, "text", mapping.Path("datum.properties.Delta.type").Data().(string))
-	assert.Equal(t, "date", mapping.Path("datum.properties.Echo.type").Data().(string))
-	assert.Equal(t, "text", mapping.Path("datum.properties.Foxtrot.type").Data().(string))
-	assert.Equal(t, "text", mapping.Path("datum.properties.Golf.type").Data().(string))
-	assert.Equal(t, "text", mapping.Path("datum.properties.Hotel.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Alpha.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Alpha.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "double", mapping.Path("datum.properties.Bravo.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Bravo.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "long", mapping.Path("datum.properties.Charlie.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Charlie.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Delta.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Delta.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "date", mapping.Path("datum.properties.Echo.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Echo.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Foxtrot.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Foxtrot.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Golf.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Golf.properties.schemaType.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Hotel.properties.value.type").Data().(string))
+	assert.Equal(t, "text", mapping.Path("datum.properties.Hotel.properties.schemaType.type").Data().(string))
 
 }
 

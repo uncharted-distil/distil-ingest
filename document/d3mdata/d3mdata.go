@@ -23,7 +23,8 @@ func parseAndSetVal(index int, varType string, varName string, varEntry *gabs.Co
 	if !success {
 		return fmt.Errorf("Unabled to parse index %d as %s", index, varType)
 	}
-	varEntry.Set(val, varName)
+	varEntry.SetP(val, varName+".value")
+	varEntry.SetP(varType, varName+".schemaType")
 	return nil
 }
 
@@ -113,7 +114,8 @@ func (d *D3MData) GetMapping() (string, error) {
 			default:
 				log.Errorf("Unknown data type %s", varType)
 			}
-			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".type")
+			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".properties.value.type")
+			mappings.SetP("text", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
 		}
 	}
 
