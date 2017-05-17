@@ -3,7 +3,6 @@ package conf
 import (
 	"errors"
 	"flag"
-	"strings"
 )
 
 // ParseCommandLine parses the commandline arguments and returns a Conf object.
@@ -16,8 +15,7 @@ func ParseCommandLine() (*Conf, error) {
 	clearExisting := flag.Bool("clear-existing", true, "Clear index before ingest")
 
 	// filesystem
-	fileInputPath := flag.String("file-input-path", "", "Filesystem input path")
-	fileInputExcludes := flag.String("file-input-excludes", "", "Filesystem input excludes")
+	datasetPath := flag.String("dataset-path", "", "Filesystem input path")
 
 	// num workers
 	numWorkers := flag.Int("num-workers", 8, "The worker pool size")
@@ -45,8 +43,8 @@ func ParseCommandLine() (*Conf, error) {
 		BulkByteSize:   int64(*bulkByteSize),
 		ScanBufferSize: *scanBufferSize,
 		// file
-		FileInputPath:     *fileInputPath,
-		FileInputExcludes: strings.Split(*fileInputExcludes, ","),
+		DatasetPath: *datasetPath,
+
 		// num of workers
 		NumWorkers: *numWorkers,
 		// num es connections

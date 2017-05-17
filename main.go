@@ -30,7 +30,8 @@ func main() {
 	}
 
 	// Filesystem Input
-	input, err := deluge.NewFileInput(config.FileInputPath, config.FileInputExcludes)
+	excludes := []string{"dataDescription.txt", "dataSchema.json", "trainData.csv", "trainTargets.csv"}
+	input, err := deluge.NewFileInput(config.DatasetPath+"/data", excludes)
 
 	// create elasticsearch client
 	client, err := elastic.NewClient(
@@ -44,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	doc := d3mdata.NewD3MData(config.FileInputPath + "/dataSchema.json")
+	doc := d3mdata.NewD3MData(config.DatasetPath + "/data/dataSchema.json")
 
 	// create ingestor
 	ingestor, err := deluge.NewIngestor(
@@ -80,4 +81,7 @@ func main() {
 			log.Error(err)
 		}
 	}
+
+	// ingest the schema into the index table
+
 }

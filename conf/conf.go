@@ -12,9 +12,9 @@ type Conf struct {
 	BulkByteSize   int64
 	ScanBufferSize int
 
-	// file
-	FileInputPath     string
-	FileInputExcludes []string
+	// d3m dataset directory path
+	DatasetPath string
+
 	// num workers
 	NumWorkers int
 	// num es connections

@@ -68,7 +68,7 @@ func (d *D3MData) GetID() (string, error) {
 
 // GetType returns the document type.
 func (d *D3MData) GetType() (string, error) {
-	return "d3m-csv", nil
+	return "datum", nil
 }
 
 // GetMapping returns the document's mappings.
@@ -94,28 +94,28 @@ func (d *D3MData) GetMapping() (string, error) {
 				varType = "double"
 				break
 			case "text":
-				varType = "text"
+				varType = "string"
 				break
 			case "categorical":
-				varType = "text"
+				varType = "string"
 				break
 			case "ordinal":
-				varType = "text"
+				varType = "string"
 				break
 			case "unknown":
-				varType = "text"
+				varType = "string"
 				break
 			case "dateTime":
 				varType = "date" // for now
 				break
 			case "location":
-				varType = "text" // for now
+				varType = "string" // for now
 				break
 			default:
 				log.Errorf("Unknown data type %s", varType)
 			}
 			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".properties.value.type")
-			mappings.SetP("text", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
+			mappings.SetP("string", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
 		}
 	}
 
