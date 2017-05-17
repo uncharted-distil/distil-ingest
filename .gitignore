@@ -4,5 +4,5 @@ vendor
 .glide
 .idea
 .vscode
-/d3m-ingest
+/distil-ingest
 debug.test

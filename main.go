@@ -6,9 +6,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/unchartedsoftware/d3m-ingest/conf"
-	"github.com/unchartedsoftware/d3m-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/deluge"
+	"github.com/unchartedsoftware/distil-ingest/conf"
+	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/plog"
 	"gopkg.in/olivere/elastic.v3"
 )
