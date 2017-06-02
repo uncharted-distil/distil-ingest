@@ -15,7 +15,7 @@ func TestGetSource(t *testing.T) {
 		assert.Fail(t, "Failed to create document")
 	}
 
-	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1"
+	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1,target_1"
 	doc.SetData(data)
 
 	// Fetch the doc source
@@ -55,6 +55,9 @@ func TestGetSource(t *testing.T) {
 
 	assert.Equal(t, "un_1", result.Path("Hotel.value").Data().(string))
 	assert.Equal(t, "unknown", result.Path("Hotel.schemaType").Data().(string))
+
+	assert.Equal(t, "target_1", result.Path("Whiskey.value").Data().(string))
+	assert.Equal(t, "categorical", result.Path("Whiskey.schemaType").Data().(string))
 }
 
 func TestGetMapping(t *testing.T) {
@@ -88,7 +91,8 @@ func TestGetMapping(t *testing.T) {
 	assert.Equal(t, "string", mapping.Path("datum.properties.Golf.properties.schemaType.type").Data().(string))
 	assert.Equal(t, "string", mapping.Path("datum.properties.Hotel.properties.value.type").Data().(string))
 	assert.Equal(t, "string", mapping.Path("datum.properties.Hotel.properties.schemaType.type").Data().(string))
-
+	assert.Equal(t, "string", mapping.Path("datum.properties.Whiskey.properties.value.type").Data().(string))
+	assert.Equal(t, "string", mapping.Path("datum.properties.Whiskey.properties.schemaType.type").Data().(string))
 }
 
 func TestID(t *testing.T) {

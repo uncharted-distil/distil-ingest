@@ -21,7 +21,7 @@ fmt:
 	@go fmt $(NOVENDOR)
 
 build: lint
-	@go build $(NOVENDOR)
+	@go build -i	
 
 install:
 	@go get -u github.com/golang/lint/golint

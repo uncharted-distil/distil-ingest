@@ -79,13 +79,20 @@ func (d *D3MData) GetMapping() (string, error) {
 		log.Error(err)
 		return "", err
 	}
+	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
+	if err != nil {
+		log.Error(err)
+		return "", err
+	}
+	trainingArray = append(trainingArray, targetArray...)
 
 	// create the ES mappings based on the variables in the schema
 	mappings := gabs.New()
 	for _, value := range trainingArray {
 		varDesc := value.Data().(map[string]interface{})
 		var varType string
-		if varDesc["varRole"].(string) == "attribute" {
+		role := varDesc["varRole"].(string)
+		if role == "attribute" || role == "target" {
 			switch varDesc["varType"].(string) {
 			case "integer":
 				varType = "long"
@@ -124,12 +131,32 @@ func (d *D3MData) GetMapping() (string, error) {
 
 // GetSource returns the source document in JSON format
 func (d *D3MData) GetSource() (interface{}, error) {
-	// grab the variable description portion of the schema
+	// grab the variable description portion of the schema for the training data
 	trainingArray, err := d.schema.Path("trainData.trainData").Children()
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
+	// do the same for the training targets
+	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	// strip the index info out of the training targets sesction - the merged csv
+	// being ingested doesn't contain that column
+	var indexCol = 0
+	for index, child := range targetArray {
+		varDesc := child.Data().(map[string]interface{})
+		if varDesc["varRole"].(string) == "index" {
+			indexCol = index
+			break
+		}
+	}
+	targetArray = append(targetArray[:indexCol], targetArray[indexCol+1:]...)
+
+	// process both lists
+	trainingArray = append(trainingArray, targetArray...)
 
 	// iterate over the variable descriptions
 	varEntry := gabs.New()
@@ -137,7 +164,8 @@ func (d *D3MData) GetSource() (interface{}, error) {
 		varDesc := value.Data().(map[string]interface{})
 
 		// ignore anything other than attributes
-		if varDesc["varRole"] == "attribute" {
+		role := varDesc["varRole"].(string)
+		if role == "attribute" || role == "target" {
 			// grab name, type
 			varName := varDesc["varName"].(string)
 			varType := varDesc["varType"].(string)

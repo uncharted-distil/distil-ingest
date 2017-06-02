@@ -9,6 +9,7 @@ import (
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/distil-ingest/conf"
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
+	"github.com/unchartedsoftware/distil-ingest/merge"
 	"github.com/unchartedsoftware/plog"
 	"gopkg.in/olivere/elastic.v3"
 )
@@ -29,8 +30,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Merge targets into training data before ingest
+	// Merge train target data into training data
+	indices, err := merge.GetD3MIndices(config.DatasetPath+"/data/dataSchema.json", "d3mIndex")
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	merge.LeftJoin(config.DatasetPath+"/data/trainData.csv", indices.LeftColIdx,
+		config.DatasetPath+"/data/trainTargets.csv", indices.RightColIdx,
+		config.DatasetPath+"/data/merged.csv", true)
+
 	// Filesystem Input
-	excludes := []string{"dataDescription.txt", "dataSchema.json", "trainData.csv", "trainTargets.csv"}
+	excludes := []string{"dataDescription.txt", "dataSchema.json", "trainData.csv", "trainTargets.csv", "testData.csv"}
 	input, err := deluge.NewFileInput(config.DatasetPath+"/data", excludes)
 
 	// create elasticsearch client
@@ -81,7 +94,5 @@ func main() {
 			log.Error(err)
 		}
 	}
-
-	// ingest the schema into the index table
 
 }
