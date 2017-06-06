@@ -1,0 +1,38 @@
+{
+    "trainData": {
+        "trainData": [          
+            {
+                "varName": "Alpha",
+                "varRole": "attribute",
+                "varType": "categorical"
+            },
+            {
+                "varName": "d3mIndex",
+                "varRole": "index",
+                "varType": "integer"
+            },
+            {
+                "varName": "Bravo",
+                "varRole": "attribute",
+                "varType": "float"
+            }
+        ],
+        "trainTargets": [
+            {
+                "varName": "d3mIndex",
+                "varRole": "index",
+                "varType": "integer"
+            },
+            {
+                "varName": "Whiskey",
+                "varRole": "target",
+                "varType": "categorical"
+            },
+            {
+                "varName": "XRay",
+                "varRole": "target",
+                "varType": "float"
+            }
+        ]
+    }
+}

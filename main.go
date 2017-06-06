@@ -10,13 +10,16 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/conf"
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/merge"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/plog"
 	"gopkg.in/olivere/elastic.v3"
 )
 
 const (
-	timeout       = time.Second * 60 * 5
-	errSampleSize = 10
+	timeout           = time.Second * 60 * 5
+	errSampleSize     = 10
+	metadataIndexName = "datasets"
+	d3mIndexColName   = "d3mIndex"
 )
 
 func main() {
@@ -30,22 +33,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Merge targets into training data before ingest
-	// Merge train target data into training data
-	indices, err := merge.GetD3MIndices(config.DatasetPath+"/data/dataSchema.json", "d3mIndex")
-	if err != nil {
-		log.Error(err)
-		os.Exit(1)
-	}
-
-	merge.LeftJoin(config.DatasetPath+"/data/trainData.csv", indices.LeftColIdx,
-		config.DatasetPath+"/data/trainTargets.csv", indices.RightColIdx,
-		config.DatasetPath+"/data/merged.csv", true)
-
-	// Filesystem Input
-	excludes := []string{"dataDescription.txt", "dataSchema.json", "trainData.csv", "trainTargets.csv", "testData.csv"}
-	input, err := deluge.NewFileInput(config.DatasetPath+"/data", excludes)
-
 	// create elasticsearch client
 	client, err := elastic.NewClient(
 		elastic.SetURL(config.ESEndpoint),
@@ -57,6 +44,30 @@ func main() {
 		log.Error(err)
 		os.Exit(1)
 	}
+
+	// Create the metadata index if it doesn't exist
+	err = metadata.CreateMetadataIndex(metadataIndexName, true, client)
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	// Ingest the dataset info into the metadata index
+	err = metadata.IngestMetadata(metadataIndexName, config.DatasetPath+"/data/dataSchema.json", client)
+
+	// Merge targets into training data before ingest
+	indices, err := merge.GetColIndices(config.DatasetPath+"/data/dataSchema.json", d3mIndexColName)
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+	merge.LeftJoin(config.DatasetPath+"/data/trainData.csv", indices.LeftColIdx,
+		config.DatasetPath+"/data/trainTargets.csv", indices.RightColIdx,
+		config.DatasetPath+"/data/merged.csv", true)
+
+	// Filesystem Input
+	excludes := []string{"dataDescription.txt", "dataSchema.json", "trainData.csv", "trainTargets.csv", "testData.csv"}
+	input, err := deluge.NewFileInput(config.DatasetPath+"/data", excludes)
 
 	doc := d3mdata.NewD3MData(config.DatasetPath + "/data/dataSchema.json")
 

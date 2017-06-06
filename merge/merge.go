@@ -35,7 +35,7 @@ type JoinIndices struct {
 
 // GetD3MIndices will get the indices of the 'd3mIndex' column for the training and training target
 // files from a dataset schema
-func GetD3MIndices(schemaPath string, columnName string) (*JoinIndices, error) {
+func GetColIndices(schemaPath string, columnName string) (*JoinIndices, error) {
 	// Open the schema file
 	dat, err := ioutil.ReadFile(schemaPath)
 	if err != nil {

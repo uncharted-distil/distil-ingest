@@ -1,0 +1,26 @@
+{
+    "name": "test dataset",
+    "datasetId": "test_dataset",
+    "descriptionFile": "dataDescription.txt",    
+    "trainData": {
+        "trainData": [
+            {
+                "varName": "alpha",
+                "varRole": "attribute",
+                "varType": "text"
+            }
+        ],
+        "trainTargets": [
+            {
+                "varName": "victor",
+                "varRole": "index",
+                "varType": "integer"
+            },
+            {
+                "varName": "whiskey",
+                "varRole": "target",
+                "varType": "integer"
+            }
+        ]
+    }
+}
