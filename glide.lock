@@ -1,5 +1,5 @@
-hash: f2b60c5c35bdda4064a18b8eab18cb2861d1b0093f992f2e736da35bfd1b0448
-updated: 2017-05-15T10:13:32.558353666-04:00
+hash: bfd4611f6e1877d44a5ecb18c2850463e82e2263a9b717ad28d01bc2c83920a5
+updated: 2017-06-06T11:18:11.477614007-04:00
 imports:
 - name: github.com/colinmarc/hdfs
   version: d9614569203878ff04bb4420b929923949e855fc
@@ -19,6 +19,8 @@ imports:
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
+- name: github.com/pkg/errors
+  version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/stretchr/testify
   version: 4d4bfba8f1d1027c4fdbe371823030df51419987
   subpackages:
