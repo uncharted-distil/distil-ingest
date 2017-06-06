@@ -46,7 +46,7 @@ func main() {
 	}
 
 	// Create the metadata index if it doesn't exist
-	err = metadata.CreateMetadataIndex(metadataIndexName, true, client)
+	err = metadata.CreateMetadataIndex(metadataIndexName, false, client)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)

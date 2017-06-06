@@ -11,6 +11,7 @@ all:
 	@echo "  build         - build the source code"
 	@echo "  lint          - lint the source code"
 	@echo "  fmt           - format the source code"
+	@echo "  test          - test the source code"
 	@echo "  install       - install dependencies"
 
 lint:
@@ -22,6 +23,9 @@ fmt:
 
 build: lint
 	@go build -i	
+
+test: build
+	@go test $(NOVENDOR)
 
 install:
 	@go get -u github.com/golang/lint/golint

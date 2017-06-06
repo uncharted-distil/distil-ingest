@@ -33,7 +33,7 @@ type JoinIndices struct {
 	RightColIdx int
 }
 
-// GetD3MIndices will get the indices of the 'd3mIndex' column for the training and training target
+// GetColIndices will get the indices of the 'd3mIndex' column for the training and training target
 // files from a dataset schema
 func GetColIndices(schemaPath string, columnName string) (*JoinIndices, error) {
 	// Open the schema file
