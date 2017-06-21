@@ -132,21 +132,18 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 	output.SetP(string(contents), "description")
 	output.ArrayP("variables")
 
-	// add the training data variables
-	variables, err := schema.Path("trainData.trainData").Children()
+	// add the training and target data variables - - don't include the index columns in the final
+	// values
+	trainVariables, err := schema.Path("trainData.trainData").Children()
 	if err != nil {
 		return errors.Wrap(err, "Failed to parse training data")
 	}
-	for _, variable := range variables {
-		output.ArrayAppendP(variable.Data(), "variables")
-	}
-
-	// add the target data variables - don't include the index column as we strip that out as part of the
-	// train/target merge
-	variables, err = schema.Path("trainData.trainTargets").Children()
+	targetVariables, err := schema.Path("trainData.trainTargets").Children()
 	if err != nil {
 		return errors.Wrap(err, "Failed to parse target data")
 	}
+	variables := append(trainVariables, targetVariables...)
+
 	for _, variable := range variables {
 		if variable.Path("varRole").Data().(string) == "index" {
 			continue
