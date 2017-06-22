@@ -1,13 +1,13 @@
 package: github.com/unchartedsoftware/distil-ingest
 import:
-- package: github.com/colinmarc/hdfs
+- package: github.com/jeffail/gabs
 - package: github.com/unchartedsoftware/deluge
   subpackages:
   - document
+  - elastic/v5
 - package: github.com/unchartedsoftware/plog
-  subpackages:
-  - binning
-  - util/json
-- package: gopkg.in/olivere/elastic.v3
+- package: gopkg.in/olivere/elastic.v5
+testImport:
 - package: github.com/stretchr/testify
-- package: github.com/jeffail/gabs
+  subpackages:
+  - assert
