@@ -5,7 +5,7 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
-	log "github.com/unchartedsoftware/plog"
+	"github.com/unchartedsoftware/plog"
 )
 
 func TestGetSource(t *testing.T) {

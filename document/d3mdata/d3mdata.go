@@ -8,7 +8,7 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
-	log "github.com/unchartedsoftware/plog"
+	"github.com/unchartedsoftware/plog"
 )
 
 // D3MData is a row from a CSV file
