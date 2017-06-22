@@ -45,21 +45,18 @@ func GetColIndices(schemaPath string, columnName string) (*JoinIndices, error) {
 	// Unmarshall the schema file
 	schema, err := gabs.ParseJSON(dat)
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to unmarshall %s", schemaPath)
 	}
 
 	// Extract d3mIndex cols
 	trainIndex, err := parseD3MIndex(schema, "trainData.trainData")
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to parse train data")
 	}
 
 	targetsIndex, err := parseD3MIndex(schema, "trainData.trainTargets")
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to parse train targets")
 	}
 
 	return &JoinIndices{LeftColIdx: trainIndex, RightColIdx: targetsIndex}, nil
@@ -71,7 +68,6 @@ func buildIndex(file string, colIdx int, header bool) (map[string][]string, erro
 
 	csvFile, err := os.Open(file)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 
@@ -83,7 +79,6 @@ func buildIndex(file string, colIdx int, header bool) (map[string][]string, erro
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Error(err)
 			return nil, err
 		}
 
@@ -106,20 +101,17 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, outF
 	// load the right file into a hash table indexed by the d3mIndex col
 	index, err := buildIndex(rightFile, rightCol, header)
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrap(err, "Failed to be build right operand LUT")
 	}
 
 	// open the left and outfiles for line-by-line by processing
 	leftCsvFile, err := os.Open(leftFile)
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrap(err, "Failed to open left operand file")
 	}
 	outCsvFile, err := os.Create(outFile)
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrap(err, "Failed to open join result output file")
 	}
 
 	// perform a left join, leaving unmatched right values emptys
@@ -132,8 +124,7 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, outF
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Error(err)
-			return err
+			return errors.Wrap(err, "Failed to read line from left operand file")
 		}
 		if lineCnt > 0 || !header {
 			key := line[leftCol]

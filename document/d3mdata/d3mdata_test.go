@@ -10,27 +10,22 @@ import (
 
 func TestGetSource(t *testing.T) {
 	// Create a document using the test json schema
-	doc, err := NewD3MData("testdata/dataSchema.json")()
-	if err != nil {
-		assert.Fail(t, "Failed to create document")
-	}
+	docCreate, err := NewD3MData("testdata/dataSchema.json")
+	assert.NoError(t, err)
+
+	doc, err := docCreate()
+	assert.NoError(t, err)
 
 	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1,target_1"
 	doc.SetData(data)
 
 	// Fetch the doc source
 	output, err := doc.GetSource()
-	if err != nil {
-		log.Error(err)
-		assert.Fail(t, "Failed to create document")
-	}
+	assert.NoError(t, err)
 
 	// Extract it from JSON
 	result, err := gabs.ParseJSON([]byte(output.(string)))
-	if err != nil {
-		log.Error(err)
-		assert.Fail(t, "Failed to create document")
-	}
+	assert.NoError(t, err)
 
 	assert.Equal(t, "cat_1", result.Path("Alpha.value").Data().(string))
 	assert.Equal(t, "categorical", result.Path("Alpha.schemaType").Data().(string))
@@ -62,17 +57,15 @@ func TestGetSource(t *testing.T) {
 
 func TestGetMapping(t *testing.T) {
 	// Create a document using the test json schema
-	doc, err := NewD3MData("testdata/dataSchema.json")()
-	if err != nil {
-		assert.Fail(t, "Failed to create document")
-	}
+	docCreate, err := NewD3MData("testdata/dataSchema.json")
+	assert.NoError(t, err)
+
+	doc, err := docCreate()
+	assert.NoError(t, err)
 
 	// Fetch the mappings
 	strMapping, err := doc.GetMapping()
-	if err != nil {
-		log.Error(err)
-		assert.Fail(t, "Failed to create document")
-	}
+	assert.NoError(t, err)
 
 	mapping, err := gabs.ParseJSON([]byte(strMapping))
 	assert.Equal(t, "string", mapping.Path("datum.properties.Alpha.properties.value.type").Data().(string))
@@ -97,10 +90,11 @@ func TestGetMapping(t *testing.T) {
 
 func TestID(t *testing.T) {
 	// Create a document using the test json schema
-	doc, err := NewD3MData("testdata/dataSchema.json")()
-	if err != nil {
-		assert.Fail(t, "Failed to create document")
-	}
+	docCreate, err := NewD3MData("testdata/dataSchema.json")
+	assert.NoError(t, err)
+
+	doc, err := docCreate()
+	assert.NoError(t, err)
 
 	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1"
 	doc.SetData(data)

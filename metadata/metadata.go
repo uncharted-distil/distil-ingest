@@ -16,8 +16,7 @@ import (
 func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) error {
 	exists, err := client.IndexExists(index).Do(context.Background())
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrapf(err, "Failed to complete check for existence of index %s", index)
 	}
 
 	// delete the index if it already exists
@@ -29,8 +28,7 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 
 		deleted, err := client.DeleteIndex(index).Do(context.Background())
 		if err != nil {
-			log.Error(err)
-			return err
+			return errors.Wrapf(err, "Failed to delete index %s", index)
 		}
 
 		if !deleted.Acknowledged {
@@ -97,13 +95,11 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 	}`
 	created, err := client.CreateIndex(index).BodyString(creationData).Do(context.Background())
 	if err != nil {
-		log.Error(err)
-		return err
+		errors.Wrapf(err, "Failed to create index %s", index)
 	}
 	if !created.Acknowledged {
 		return fmt.Errorf("Failed to create new index %s", index)
 	}
-
 	return nil
 }
 
@@ -113,16 +109,14 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 	// Unmarshall the schema file
 	schema, err := gabs.ParseJSONFile(schemaPath)
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrap(err, "Failed to parses schema file")
 	}
 
 	// load data description text
 	descPath := schema.Path("descriptionFile").Data().(string)
 	contents, err := ioutil.ReadFile(filepath.Dir(schemaPath) + "/" + descPath)
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrap(err, "Failed to load description file")
 	}
 
 	// create a new object for our output metadata and write the parts of the schema
@@ -136,23 +130,18 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 	output.SetP(string(contents), "description")
 	output.ArrayP("variables")
 
-	// add the training data variables
-	variables, err := schema.Path("trainData.trainData").Children()
+	// add the training and target data variables - - don't include the index columns in the final
+	// values
+	trainVariables, err := schema.Path("trainData.trainData").Children()
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrap(err, "Failed to parse training data")
 	}
-	for _, variable := range variables {
-		output.ArrayAppendP(variable.Data(), "variables")
+	targetVariables, err := schema.Path("trainData.trainTargets").Children()
+	if err != nil {
+		return errors.Wrap(err, "Failed to parse target data")
 	}
+	variables := append(trainVariables, targetVariables...)
 
-	// add the target data variables - don't include the index column as we strip that out as part of the
-	// train/target merge
-	variables, err = schema.Path("trainData.trainTargets").Children()
-	if err != nil {
-		log.Error(err)
-		return err
-	}
 	for _, variable := range variables {
 		if variable.Path("varRole").Data().(string) == "index" {
 			continue
@@ -170,8 +159,7 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 		BodyString(output.String()).
 		Do(context.Background())
 	if err != nil {
-		log.Error(err)
-		return err
+		return errors.Wrapf(err, "Failed to add document to index %s", index)
 	}
 
 	if !indexResp.Created {
