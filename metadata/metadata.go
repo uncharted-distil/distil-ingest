@@ -63,30 +63,30 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 			"metadata": {
 				"properties": {
 					"datasetId": {
-						"type": "string"
+						"type": "text"
 					},
 					"name": {
-						"type": "string"
+						"type": "text"
 					},
 					"description": {
-						"type": "string"
+						"type": "text"
 					},
 					"variables": {
 						"properties": {
 							"varDescription": {
-								"type": "string"
+								"type": "text"
 							},
 							"varName": {
-								"type": "string",
+								"type": "text",
 								"analyzer": "ngram_analyzer",
 								"include_in_all": true,
 								"term_vector": "yes"
 							},
 							"varRole": {
-								"type": "string"
+								"type": "text"
 							},
 							"varType": {
-								"type": "string"
+								"type": "text"
 							}
 						}
 					}
