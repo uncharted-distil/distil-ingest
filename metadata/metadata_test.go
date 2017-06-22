@@ -9,7 +9,7 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
-	elastic "gopkg.in/olivere/elastic.v3"
+	elastic "gopkg.in/olivere/elastic.v5"
 )
 
 func TestIngestMetadata(t *testing.T) {

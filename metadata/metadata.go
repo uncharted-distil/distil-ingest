@@ -1,10 +1,11 @@
 package metadata
 
 import (
+	"context"
 	"io/ioutil"
 	"path/filepath"
 
-	elastic "gopkg.in/olivere/elastic.v3"
+	elastic "gopkg.in/olivere/elastic.v5"
 
 	"fmt"
 
@@ -16,7 +17,7 @@ import (
 // CreateMetadataIndex creates a new ElasticSearch index with our target mappings.  An ngram analyzer
 // is defined and applied to the variable names to allow for substring searching.
 func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) error {
-	exists, err := client.IndexExists(index).Do()
+	exists, err := client.IndexExists(index).Do(context.Background())
 	if err != nil {
 		return errors.Wrapf(err, "Failed to complete check for existence of index %s", index)
 	}
@@ -28,7 +29,7 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 			return nil
 		}
 
-		deleted, err := client.DeleteIndex(index).Do()
+		deleted, err := client.DeleteIndex(index).Do(context.Background())
 		if err != nil {
 			return errors.Wrapf(err, "Failed to delete index %s", index)
 		}
@@ -95,7 +96,7 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 			}
 		}
 	}`
-	created, err := client.CreateIndex(index).BodyString(creationData).Do()
+	created, err := client.CreateIndex(index).BodyString(creationData).Do(context.Background())
 	if err != nil {
 		errors.Wrapf(err, "Failed to create index %s", index)
 	}
@@ -159,7 +160,7 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 		Type("metadata").
 		Id(id).
 		BodyString(output.String()).
-		Do()
+		Do(context.Background())
 	if err != nil {
 		return errors.Wrapf(err, "Failed to add document to index %s", index)
 	}
