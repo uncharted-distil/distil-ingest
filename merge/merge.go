@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/jeffail/gabs"
+	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/plog"
 )
 
