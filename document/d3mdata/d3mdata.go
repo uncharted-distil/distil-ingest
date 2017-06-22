@@ -1,11 +1,10 @@
 package d3mdata
 
 import (
-	"io/ioutil"
-
 	"fmt"
 
 	"github.com/jeffail/gabs"
+	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
 	log "github.com/unchartedsoftware/plog"
@@ -29,23 +28,17 @@ func parseAndSetVal(index int, varType string, varName string, varEntry *gabs.Co
 }
 
 // NewD3MData instantiates and returns a new document.
-func NewD3MData(schemaPath string) deluge.Constructor {
-	// Open the schema file
-	dat, err := ioutil.ReadFile(schemaPath)
-	if err != nil {
-		log.Error(err)
-	}
-
+func NewD3MData(schemaPath string) (deluge.Constructor, error) {
 	// Unmarshall the schema file
-	schema, err := gabs.ParseJSON(dat)
+	schema, err := gabs.ParseJSONFile(schemaPath)
 	if err != nil {
-		log.Error(err)
+		return nil, errors.Wrap(err, "Failed to parse schema file")
 	}
 
 	// find the row ID column and store it for quick retrieval
 	trainingArray, err := schema.Path("trainData.trainData").Children()
 	if err != nil {
-		log.Error(err)
+		return nil, errors.Wrap(err, "Failed to parse train data")
 	}
 	var idCol int
 	for index, value := range trainingArray {
@@ -58,7 +51,7 @@ func NewD3MData(schemaPath string) deluge.Constructor {
 
 	return func() (deluge.Document, error) {
 		return &D3MData{schema: schema, idCol: idCol}, nil
-	}
+	}, nil
 }
 
 // GetID returns the document id.
@@ -76,13 +69,11 @@ func (d *D3MData) GetMapping() (string, error) {
 	// grab the variable description portion of the schema
 	trainingArray, err := d.schema.Path("trainData.trainData").Children()
 	if err != nil {
-		log.Error(err)
-		return "", err
+		return "", errors.Wrap(err, "Failed to parse train data")
 	}
 	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
 	if err != nil {
-		log.Error(err)
-		return "", err
+		return "", errors.Wrap(err, "Failed to parse target data")
 	}
 	trainingArray = append(trainingArray, targetArray...)
 
@@ -134,14 +125,12 @@ func (d *D3MData) GetSource() (interface{}, error) {
 	// grab the variable description portion of the schema for the training data
 	trainingArray, err := d.schema.Path("trainData.trainData").Children()
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to parse train data")
 	}
 	// do the same for the training targets
 	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
 	if err != nil {
-		log.Error(err)
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to parse target data")
 	}
 	// strip the index info out of the training targets sesction - the merged csv
 	// being ingested doesn't contain that column

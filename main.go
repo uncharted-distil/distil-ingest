@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/deluge"
 	delugeElastic "github.com/unchartedsoftware/deluge/elastic/v5"
 	"github.com/unchartedsoftware/distil-ingest/conf"
@@ -61,7 +62,7 @@ func main() {
 	// Create the metadata index if it doesn't exist
 	err = metadata.CreateMetadataIndex(metadataIndexName, false, elasticClient)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Cause(err))
 		os.Exit(1)
 	}
 
@@ -75,7 +76,7 @@ func main() {
 	// Merge targets into training data before ingest
 	indices, err := merge.GetColIndices(config.DatasetPath+"/data/dataSchema.json", d3mIndexColName)
 	if err != nil {
-		log.Error(err)
+		log.Error(errors.Cause(err))
 		os.Exit(1)
 	}
 	merge.LeftJoin(config.DatasetPath+"/data/trainData.csv", indices.LeftColIdx,
@@ -92,8 +93,16 @@ func main() {
 	}
 
 	input, err := deluge.NewFileInput(config.DatasetPath+"/data", excludes)
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 
-	doc := d3mdata.NewD3MData(config.DatasetPath + "/data/dataSchema.json")
+	doc, err := d3mdata.NewD3MData(config.DatasetPath + "/data/dataSchema.json")
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 
 	// create ingestor
 	ingestor, err := deluge.NewIngestor(

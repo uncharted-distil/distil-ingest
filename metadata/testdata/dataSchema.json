@@ -5,6 +5,11 @@
     "trainData": {
         "trainData": [
             {
+                "varName": "bravo",
+                "varRole": "index",
+                "varType": "integer"
+            },
+            {
                 "varName": "alpha",
                 "varRole": "attribute",
                 "varType": "text"
