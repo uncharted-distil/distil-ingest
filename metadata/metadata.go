@@ -1,17 +1,14 @@
 package metadata
 
 import (
+	"fmt"
 	"context"
 	"io/ioutil"
 	"path/filepath"
 
-	elastic "gopkg.in/olivere/elastic.v5"
-
-	"fmt"
-
+	"gopkg.in/olivere/elastic.v5"
 	"github.com/jeffail/gabs"
-	"github.com/pkg/errors"
-	log "github.com/unchartedsoftware/plog"
+	"github.com/unchartedsoftware/plog"
 )
 
 // CreateMetadataIndex creates a new ElasticSearch index with our target mappings.  An ngram analyzer

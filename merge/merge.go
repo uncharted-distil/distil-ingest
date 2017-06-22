@@ -9,8 +9,7 @@ import (
 	"os"
 
 	"github.com/jeffail/gabs"
-	"github.com/pkg/errors"
-	log "github.com/unchartedsoftware/plog"
+	"github.com/unchartedsoftware/plog"
 )
 
 func parseD3MIndex(schema *gabs.Container, path string) (int, error) {
