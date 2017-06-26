@@ -95,25 +95,25 @@ func (d *D3MData) GetMapping() (string, error) {
 				varType = "text"
 				break
 			case "categorical":
-				varType = "text"
+				varType = "keyword"
 				break
 			case "ordinal":
-				varType = "text"
+				varType = "keyword"
 				break
 			case "unknown":
-				varType = "text"
+				varType = "keyword"
 				break
 			case "dateTime":
 				varType = "date" // for now
 				break
 			case "location":
-				varType = "text" // for now
+				varType = "keyword" // for now
 				break
 			default:
 				log.Errorf("Unknown data type %s", varType)
 			}
 			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".properties.value.type")
-			mappings.SetP("text", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
+			mappings.SetP("keyword", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
 		}
 	}
 
