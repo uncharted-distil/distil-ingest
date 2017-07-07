@@ -4,5 +4,4 @@ vendor
 .glide
 .idea
 .vscode
-distil-ingest
 debug.test
