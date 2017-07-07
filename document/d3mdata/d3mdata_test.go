@@ -5,7 +5,6 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
-	"github.com/unchartedsoftware/plog"
 )
 
 func TestGetSource(t *testing.T) {
@@ -102,7 +101,6 @@ func TestID(t *testing.T) {
 	// Fetch id
 	id, err := doc.GetID()
 	if err != nil {
-		log.Error(err)
 		assert.Fail(t, "Failed to create document")
 	}
 

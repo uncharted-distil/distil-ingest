@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
-	"github.com/unchartedsoftware/plog"
 )
 
 // D3MData is a row from a CSV file
@@ -110,7 +109,7 @@ func (d *D3MData) GetMapping() (string, error) {
 				varType = "keyword" // for now
 				break
 			default:
-				log.Errorf("Unknown data type %s", varType)
+				return "", fmt.Errorf("Unknown data type %s", varType)
 			}
 			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".properties.value.type")
 			mappings.SetP("keyword", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
@@ -186,7 +185,7 @@ func (d *D3MData) GetSource() (interface{}, error) {
 				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			default:
-				log.Errorf("Unknown data type %s", varType)
+				return nil, fmt.Errorf("Unknown data type %s", varType)
 			}
 		}
 	}
