@@ -16,12 +16,14 @@ func TestGetD3MIndices(t *testing.T) {
 }
 
 func TestLeftJoin(t *testing.T) {
-	err := LeftJoin(
+	success, failed, err := LeftJoin(
 		"testdata/trainData.csv", 1,
 		"testdata/trainTargets.csv", 0,
 		"testdata/outfile.csv",
 		true)
 	assert.NoError(t, err)
+	assert.Equal(t, success, 3)
+	assert.Equal(t, failed, 0)
 
 	f, err := os.Open("testdata/outfile.csv")
 	defer os.Remove("testdata/outfile.csv")
