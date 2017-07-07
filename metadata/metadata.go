@@ -8,7 +8,6 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
 	"gopkg.in/olivere/elastic.v5"
 )
 
@@ -32,7 +31,7 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 		}
 
 		if !deleted.Acknowledged {
-			return fmt.Errorf("failed to create index `%f`, index could not be deleted", index)
+			return fmt.Errorf("failed to create index `%s`, index could not be deleted", index)
 		}
 	}
 
