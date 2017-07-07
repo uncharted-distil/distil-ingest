@@ -32,7 +32,7 @@ func main() {
 	app.Name = "distil-ingest"
 	app.Version = "0.1.0"
 	app.Usage = "Ingest D3M training datasets into elasticsearch"
-	app.UsageText = "distil-ingest --schema=<filepath> --training-data=<filepath> --training-targets=<filepath> --output=<filepath>"
+	app.UsageText = "distil-ingest --schema=<filepath> --dataset=<filepath> --es-endpoint=<url> --es-index=<index>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "schema",
