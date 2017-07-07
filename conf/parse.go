@@ -24,15 +24,21 @@ func ParseCommandLine() (*Conf, error) {
 	// error threshold
 	errThreshold := flag.Float64("error-threshold", 0.01, "The percentage threshold of unsuccessful documents which when passed will end ingestion")
 
+	// postgres
+	database := flag.String("database", "", "Postgres database")
+	dbTable := flag.String("db-table", "", "Postgres database table")
+	dbUser := flag.String("db-user", "", "Postgres database user")
+	dbPassword := flag.String("db-password", "", "Postgres database password")
+
 	// parse the flags
 	flag.Parse()
 
 	// check required flags
-	if *esEndpoint == "" {
-		return nil, errors.New("ElasticSearch endpoint is not specified, please provide CL arg '-es-endpoint'")
+	if *esEndpoint == "" && *database == "" {
+		return nil, errors.New("ElasticSearch endpoint and Database are not specified, please provide CL arg '-es-endpoint' or '-database'")
 	}
-	if *esIndex == "" {
-		return nil, errors.New("ElasticSearch index is not specified, please provide CL arg '-es-index'")
+	if *esIndex == "" && *dbTable == "" {
+		return nil, errors.New("ElasticSearch index and DB Table are not specified, please provide CL arg '-es-index' or 'db-table'")
 	}
 
 	// Set and save config
@@ -51,5 +57,11 @@ func ParseCommandLine() (*Conf, error) {
 		NumActiveConnections: *numActiveConnections,
 		// error threshold
 		ErrThreshold: *errThreshold,
+
+		// postgres
+		Database:   *database,
+		DBTable:    *dbTable,
+		DBUser:     *dbUser,
+		DBPassword: *dbPassword,
 	}, nil
 }

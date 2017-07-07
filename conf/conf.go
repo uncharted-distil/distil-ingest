@@ -21,4 +21,10 @@ type Conf struct {
 	NumActiveConnections int
 	// error threshold
 	ErrThreshold float64
+
+	// postgres config
+	Database   string
+	DBTable    string
+	DBUser     string
+	DBPassword string
 }

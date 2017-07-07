@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"net/http"
 	"os"
 	"runtime"
@@ -13,6 +15,7 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/merge"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-ingest/postgres"
 	"github.com/unchartedsoftware/plog"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -34,6 +37,56 @@ func main() {
 		log.Error(err)
 		os.Exit(1)
 	}
+
+	// Based on parameters provided, ingest to the right target.
+	if config.Database != "" {
+		ingestPostgres(config)
+	} else {
+		ingestElastic(config)
+	}
+}
+
+func ingestPostgres(config *conf.Conf) {
+	log.Info("Starting ingestion")
+	// Connect to the database.
+	pg, err := postgres.NewDatabase(config)
+	if err != nil {
+		log.Error(err)
+	}
+
+	// Merge data since the merged data is ingested.
+	mergeData(config)
+
+	// Drop the current table if requested.
+	if config.ClearExisting {
+		err = pg.DropTable(config.DBTable)
+		if err != nil {
+			log.Error(err)
+		}
+	}
+
+	// Create the database table.
+	err = pg.InitializeTable(config.DBTable, config.DatasetPath+"/data/dataSchema.json")
+	if err != nil {
+		log.Error(err)
+	}
+	log.Infof("Done table initialization")
+
+	// Load the data.
+	reader, err := os.Open(config.DatasetPath + "/data/merged.csv")
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		err = pg.IngestRow(config.DBTable, line)
+		if err != nil {
+			log.Error(fmt.Sprintf("%v", err))
+		}
+	}
+
+	log.Info("Done ingestion")
+}
+
+func ingestElastic(config *conf.Conf) {
 
 	// create elasticsearch client
 	delugeClient, err := delugeElastic.NewClient(
@@ -74,14 +127,7 @@ func main() {
 	}
 
 	// Merge targets into training data before ingest
-	indices, err := merge.GetColIndices(config.DatasetPath+"/data/dataSchema.json", d3mIndexColName)
-	if err != nil {
-		log.Error(errors.Cause(err))
-		os.Exit(1)
-	}
-	merge.LeftJoin(config.DatasetPath+"/data/trainData.csv", indices.LeftColIdx,
-		config.DatasetPath+"/data/trainTargets.csv", indices.RightColIdx,
-		config.DatasetPath+"/data/merged.csv", true)
+	mergeData(config)
 
 	// Filesystem Input
 	excludes := []string{
@@ -139,4 +185,17 @@ func main() {
 		}
 	}
 
+}
+
+func mergeData(config *conf.Conf) {
+	log.Infof("Merging data in %s", config.DatasetPath)
+	indices, err := merge.GetColIndices(config.DatasetPath+"/data/dataSchema.json", d3mIndexColName)
+	if err != nil {
+		log.Error(errors.Cause(err))
+		os.Exit(1)
+	}
+	merge.LeftJoin(config.DatasetPath+"/data/trainData.csv", indices.LeftColIdx,
+		config.DatasetPath+"/data/trainTargets.csv", indices.RightColIdx,
+		config.DatasetPath+"/data/merged.csv", true)
+	log.Infof("Done merging data in %s", config.DatasetPath)
 }
