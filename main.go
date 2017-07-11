@@ -138,7 +138,7 @@ func ingestElastic(config *conf.Conf) {
 		"testData.csv",
 	}
 
-	input, err := deluge.NewFileInput(config.DatasetPath+"/data", excludes)
+	input, err := deluge.NewFileInput([]string{config.DatasetPath+"/data"}, excludes)
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
