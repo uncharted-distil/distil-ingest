@@ -61,7 +61,7 @@ func ingestPostgres(config *conf.Conf) {
 	if config.ClearExisting {
 		err = pg.DropTable(config.DBTable)
 		if err != nil {
-			log.Error(err)
+			log.Warn(err)
 		}
 	}
 
@@ -79,7 +79,7 @@ func ingestPostgres(config *conf.Conf) {
 		line := scanner.Text()
 		err = pg.IngestRow(config.DBTable, line)
 		if err != nil {
-			log.Error(fmt.Sprintf("%v", err))
+			log.Warn(fmt.Sprintf("%v", err))
 		}
 	}
 
