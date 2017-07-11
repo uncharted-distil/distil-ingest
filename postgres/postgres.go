@@ -28,6 +28,7 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 	db := pg.Connect(&pg.Options{
 		User:     config.DBUser,
 		Password: config.DBPassword,
+		Database: config.Database,
 	})
 	ds := service.NewDatasetService(db)
 
@@ -90,7 +91,7 @@ func (d *Database) InitializeTable(tableName string, schemaPath string) error {
 	createStatement := `CREATE TABLE %s(%s);`
 	vars := ""
 	for _, variable := range ds.Variables {
-		vars = fmt.Sprintf("%s\n%s %s,", vars, variable.Name, variable.Type)
+		vars = fmt.Sprintf("%s\n\"%s\" %s,", vars, variable.Name, variable.Type)
 	}
 	if len(vars) > 0 {
 		vars = vars[:len(vars)-1]
