@@ -8,6 +8,7 @@ import:
   - elastic/v5
 - package: github.com/unchartedsoftware/plog
 - package: gopkg.in/olivere/elastic.v5
+- package: github.com/go-pg/pg
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
