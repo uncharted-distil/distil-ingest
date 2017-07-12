@@ -21,17 +21,14 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 
 	// delete the index if it already exists
 	if exists {
-		if !overwrite {
-			return fmt.Errorf("failed to create index `%s`, already exists and overwrite is disabled", index)
-		}
-
-		deleted, err := client.DeleteIndex(index).Do(context.Background())
-		if err != nil {
-			return errors.Wrapf(err, "failed to delete index %s", index)
-		}
-
-		if !deleted.Acknowledged {
-			return fmt.Errorf("failed to create index `%s`, index could not be deleted", index)
+		if overwrite {
+			deleted, err := client.DeleteIndex(index).Do(context.Background())
+			if err != nil {
+				return errors.Wrapf(err, "failed to delete index %s", index)
+			}
+			if !deleted.Acknowledged {
+				return fmt.Errorf("failed to create index `%s`, index could not be deleted", index)
+			}
 		}
 	}
 
