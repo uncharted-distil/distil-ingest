@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
-	"github.com/unchartedsoftware/plog"
 )
 
 // D3MData is a row from a CSV file
@@ -20,7 +19,7 @@ type D3MData struct {
 func parseAndSetVal(index int, varType string, varName string, varEntry *gabs.Container, parser func() (interface{}, bool)) error {
 	val, success := parser()
 	if !success {
-		return fmt.Errorf("Unabled to parse index %d as %s", index, varType)
+		return fmt.Errorf("unable to parse index %d as %s", index, varType)
 	}
 	varEntry.SetP(val, varName+".value")
 	varEntry.SetP(varType, varName+".schemaType")
@@ -32,13 +31,13 @@ func NewD3MData(schemaPath string) (deluge.Constructor, error) {
 	// Unmarshall the schema file
 	schema, err := gabs.ParseJSONFile(schemaPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse schema file")
+		return nil, errors.Wrap(err, "failed to parse schema file")
 	}
 
 	// find the row ID column and store it for quick retrieval
 	trainingArray, err := schema.Path("trainData.trainData").Children()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse train data")
+		return nil, errors.Wrap(err, "failed to parse train data")
 	}
 	var idCol int
 	for index, value := range trainingArray {
@@ -69,11 +68,11 @@ func (d *D3MData) GetMapping() (string, error) {
 	// grab the variable description portion of the schema
 	trainingArray, err := d.schema.Path("trainData.trainData").Children()
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to parse train data")
+		return "", errors.Wrap(err, "failed to parse train data")
 	}
 	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to parse target data")
+		return "", errors.Wrap(err, "failed to parse target data")
 	}
 	trainingArray = append(trainingArray, targetArray...)
 
@@ -110,7 +109,7 @@ func (d *D3MData) GetMapping() (string, error) {
 				varType = "keyword" // for now
 				break
 			default:
-				log.Errorf("Unknown data type %s", varType)
+				return "", fmt.Errorf("Unknown data type %s", varType)
 			}
 			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".properties.value.type")
 			mappings.SetP("keyword", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
@@ -125,12 +124,12 @@ func (d *D3MData) GetSource() (interface{}, error) {
 	// grab the variable description portion of the schema for the training data
 	trainingArray, err := d.schema.Path("trainData.trainData").Children()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse train data")
+		return nil, errors.Wrap(err, "failed to parse train data")
 	}
 	// do the same for the training targets
 	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse target data")
+		return nil, errors.Wrap(err, "failed to parse target data")
 	}
 	// strip the index info out of the training targets sesction - the merged csv
 	// being ingested doesn't contain that column
@@ -186,7 +185,7 @@ func (d *D3MData) GetSource() (interface{}, error) {
 				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
 				break
 			default:
-				log.Errorf("Unknown data type %s", varType)
+				return nil, fmt.Errorf("Unknown data type %s", varType)
 			}
 		}
 	}

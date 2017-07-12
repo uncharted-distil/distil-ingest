@@ -20,7 +20,7 @@ fmt:
 	@go fmt $(shell glide novendor)
 
 build: lint
-	@go build -i
+	@go build $(shell glide novendor)
 
 test: build
 	@go test $(shell glide novendor)

@@ -8,7 +8,6 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
 	"gopkg.in/olivere/elastic.v5"
 )
 
@@ -17,23 +16,22 @@ import (
 func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) error {
 	exists, err := client.IndexExists(index).Do(context.Background())
 	if err != nil {
-		return errors.Wrapf(err, "Failed to complete check for existence of index %s", index)
+		return errors.Wrapf(err, "failed to complete check for existence of index %s", index)
 	}
 
 	// delete the index if it already exists
 	if exists {
 		if !overwrite {
-			log.Infof("Skipped index create index %s - index already exists and overwrite is disabled", index)
-			return nil
+			return fmt.Errorf("failed to create index `%s`, already exists and overwrite is disabled", index)
 		}
 
 		deleted, err := client.DeleteIndex(index).Do(context.Background())
 		if err != nil {
-			return errors.Wrapf(err, "Failed to delete index %s", index)
+			return errors.Wrapf(err, "failed to delete index %s", index)
 		}
 
 		if !deleted.Acknowledged {
-			return fmt.Errorf("Failed to create index %s - index could not be deleted", index)
+			return fmt.Errorf("failed to create index `%s`, index could not be deleted", index)
 		}
 	}
 
@@ -96,7 +94,7 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 	}`
 	created, err := client.CreateIndex(index).BodyString(creationData).Do(context.Background())
 	if err != nil {
-		errors.Wrapf(err, "Failed to create index %s", index)
+		errors.Wrapf(err, "failed to create index %s", index)
 	}
 	if !created.Acknowledged {
 		return fmt.Errorf("Failed to create new index %s", index)
@@ -110,14 +108,14 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 	// Unmarshall the schema file
 	schema, err := gabs.ParseJSONFile(schemaPath)
 	if err != nil {
-		return errors.Wrap(err, "Failed to parses schema file")
+		return errors.Wrap(err, "failed to parses schema file")
 	}
 
 	// load data description text
 	descPath := schema.Path("descriptionFile").Data().(string)
 	contents, err := ioutil.ReadFile(filepath.Dir(schemaPath) + "/" + descPath)
 	if err != nil {
-		return errors.Wrap(err, "Failed to load description file")
+		return errors.Wrap(err, "failed to load description file")
 	}
 
 	// create a new object for our output metadata and write the parts of the schema
@@ -135,11 +133,11 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 	// values
 	trainVariables, err := schema.Path("trainData.trainData").Children()
 	if err != nil {
-		return errors.Wrap(err, "Failed to parse training data")
+		return errors.Wrap(err, "failed to parse training data")
 	}
 	targetVariables, err := schema.Path("trainData.trainTargets").Children()
 	if err != nil {
-		return errors.Wrap(err, "Failed to parse target data")
+		return errors.Wrap(err, "failed to parse target data")
 	}
 	variables := append(trainVariables, targetVariables...)
 
@@ -160,11 +158,11 @@ func IngestMetadata(index string, schemaPath string, client *elastic.Client) err
 		BodyString(output.String()).
 		Do(context.Background())
 	if err != nil {
-		return errors.Wrapf(err, "Failed to add document to index %s", index)
+		return errors.Wrapf(err, "failed to add document to index `%s`", index)
 	}
 
 	if !indexResp.Created {
-		return fmt.Errorf("Failed to add new metadata record with ID %s", id)
+		return fmt.Errorf("failed to add new metadata record with ID `%s`", id)
 	}
 
 	return nil
