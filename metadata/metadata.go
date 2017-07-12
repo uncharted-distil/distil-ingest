@@ -29,10 +29,12 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 			if !deleted.Acknowledged {
 				return fmt.Errorf("failed to create index `%s`, index could not be deleted", index)
 			}
+		} else {
+			return nil
 		}
 	}
 
-	creationData := `{
+	body := `{
 		"settings": {
 			"analysis": {
 				"filter": {
@@ -89,9 +91,9 @@ func CreateMetadataIndex(index string, overwrite bool, client *elastic.Client) e
 			}
 		}
 	}`
-	created, err := client.CreateIndex(index).BodyString(creationData).Do(context.Background())
+	created, err := client.CreateIndex(index).BodyString(body).Do(context.Background())
 	if err != nil {
-		errors.Wrapf(err, "failed to create index %s", index)
+		return errors.Wrapf(err, "failed to create index %s", index)
 	}
 	if !created.Acknowledged {
 		return fmt.Errorf("Failed to create new index %s", index)
