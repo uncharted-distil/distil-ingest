@@ -12,7 +12,7 @@ imports:
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/unchartedsoftware/deluge
-  version: 4459a5dbe084f966b6a904179b9b6ec32a100814
+  version: a5dcce53b4998f4e9f042995002f3c062aa6c5e5
   subpackages:
   - document
   - elastic/v5
