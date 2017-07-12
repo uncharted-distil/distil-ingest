@@ -135,7 +135,7 @@ func main() {
 		}
 
 		// Create the metadata index if it doesn't exist
-		err = metadata.CreateMetadataIndex(metadataIndexName, clearExisting, elasticClient)
+		err = metadata.CreateMetadataIndex(metadataIndexName, false, elasticClient)
 		if err != nil {
 			log.Error(errors.Cause(err))
 			os.Exit(1)
