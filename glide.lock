@@ -1,6 +1,8 @@
-hash: e9b0e689699271ff9c83eda2ee66bdb228eea47dcd0fc003f78fe957c9aeaf5a
-updated: 2017-07-07T18:10:53.778603117-04:00
+hash: 77f2faadf9f733a5a3a338c84f10702126fae472e336adf6fa6ba8c7b3359d89
+updated: 2017-07-17T14:39:59.163610438-04:00
 imports:
+- name: github.com/golang/snappy
+  version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/jeffail/gabs
   version: 9cef256b595a9e616eb6aec1da446529b7705613
 - name: github.com/mattn/go-colorable
@@ -9,8 +11,14 @@ imports:
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mgutz/ansi
   version: 9520e82c474b0a04dd04f8a40959027271bab992
+- name: github.com/optiopay/kafka
+  version: 7b7b6a0d49740e36cd39226913b38cecf9ef76cb
+  subpackages:
+  - proto
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
+- name: github.com/satori/go.uuid
+  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - name: github.com/unchartedsoftware/deluge
   version: a5dcce53b4998f4e9f042995002f3c062aa6c5e5
   subpackages:

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 DATA_DIR=~/data/d3m
 SCHEMA=/data/dataSchema.json
 MERGED=/data/merged.csv
@@ -9,7 +8,7 @@ ES_ENDPOINT=http://localhost:9200
 
 for DATASET in "${DATASETS[@]}"
 do
-    go run cmd/ingest/main.go \
+    go run cmd/distil-ingest/main.go \
         --es-endpoint="$ES_ENDPOINT" \
         --es-index="$DATASET" \
         --schema="$DATA_DIR/$DATASET/$SCHEMA" \

@@ -1,7 +1,9 @@
 package: github.com/unchartedsoftware/distil-ingest
 import:
 - package: github.com/jeffail/gabs
+- package: github.com/optiopay/kafka
 - package: github.com/pkg/errors
+- package: github.com/satori/go.uuid
 - package: github.com/unchartedsoftware/deluge
   subpackages:
   - document
