@@ -8,6 +8,9 @@ ES_ENDPOINT=http://localhost:9200
 
 for DATASET in "${DATASETS[@]}"
 do
+    echo "--------------------------------------------------------------------------------"
+    echo " Ingesting $DATASET dataset"
+    echo "--------------------------------------------------------------------------------"
     go run cmd/distil-ingest/main.go \
         --es-endpoint="$ES_ENDPOINT" \
         --es-index="$DATASET" \

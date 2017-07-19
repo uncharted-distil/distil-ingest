@@ -96,7 +96,7 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
 		}
 		if c.String("dataset") == "" {
-			return cli.NewExitError("missing commandline flag `--schema`", 1)
+			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
 
 		esEndpoint := c.String("es-endpoint")

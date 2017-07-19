@@ -6,7 +6,18 @@ import (
 
 	"github.com/optiopay/kafka"
 	"github.com/optiopay/kafka/proto"
+	"github.com/pkg/errors"
 )
+
+const (
+	// EarliestOffset will consume all data ever put on the queue
+	EarliestOffset ConsumerOffset = "earliest"
+	// LatestOffset will consume only the newest information on the queue.
+	LatestOffset ConsumerOffset = "latest"
+)
+
+// ConsumerOffset represents the offset for the consumer.
+type ConsumerOffset string
 
 // Client represents an kafka client.
 type Client struct {
@@ -37,9 +48,13 @@ type Message struct {
 
 // Result represents a kafka classification result.
 type Result struct {
+	ID       string                 `json:"id"`
+	Status   string                 `json:"status"`
 	Samples  map[string]interface{} `json:"samples"`
 	Labels   map[string]interface{} `json:"labels"`
-	FileName string                 `json:"fileName"`
+	Path     string                 `json:"path"`
+	FileType string                 `json:"filetype"`
+	Raw      string                 `json:"-"`
 }
 
 // NewClient instantiates and returns a new kafka client.
@@ -61,7 +76,7 @@ func NewClient(endpoints []string, user string) (*Client, error) {
 }
 
 // NewConsumer returns a new consumer object for the provided topic.
-func (c *Client) NewConsumer(topic string) (*Consumer, error) {
+func (c *Client) NewConsumer(topic string, offset ConsumerOffset) (*Consumer, error) {
 	consumer := &Consumer{}
 	// get number of partitions
 	numPartitions, err := c.broker.PartitionCount(topic)
@@ -73,6 +88,13 @@ func (c *Client) NewConsumer(topic string) (*Consumer, error) {
 	for i := 0; i < consumer.numPartitions; i++ {
 		// create consumer config
 		conf := kafka.NewConsumerConf(topic, int32(i))
+		if offset != EarliestOffset {
+			offset, err := c.broker.OffsetLatest(topic, int32(i))
+			if err != nil {
+				return nil, err
+			}
+			conf.StartOffset = offset
+		}
 		// create consumer
 		cons, err := c.broker.Consumer(conf)
 		if err != nil {
@@ -111,8 +133,9 @@ func (c *Consumer) Consume() (*Result, error) {
 	res := &Result{}
 	err = json.Unmarshal(msg.Value, &res)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to unmarshal json")
 	}
+	res.Raw = string(msg.Value)
 	return res, nil
 }
 
