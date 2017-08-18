@@ -3,6 +3,8 @@
 DATA_DIR=~/data/d3m
 SCHEMA=/data/dataSchema.json
 MERGED=/data/merged.csv
+CLASSIFICATION=/data/classification_dn.json
+METADATA_INDEX=datasets
 DATASETS=(o_185 o_196 o_313 o_38 o_4550)
 ES_ENDPOINT=http://localhost:9200
 
@@ -13,8 +15,10 @@ do
     echo "--------------------------------------------------------------------------------"
     go run cmd/distil-ingest/main.go \
         --es-endpoint="$ES_ENDPOINT" \
-        --es-index="$DATASET" \
+        --es-metadata-index="$METADATA_INDEX" \
+        --es-data-index="$DATASET" \
         --schema="$DATA_DIR/$DATASET/$SCHEMA" \
         --dataset="$DATA_DIR/$DATASET/$MERGED" \
+        --classification="$DATA_DIR/$DATASET/$CLASSIFICATION" \
         --clear-existing
 done

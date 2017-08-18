@@ -1,24 +1,54 @@
-hash: 77f2faadf9f733a5a3a338c84f10702126fae472e336adf6fa6ba8c7b3359d89
-updated: 2017-07-17T14:39:59.163610438-04:00
+hash: f68f1b894c7bdc3c8b745d322fddb6a9ab1cf070cd029f61364744ba2af200eb
+updated: 2017-08-18T15:23:46.825381159-04:00
 imports:
+- name: github.com/aws/aws-sdk-go
+  version: ce0ac9c36bff5e2ad4c5fefae43d735fd337f6fb
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
+  - service/sts
+- name: github.com/go-ini/ini
+  version: c787282c39ac1fc618827141a1f762240def08a3
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/jeffail/gabs
   version: 9cef256b595a9e616eb6aec1da446529b7705613
-- name: github.com/mattn/go-colorable
-  version: 941b50ebc6efddf4c41c8e4537a5f68a4e686b24
-- name: github.com/mattn/go-isatty
-  version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/mgutz/ansi
-  version: 9520e82c474b0a04dd04f8a40959027271bab992
+  version: c286dcecd19ff979eeb73ea444e479b903f2cfcb
 - name: github.com/optiopay/kafka
-  version: 7b7b6a0d49740e36cd39226913b38cecf9ef76cb
+  version: 4e089e5c517cf278d10a7160266a278ed46aad4b
   subpackages:
   - proto
 - name: github.com/pkg/errors
-  version: c605e284fe17294bda444b34710735b29d1a9d90
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/satori/go.uuid
-  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/Sirupsen/logrus
+  version: a283a10442df8dc09befd873fab202bf8a253d6a
 - name: github.com/unchartedsoftware/deluge
   version: a5dcce53b4998f4e9f042995002f3c062aa6c5e5
   subpackages:
@@ -33,16 +63,17 @@ imports:
   - threshold
   - util
 - name: github.com/unchartedsoftware/plog
-  version: 34d2bbd3c0a9458feb0752af2b578a23eb8ddc4f
+  version: 24c9313ea3ff2a86868f9961420e5b72fb83a019
 - name: github.com/urfave/cli
   version: 4b90d79a682b4bf685762c7452db20f2a676ecb2
 - name: golang.org/x/sys
-  version: 739734461d1c916b6c72a63d7efda2b27edb369f
+  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v5
-  version: 3113f9b9ad37509fe5f8a0e5e91c96fdc4435e26
+  version: edbef41beaacc2ee95e61af8faff04e67c01e268
   subpackages:
+  - config
   - uritemplates
 testImports:
 - name: github.com/davecgh/go-spew
@@ -54,6 +85,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: f6abca593680b2315d2075e0f5e2a9751e3f431a
+  version: 890a5c3458b43e6104ff5da8dfa139d013d77544
   subpackages:
   - assert

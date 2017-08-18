@@ -45,14 +45,24 @@ func main() {
 			Usage: "The dataset source path",
 		},
 		cli.StringFlag{
+			Name:  "classification",
+			Value: "",
+			Usage: "The classification source path",
+		},
+		cli.StringFlag{
 			Name:  "es-endpoint",
 			Value: "",
 			Usage: "The Elasticsearch endpoint",
 		},
 		cli.StringFlag{
-			Name:  "es-index",
+			Name:  "es-metadata-index",
+			Value: metadataIndexName,
+			Usage: "The Elasticsearch index to ingest metadata into",
+		},
+		cli.StringFlag{
+			Name:  "es-data-index",
 			Value: "",
-			Usage: "The Elasticsearch index to ingest into",
+			Usage: "The Elasticsearch index to ingest data into",
 		},
 		cli.Int64Flag{
 			Name:  "batch-size",
@@ -89,8 +99,11 @@ func main() {
 		if c.String("es-endpoint") == "" {
 			return cli.NewExitError("missing commandline flag `--es-endpoint`", 1)
 		}
-		if c.String("es-index") == "" {
-			return cli.NewExitError("missing commandline flag `--es-index`", 1)
+		if c.String("es-metadata-index") == "" {
+			return cli.NewExitError("missing commandline flag `--es-metadata-index`", 1)
+		}
+		if c.String("es-data-index") == "" {
+			return cli.NewExitError("missing commandline flag `--es-data-index`", 1)
 		}
 		if c.String("schema") == "" {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
@@ -98,11 +111,16 @@ func main() {
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
+		if c.String("classification") == "" {
+			return cli.NewExitError("missing commandline flag `--classification`", 1)
+		}
 
 		esEndpoint := c.String("es-endpoint")
-		esIndex := c.String("es-index")
+		esMetadataIndex := c.String("es-metadata-index")
+		esDataIndex := c.String("es-data-index")
 		schemaPath := filepath.Clean(c.String("schema"))
 		datasetPath := filepath.Clean(c.String("dataset"))
+		classificationPath := filepath.Clean(c.String("classification"))
 		errThreshold := c.Float64("error-threshold")
 		numActiveConnections := c.Int("num-active-connections")
 		numWorkers := c.Int("num-workers")
@@ -135,14 +153,18 @@ func main() {
 		}
 
 		// Create the metadata index if it doesn't exist
-		err = metadata.CreateMetadataIndex(metadataIndexName, false, elasticClient)
+		err = metadata.CreateMetadataIndex(esMetadataIndex, false, elasticClient)
 		if err != nil {
 			log.Error(errors.Cause(err))
 			os.Exit(1)
 		}
 
 		// Ingest the dataset info into the metadata index
-		err = metadata.IngestMetadata(metadataIndexName, schemaPath, elasticClient)
+		err = metadata.IngestMetadataFromClassification(
+			esMetadataIndex,
+			schemaPath,
+			classificationPath,
+			elasticClient)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
@@ -165,7 +187,7 @@ func main() {
 			deluge.SetDocument(doc),
 			deluge.SetInput(input),
 			deluge.SetClient(delugeClient),
-			deluge.SetIndex(esIndex),
+			deluge.SetIndex(esDataIndex),
 			deluge.SetErrorThreshold(errThreshold),
 			deluge.SetActiveConnections(numActiveConnections),
 			deluge.SetNumWorkers(numWorkers),

@@ -16,21 +16,16 @@ func TestGetD3MIndices(t *testing.T) {
 }
 
 func TestLeftJoin(t *testing.T) {
-	success, failed, err := LeftJoin(
+	output, success, failed, err := LeftJoin(
 		"testdata/trainData.csv", 1,
 		"testdata/trainTargets.csv", 0,
-		"testdata/outfile.csv",
 		true)
 	assert.NoError(t, err)
 	assert.Equal(t, success, 3)
 	assert.Equal(t, failed, 0)
 
-	f, err := os.Open("testdata/outfile.csv")
-	defer os.Remove("testdata/outfile.csv")
-	assert.NoError(t, err)
-
 	// Create a new Scanner for the file.
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(bytes.NewReader(output))
 	var lines []string
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())

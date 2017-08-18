@@ -143,7 +143,7 @@ func main() {
 				return cli.NewExitError(fmt.Sprintf("Classification for `%s` failed", path), 2)
 			}
 			if res.ID == id {
-				log.Infof("Classification for `%s` successful: `%v`", path)
+				log.Infof("Classification for `%s` successful", path)
 				// marshall result
 				bytes, err := json.MarshalIndent(res, "", "    ")
 				if err != nil {
