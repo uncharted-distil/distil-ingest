@@ -2,6 +2,7 @@ package s3
 
 import (
 	"bytes"
+	"io/ioutil"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -32,4 +33,22 @@ func WriteToBucket(client *s3.S3, bucket string, key string, data []byte) error 
 		return err
 	}
 	return nil
+}
+
+// ReadFromBucket reads the data from the provided bucket.
+func ReadFromBucket(client *s3.S3, bucket string, key string, data []byte) ([]byte, error) {
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	}
+	res, err := client.GetObject(input)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
