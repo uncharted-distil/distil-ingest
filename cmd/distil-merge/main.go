@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -52,6 +53,11 @@ func main() {
 			Value: "",
 			Usage: "The merged output AWS S3 key",
 		},
+		cli.StringFlag{
+			Name:  "output-path",
+			Value: "",
+			Usage: "The merged output path",
+		},
 		cli.BoolFlag{
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
@@ -78,11 +84,15 @@ func main() {
 		if c.String("output-key") == "" {
 			return cli.NewExitError("missing commandline flag `--output-key`", 1)
 		}
+		if c.String("output-path") == "" {
+			return cli.NewExitError("missing commandline flag `--output-path`", 1)
+		}
 		schemaPath := filepath.Clean(c.String("schema"))
 		trainingDataPath := filepath.Clean(c.String("training-data"))
 		trainingTargetsPath := filepath.Clean(c.String("training-targets"))
-		outputBucket := filepath.Clean(c.String("output-bucket"))
-		outputKey := filepath.Clean(c.String("output-key"))
+		outputBucket := c.String("output-bucket")
+		outputKey := c.String("output-key")
+		outputPath := filepath.Clean(c.String("output-path"))
 		hasHeader := c.Bool("has-header")
 		includeHeader := c.Bool("include-header")
 
@@ -118,12 +128,21 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 3)
 		}
 
+		// write merged output to AWS S3
 		err = s3.WriteToBucket(client, outputBucket, outputKey, output)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 4)
 		}
 
+		// write copy to disk
+		err = ioutil.WriteFile(outputPath, output, 0644)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 5)
+		}
+
+		// log success / failure
 		if failed == 0 {
 			log.Infof("Merged %d lines successfully, written to %s/%s", success, outputBucket, outputKey)
 		} else {
