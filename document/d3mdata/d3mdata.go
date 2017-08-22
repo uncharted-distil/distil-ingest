@@ -107,11 +107,7 @@ func (d *D3MData) GetSource() (interface{}, error) {
 			continue
 		}
 
-		varNameKey := fmt.Sprintf("%s.value", v.Name)
-		varTypeKey := fmt.Sprintf("%s.schemaType", v.Name)
-
-		// set type
-		source[varTypeKey] = v.Type
+		varEntry := make(map[string]interface{})
 
 		var varValue interface{}
 
@@ -135,7 +131,10 @@ func (d *D3MData) GetSource() (interface{}, error) {
 		}
 
 		// set value
-		source[varNameKey] = varValue
+
+		varEntry["value"] = varValue
+		varEntry["schemaType"] = v.Type
+		source[v.Name] = varEntry
 	}
 
 	return source, nil

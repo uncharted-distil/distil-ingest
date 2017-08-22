@@ -160,7 +160,7 @@ func (m *Metadata) loadVariables() error {
 				return errors.Wrap(err, fmt.Sprintf("failed to parse varType for column `%d`", col))
 			}
 			varType := defaultVarType
-			if len(varTypeLabels) > 1 {
+			if len(varTypeLabels) > 0 {
 				// TODO: fix so we don't always just use first classification
 				varType = varTypeLabels[0].Data().(string)
 			}
@@ -240,7 +240,7 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 	}
 
 	// push the document into the metadata index
-	indexResp, err := client.Index().
+	_, err = client.Index().
 		Index(index).
 		Type("metadata").
 		Id(meta.ID).
@@ -248,9 +248,6 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 		Do(context.Background())
 	if err != nil {
 		return errors.Wrapf(err, "failed to add document to index `%s`", index)
-	}
-	if !indexResp.Created {
-		return fmt.Errorf("failed to add new metadata record with ID `%s`", meta.ID)
 	}
 	return nil
 }
