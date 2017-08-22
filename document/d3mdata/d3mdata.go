@@ -7,49 +7,38 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
+
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 )
 
 // D3MData is a row from a CSV file
 type D3MData struct {
 	document.CSV
-	schema *gabs.Container
-	idCol  int
+	meta  *metadata.Metadata
+	idCol int
 }
 
-func parseAndSetVal(index int, varType string, varName string, varEntry *gabs.Container, parser func() (interface{}, bool)) error {
-	val, success := parser()
-	if !success {
-		return fmt.Errorf("unable to parse index %d as %s", index, varType)
+func getIDColumn(meta *metadata.Metadata) (int, error) {
+	for index, v := range meta.Variables {
+		if v.Name == "d3mIndex" {
+			return index, nil
+		}
 	}
-	varEntry.SetP(val, varName+".value")
-	varEntry.SetP(varType, varName+".schemaType")
-	return nil
+	return -1, errors.Errorf("no id column found")
 }
 
-// NewD3MData instantiates and returns a new document.
-func NewD3MData(schemaPath string) (deluge.Constructor, error) {
-	// Unmarshall the schema file
-	schema, err := gabs.ParseJSONFile(schemaPath)
+// NewD3MData instantiates and returns a new document using metadata.
+func NewD3MData(meta *metadata.Metadata) (deluge.Constructor, error) {
+	// get id column and cache for later
+	idCol, err := getIDColumn(meta)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse schema file")
 	}
-
-	// find the row ID column and store it for quick retrieval
-	trainingArray, err := schema.Path("trainData.trainData").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse train data")
-	}
-	var idCol int
-	for index, value := range trainingArray {
-		varDesc := value.Data().(map[string]interface{})
-		if varDesc["varName"].(string) == "d3mIndex" {
-			idCol = index
-			break
-		}
-	}
-
 	return func() (deluge.Document, error) {
-		return &D3MData{schema: schema, idCol: idCol}, nil
+		return &D3MData{
+			meta:  meta,
+			idCol: idCol,
+		}, nil
 	}, nil
 }
 
@@ -65,55 +54,45 @@ func (d *D3MData) GetType() (string, error) {
 
 // GetMapping returns the document's mappings.
 func (d *D3MData) GetMapping() (string, error) {
-	// grab the variable description portion of the schema
-	trainingArray, err := d.schema.Path("trainData.trainData").Children()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse train data")
-	}
-	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse target data")
-	}
-	trainingArray = append(trainingArray, targetArray...)
-
 	// create the ES mappings based on the variables in the schema
 	mappings := gabs.New()
-	for _, value := range trainingArray {
-		varDesc := value.Data().(map[string]interface{})
-		var varType string
-		role := varDesc["varRole"].(string)
-		if role == "attribute" || role == "target" {
-			switch varDesc["varType"].(string) {
-			case "integer":
-				varType = "long"
-				break
-			case "float":
-				varType = "double"
-				break
-			case "text":
-				varType = "text"
-				break
-			case "categorical":
-				varType = "keyword"
-				break
-			case "ordinal":
-				varType = "keyword"
-				break
-			case "unknown":
-				varType = "keyword"
-				break
-			case "dateTime":
-				varType = "date" // for now
-				break
-			case "location":
-				varType = "keyword" // for now
-				break
-			default:
-				return "", fmt.Errorf("Unknown data type %s", varType)
-			}
-			mappings.SetP(varType, "datum.properties."+varDesc["varName"].(string)+".properties.value.type")
-			mappings.SetP("keyword", "datum.properties."+varDesc["varName"].(string)+".properties.schemaType.type")
+
+	for _, v := range d.meta.Variables {
+
+		if v.Role != "attribute" && v.Role != "target" {
+			continue
 		}
+
+		var varType string
+
+		switch v.Type {
+		case "integer", "int":
+			varType = "long"
+			break
+		case "float":
+			varType = "double"
+			break
+		case "text":
+			varType = "text"
+			break
+		case "categorical", "ordinal", "unknown", "location":
+			varType = "keyword"
+			break
+		case "dateTime":
+			varType = "date" // for now
+			break
+		case "boolean":
+			varType = "boolean"
+			break
+		default:
+			return "", fmt.Errorf("Unknown data type %s", varType)
+		}
+
+		varNameKey := fmt.Sprintf("datum.properties.%s.properties.value.type", v.Name)
+		varTypeKey := fmt.Sprintf("datum.properties.%s.properties.schemaType.type", v.Name)
+
+		mappings.SetP(varType, varNameKey)
+		mappings.SetP("keyword", varTypeKey)
 	}
 
 	return mappings.String(), nil
@@ -121,75 +100,43 @@ func (d *D3MData) GetMapping() (string, error) {
 
 // GetSource returns the source document in JSON format
 func (d *D3MData) GetSource() (interface{}, error) {
-	// grab the variable description portion of the schema for the training data
-	trainingArray, err := d.schema.Path("trainData.trainData").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse train data")
-	}
-	// do the same for the training targets
-	targetArray, err := d.schema.Path("trainData.trainTargets").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse target data")
-	}
-	// strip the index info out of the training targets sesction - the merged csv
-	// being ingested doesn't contain that column
-	var indexCol = 0
-	for index, child := range targetArray {
-		varDesc := child.Data().(map[string]interface{})
-		if varDesc["varRole"].(string) == "index" {
-			indexCol = index
+	source := make(map[string]interface{})
+
+	for index, v := range d.meta.Variables {
+		if v.Role != "attribute" && v.Role != "target" {
+			continue
+		}
+
+		varNameKey := fmt.Sprintf("%s.value", v.Name)
+		varTypeKey := fmt.Sprintf("%s.schemaType", v.Name)
+
+		// set type
+		source[varTypeKey] = v.Type
+
+		var varValue interface{}
+
+		// set value
+		// TODO: ignore parse errors for now
+		switch v.Type {
+		case "integer", "int", "dateTime":
+			varValue, _ = d.Int64(index)
 			break
+		case "float":
+			varValue, _ = d.Float64(index)
+			break
+		case "text", "categorical", "ordinal", "location", "unknown":
+			varValue, _ = d.String(index)
+			break
+		case "boolean":
+			varValue, _ = d.Bool(index)
+			break
+		default:
+			return nil, fmt.Errorf("Unknown data type %s", v.Type)
 		}
-	}
-	targetArray = append(targetArray[:indexCol], targetArray[indexCol+1:]...)
 
-	// process both lists
-	trainingArray = append(trainingArray, targetArray...)
-
-	// iterate over the variable descriptions
-	varEntry := gabs.New()
-	for index, value := range trainingArray {
-		varDesc := value.Data().(map[string]interface{})
-
-		// ignore anything other than attributes
-		role := varDesc["varRole"].(string)
-		if role == "attribute" || role == "target" {
-			// grab name, type
-			varName := varDesc["varName"].(string)
-			varType := varDesc["varType"].(string)
-
-			// var value will be based on the varType contents
-			switch varType {
-			case "integer":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.Int64(index) })
-				break
-			case "float":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.Float64(index) })
-				break
-			case "text":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
-				break
-			case "categorical":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
-				break
-			case "ordinal":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
-				break
-			case "dateTime":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.Int64(index) })
-				break
-			case "location":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
-				break
-			case "unknown":
-				parseAndSetVal(index, varType, varName, varEntry, func() (interface{}, bool) { return d.String(index) })
-				break
-			default:
-				return nil, fmt.Errorf("Unknown data type %s", varType)
-			}
-		}
+		// set value
+		source[varNameKey] = varValue
 	}
 
-	// marshal as JSON
-	return varEntry.String(), nil
+	return source, nil
 }

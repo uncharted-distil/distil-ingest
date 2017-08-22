@@ -50,7 +50,7 @@ imports:
 - name: github.com/Sirupsen/logrus
   version: a283a10442df8dc09befd873fab202bf8a253d6a
 - name: github.com/unchartedsoftware/deluge
-  version: a5dcce53b4998f4e9f042995002f3c062aa6c5e5
+  version: f967d93bead1da1df483356f0819caa2ecfb1bc8
   subpackages:
   - document
   - elastic/v5

@@ -152,31 +152,41 @@ func main() {
 			os.Exit(1)
 		}
 
+		// load the metadata
+		meta, err := metadata.LoadMetadataFromClassification(
+			schemaPath,
+			classificationPath)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
 		// Create the metadata index if it doesn't exist
-		err = metadata.CreateMetadataIndex(esMetadataIndex, false, elasticClient)
+		err = metadata.CreateMetadataIndex(elasticClient, esMetadataIndex, clearExisting)
 		if err != nil {
 			log.Error(errors.Cause(err))
 			os.Exit(1)
 		}
 
 		// Ingest the dataset info into the metadata index
-		err = metadata.IngestMetadataFromClassification(
+		err = metadata.IngestMetadata(
+			elasticClient,
 			esMetadataIndex,
-			schemaPath,
-			classificationPath,
-			elasticClient)
+			meta)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
 
+		// create file input
 		input, err := deluge.NewFileInput([]string{datasetPath}, nil)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
 
-		doc, err := d3mdata.NewD3MData(schemaPath)
+		// create doc
+		doc, err := d3mdata.NewD3MData(meta)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
