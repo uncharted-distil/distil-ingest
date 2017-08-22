@@ -35,15 +35,23 @@ make build
 
 ## Usage
 
-This application provides [deluge](https://github.com/unchartedsoftware/deluge) document implementations for bulk ingests of D3M OpenML datasets (those with a name beginning with `o_`)into [elasticsearch](https://github.com/elastic/elasticsearch).
+The repository contains CLIs used to parse, and ingest 3M OpenML datasets (those with a name beginning with `o_`) into [elasticsearch](https://github.com/elastic/elasticsearch).
 
-To ingest:
-1.  Download D3M datasets of interest from <https://datadrivendiscovery.org/data> and unzip.
-2.  Run the ingest for each dataset:
+#### Merging training and target datasets:
 
-```bash
-./distil-ingest -es-endpoint "http://some-es-instance.com:9200" -es-index "o_28" -dataset-path "/data/d3m/o_28"
-```
+- Download D3M datasets of interest from <https://datadrivendiscovery.org/data> and unzip.
+- Update and ensure the arguments in `./merge_all.sh`are correct
+- Run `./merge_all.sh`
+
+#### Classifying merged datasets:
+
+- Update and ensure the arguments in `./classify_all.sh`are correct
+- Run `./classify_all.sh`
+
+#### Ingesting merged and classified datasets:
+
+- Update and ensure the arguments in `./ingest_all.sh`are correct
+- Run `./ingest_all.sh`
 
 ## Common Issues:
 
