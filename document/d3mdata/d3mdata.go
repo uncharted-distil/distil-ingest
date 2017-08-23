@@ -107,12 +107,9 @@ func (d *D3MData) GetSource() (interface{}, error) {
 			continue
 		}
 
-		varEntry := make(map[string]interface{})
-
 		var varValue interface{}
 
 		// set value
-		// TODO: ignore parse errors for now
 		switch v.Type {
 		case "integer", "int", "dateTime":
 			varValue, _ = d.Int64(index)
@@ -130,11 +127,11 @@ func (d *D3MData) GetSource() (interface{}, error) {
 			return nil, fmt.Errorf("Unknown data type %s", v.Type)
 		}
 
-		// set value
-
-		varEntry["value"] = varValue
-		varEntry["schemaType"] = v.Type
-		source[v.Name] = varEntry
+		// set entry
+		source[v.Name] = map[string]interface{}{
+			"value":      varValue,
+			"schemaType": v.Type,
+		}
 	}
 
 	return source, nil
