@@ -5,11 +5,17 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 )
 
 func TestGetSource(t *testing.T) {
+
+	meta, err := metadata.LoadMetadataFromSchema("./testdata/dataSchema.json")
+	assert.NoError(t, err)
+
 	// Create a document using the test json schema
-	docCreate, err := NewD3MData("testdata/dataSchema.json")
+	docCreate, err := NewD3MData(meta)
 	assert.NoError(t, err)
 
 	doc, err := docCreate()
@@ -23,7 +29,7 @@ func TestGetSource(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Extract it from JSON
-	result, err := gabs.ParseJSON([]byte(output.(string)))
+	result, err := gabs.Consume(output)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "cat_1", result.Path("Alpha.value").Data().(string))
@@ -32,13 +38,13 @@ func TestGetSource(t *testing.T) {
 	assert.Equal(t, 99.0, result.Path("Bravo.value").Data().(float64))
 	assert.Equal(t, "float", result.Path("Bravo.schemaType").Data().(string))
 
-	assert.Equal(t, float64(66), result.Path("Charlie.value").Data().(float64))
+	assert.Equal(t, int64(66), result.Path("Charlie.value").Data().(int64))
 	assert.Equal(t, "integer", result.Path("Charlie.schemaType").Data().(string))
 
 	assert.Equal(t, "ord_1", result.Path("Delta.value").Data().(string))
 	assert.Equal(t, "ordinal", result.Path("Delta.schemaType").Data().(string))
 
-	assert.Equal(t, float64(234324), result.Path("Echo.value").Data().(float64))
+	assert.Equal(t, int64(234324), result.Path("Echo.value").Data().(int64))
 	assert.Equal(t, "dateTime", result.Path("Echo.schemaType").Data().(string))
 
 	assert.Equal(t, "some text value", result.Path("Foxtrot.value").Data().(string))
@@ -55,8 +61,12 @@ func TestGetSource(t *testing.T) {
 }
 
 func TestGetMapping(t *testing.T) {
+
+	meta, err := metadata.LoadMetadataFromSchema("./testdata/dataSchema.json")
+	assert.NoError(t, err)
+
 	// Create a document using the test json schema
-	docCreate, err := NewD3MData("testdata/dataSchema.json")
+	docCreate, err := NewD3MData(meta)
 	assert.NoError(t, err)
 
 	doc, err := docCreate()
@@ -88,8 +98,12 @@ func TestGetMapping(t *testing.T) {
 }
 
 func TestID(t *testing.T) {
+
+	meta, err := metadata.LoadMetadataFromSchema("./testdata/dataSchema.json")
+	assert.NoError(t, err)
+
 	// Create a document using the test json schema
-	docCreate, err := NewD3MData("testdata/dataSchema.json")
+	docCreate, err := NewD3MData(meta)
 	assert.NoError(t, err)
 
 	doc, err := docCreate()
