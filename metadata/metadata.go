@@ -43,10 +43,10 @@ func LoadMetadataFromSchema(schemaPath string) (*Metadata, error) {
 	meta := &Metadata{
 		schema: schema,
 	}
-	// err = meta.loadName()
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err = meta.loadName()
+	if err != nil {
+		return nil, err
+	}
 	err = meta.loadID()
 	if err != nil {
 		return nil, err
@@ -79,10 +79,10 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 		schema:         schema,
 		classification: classification,
 	}
-	// err = meta.loadName()
-	// if err != nil {
-	// 	return nil, err
-	// }
+	err = meta.loadName()
+	if err != nil {
+		return nil, err
+	}
 	err = meta.loadID()
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (m *Metadata) loadID() error {
 func (m *Metadata) loadName() error {
 	name, ok := m.schema.Path("name").Data().(string)
 	if !ok {
-		return errors.Errorf("no `name` key found in schema")
+		return nil //errors.Errorf("no `name` key found in schema")
 	}
 	m.Name = name
 	return nil

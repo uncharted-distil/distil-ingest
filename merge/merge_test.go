@@ -2,7 +2,7 @@ package merge
 
 import (
 	"bufio"
-	"os"
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ func TestLeftJoin(t *testing.T) {
 	output, success, failed, err := LeftJoin(
 		"testdata/trainData.csv", 1,
 		"testdata/trainTargets.csv", 0,
-		true)
+		true, false)
 	assert.NoError(t, err)
 	assert.Equal(t, success, 3)
 	assert.Equal(t, failed, 0)
