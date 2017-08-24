@@ -1,10 +1,10 @@
-hash: 0459945cae232a9ad3ca1c0e9c5b2f55916c3a67021e884a2a192fe70a357267
-updated: 2017-06-22T16:21:32.187738359-04:00
+hash: e9b0e689699271ff9c83eda2ee66bdb228eea47dcd0fc003f78fe957c9aeaf5a
+updated: 2017-07-07T18:10:53.778603117-04:00
 imports:
 - name: github.com/jeffail/gabs
   version: 9cef256b595a9e616eb6aec1da446529b7705613
 - name: github.com/mattn/go-colorable
-  version: ded68f7a9561c023e790de24279db7ebf473ea80
+  version: 941b50ebc6efddf4c41c8e4537a5f68a4e686b24
 - name: github.com/mattn/go-isatty
   version: fc9e8d8ef48496124e79ae0df75490096eccf6fe
 - name: github.com/mgutz/ansi
@@ -12,7 +12,7 @@ imports:
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: github.com/unchartedsoftware/deluge
-  version: 2a79267254d15ddee3a44fd57d2b40a349ea4e97
+  version: a5dcce53b4998f4e9f042995002f3c062aa6c5e5
   subpackages:
   - document
   - elastic/v5
@@ -26,8 +26,10 @@ imports:
   - util
 - name: github.com/unchartedsoftware/plog
   version: 34d2bbd3c0a9458feb0752af2b578a23eb8ddc4f
+- name: github.com/urfave/cli
+  version: 4b90d79a682b4bf685762c7452db20f2a676ecb2
 - name: golang.org/x/sys
-  version: ea9bcade75cb975a0b9738936568ab388b845617
+  version: 739734461d1c916b6c72a63d7efda2b27edb369f
   subpackages:
   - unix
 - name: gopkg.in/olivere/elastic.v5

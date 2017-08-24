@@ -13,6 +13,7 @@ type Conf struct {
 	ScanBufferSize int
 
 	// d3m dataset directory path
+	SchemaPath  string
 	DatasetPath string
 
 	// num workers
