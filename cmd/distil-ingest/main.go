@@ -48,14 +48,24 @@ func main() {
 			Usage: "The dataset source path",
 		},
 		cli.StringFlag{
+			Name:  "classification",
+			Value: "",
+			Usage: "The classification source path",
+		},
+		cli.StringFlag{
 			Name:  "es-endpoint",
 			Value: "",
 			Usage: "The Elasticsearch endpoint",
 		},
 		cli.StringFlag{
-			Name:  "es-index",
+			Name:  "es-metadata-index",
+			Value: metadataIndexName,
+			Usage: "The Elasticsearch index to ingest metadata into",
+		},
+		cli.StringFlag{
+			Name:  "es-data-index",
 			Value: "",
-			Usage: "The Elasticsearch index to ingest into",
+			Usage: "The Elasticsearch index to ingest data into",
 		},
 		cli.StringFlag{
 			Name:  "database",
@@ -112,8 +122,11 @@ func main() {
 		if c.String("es-endpoint") == "" && c.String("database") == "" {
 			return cli.NewExitError("missing commandline flag `--es-endpoint` or `--database`", 1)
 		}
-		if c.String("es-index") == "" && c.String("db-table") == "" {
-			return cli.NewExitError("missing commandline flag `--es-index` or `--db-table`", 1)
+		if c.String("es-metadata-index") == "" && c.String("db-table") == "" {
+			return cli.NewExitError("missing commandline flag `--es-metadata-index` or `--db-table`", 1)
+		}
+		if c.String("es-data-index") == "" && c.String("db-table") == "" {
+			return cli.NewExitError("missing commandline flag `--es-data-index` or `--db-table`", 1)
 		}
 		if c.String("schema") == "" {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
@@ -121,9 +134,14 @@ func main() {
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
+		if c.String("classification") == "" {
+			return cli.NewExitError("missing commandline flag `--classification`", 1)
+		}
+
 		config := &conf.Conf{
 			ESEndpoint:           c.String("es-endpoint"),
 			ESIndex:              c.String("es-index"),
+			ClassificationPath:   filepath.Clean(c.String("classification")),
 			SchemaPath:           filepath.Clean(c.String("schema")),
 			DatasetPath:          filepath.Clean(c.String("dataset")),
 			ErrThreshold:         c.Float64("error-threshold"),
@@ -136,6 +154,15 @@ func main() {
 			DBTable:              c.String("db-table"),
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
+		}
+
+		// load the metadata
+		meta, err := metadata.LoadMetadataFromClassification(
+			config.SchemaPath,
+			config.ClassificationPath)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
 		}
 
 		if config.ESEndpoint != "" {
@@ -164,14 +191,14 @@ func main() {
 			}
 
 			// ingest the metadata
-			err = ingestMetadata(metadataIndexName, config.SchemaPath, elasticClient)
+			err = ingestMetadata(metadataIndexName, meta, elasticClient)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
 			}
 
 			// ingest the data
-			err = ingestES(config, delugeClient)
+			err = ingestES(config, delugeClient, meta)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -190,7 +217,7 @@ func main() {
 		}
 
 		if config.Database != "" {
-			err := ingestPostgres(config)
+			err := ingestPostgres(config, meta)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -203,15 +230,15 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ingestMetadata(metadataIndexName string, schemaPath string, elasticClient *elastic.Client) error {
+func ingestMetadata(metadataIndexName string, meta *metadata.Metadata, elasticClient *elastic.Client) error {
 	// Create the metadata index if it doesn't exist
-	err := metadata.CreateMetadataIndex(metadataIndexName, false, elasticClient)
+	err := metadata.CreateMetadataIndex(elasticClient, metadataIndexName, false)
 	if err != nil {
 		return err
 	}
 
 	// Ingest the dataset info into the metadata index
-	err = metadata.IngestMetadata(metadataIndexName, schemaPath, elasticClient)
+	err = metadata.IngestMetadata(elasticClient, metadataIndexName, meta)
 	if err != nil {
 		return err
 	}
@@ -219,13 +246,13 @@ func ingestMetadata(metadataIndexName string, schemaPath string, elasticClient *
 	return nil
 }
 
-func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client) error {
+func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *metadata.Metadata) error {
 	input, err := deluge.NewFileInput([]string{config.DatasetPath}, nil)
 	if err != nil {
 		return err
 	}
 
-	doc, err := d3mdata.NewD3MData(config.SchemaPath)
+	doc, err := d3mdata.NewD3MData(meta)
 	if err != nil {
 		return err
 	}
@@ -256,7 +283,7 @@ func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client) error {
 	return nil
 }
 
-func ingestPostgres(config *conf.Conf) error {
+func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	log.Info("Starting ingestion")
 	// Connect to the database.
 	pg, err := postgres.NewDatabase(config)
@@ -273,7 +300,12 @@ func ingestPostgres(config *conf.Conf) error {
 	}
 
 	// Create the database table.
-	err = pg.InitializeTable(config.DBTable, config.SchemaPath)
+	ds, err := pg.InitializeDataset(meta)
+	if err != nil {
+		return err
+	}
+
+	err = pg.InitializeTable(config.DBTable, ds)
 	if err != nil {
 		return err
 	}

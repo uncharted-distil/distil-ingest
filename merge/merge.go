@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -61,7 +62,7 @@ func GetColIndices(schemaPath string, columnName string) (*JoinIndices, error) {
 	return &JoinIndices{LeftColIdx: trainIndex, RightColIdx: targetsIndex}, nil
 }
 
-func buildIndex(filename string, colIdx int, header bool) (map[string][]string, error) {
+func buildIndex(filename string, colIdx int, hasHeader bool, includeHeader bool) (map[string][]string, error) {
 	// load data from csv file into a map indexed by the values from the specified column
 	var index = make(map[string][]string)
 	file, err := os.Open(filename)
@@ -78,7 +79,7 @@ func buildIndex(filename string, colIdx int, header bool) (map[string][]string, 
 			return nil, errors.Wrapf(err, "failed read line %d from %s", count, filename)
 		}
 
-		if count > 0 || !header {
+		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
 			key := line[colIdx]
 			index[key] = append(line[:colIdx], line[colIdx+1:]...)
 		}
@@ -89,27 +90,26 @@ func buildIndex(filename string, colIdx int, header bool) (map[string][]string, 
 }
 
 // LeftJoin provides a function to join to csv files based on the specified column
-func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, outFile string, header bool) (int, int, error) {
+func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasHeader bool, includeHeader bool) ([]byte, int, int, error) {
 
 	// load the right file into a hash table indexed by the d3mIndex col
-	index, err := buildIndex(rightFile, rightCol, header)
+	index, err := buildIndex(rightFile, rightCol, hasHeader, includeHeader)
 	if err != nil {
-		return -1, -1, err
+		return nil, -1, -1, err
 	}
 
 	// open the left and outfiles for line-by-line by processing
 	leftCsvFile, err := os.Open(leftFile)
 	if err != nil {
-		return -1, -1, errors.Wrap(err, "failed to open left operand file")
-	}
-	outCsvFile, err := os.Create(outFile)
-	if err != nil {
-		return -1, -1, errors.Wrap(err, "failed to open join result output file")
+		return nil, -1, -1, errors.Wrap(err, "failed to open left operand file")
 	}
 
 	// perform a left join, leaving unmatched right values emptys
 	reader := csv.NewReader(leftCsvFile)
-	writer := csv.NewWriter(outCsvFile)
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
 
 	var count = 0
 	var missed = 0
@@ -118,9 +118,9 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, outF
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return -1, -1, errors.Wrap(err, "failed to read line from left operand file")
+			return nil, -1, -1, errors.Wrap(err, "failed to read line from left operand file")
 		}
-		if count > 0 || !header {
+		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
 			key := line[leftCol]
 			rightVals, ok := index[key]
 			if !ok {
@@ -140,14 +140,8 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, outF
 	// close left
 	err = leftCsvFile.Close()
 	if err != nil {
-		return -1, -1, errors.Wrap(err, "failed to close left input file")
+		return nil, -1, -1, errors.Wrap(err, "failed to close left input file")
 	}
 
-	// close right
-	err = outCsvFile.Close()
-	if err != nil {
-		return -1, -1, errors.Wrap(err, "failed to close output file")
-	}
-
-	return count, missed, nil
+	return output.Bytes(), count, missed, nil
 }

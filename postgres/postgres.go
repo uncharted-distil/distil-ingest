@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strconv"
 
 	"github.com/go-pg/pg"
 	"github.com/jeffail/gabs"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/unchartedsoftware/deluge/document"
 	"github.com/unchartedsoftware/distil-ingest/conf"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres/model"
 	"github.com/unchartedsoftware/distil-ingest/postgres/service"
 	"github.com/unchartedsoftware/plog"
@@ -19,7 +21,6 @@ import (
 const (
 	metadataTableCreationSQL = `CREATE TABLE %s (
 			name	varchar(40)	NOT NULL,
-			description	varchar(100),
 			role	varchar(20),
 			type	varchar(20)
 		);`
@@ -69,8 +70,8 @@ func (d *Database) StoreMetadata(tableName string) error {
 
 	// Insert the variable metadata into the new table.
 	for _, v := range d.Tables[tableName].Variables {
-		insertStatement := fmt.Sprintf("INSERT INTO %s (name, description, role, type) VALUES (?, ?, ?, ?);", variableTableName)
-		values := []interface{}{v.Name, v.Description, v.Type, v.Role}
+		insertStatement := fmt.Sprintf("INSERT INTO %s (name, role, type) VALUES (?, ?, ?);", variableTableName)
+		values := []interface{}{v.Name, v.Role, v.Type}
 		_, err = d.DB.Exec(insertStatement, values...)
 		if err != nil {
 			return err
@@ -95,7 +96,7 @@ func (d *Database) IngestRow(tableName string, data string) error {
 
 		// Map the raw string value to the correct database value.
 		// Assume columns in metadata line up with columns in raw data.
-		dbValue, err := variables[i].MapType(doc.Cols[i])
+		dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
 		}
@@ -119,11 +120,7 @@ func (d *Database) DropTable(tableName string) error {
 }
 
 // InitializeTable generates and runs a table create statement based on the schema.
-func (d *Database) InitializeTable(tableName string, schemaPath string) error {
-	ds, err := d.ParseMetadata(schemaPath)
-	if err != nil {
-		return err
-	}
+func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	d.Tables[tableName] = ds
 
 	// Create the statement that will be used to create the table.
@@ -139,12 +136,18 @@ func (d *Database) InitializeTable(tableName string, schemaPath string) error {
 	log.Infof("Creating table %s", tableName)
 
 	// Create the table.
-	_, err = d.DB.Exec(createStatement)
+	_, err := d.DB.Exec(createStatement)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (d *Database) InitializeDataset(meta *metadata.Metadata) (*model.Dataset, error) {
+	ds := model.NewDataset(meta.ID, meta.Name, meta.Description, meta)
+
+	return ds, nil
 }
 
 // ParseMetadata parses the schema information into a dataset.
@@ -171,7 +174,7 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 	if ok {
 		dsName = val
 	}
-	ds := model.NewDataset(dsId, dsName, dsDesc)
+	ds := model.NewDataset(dsId, dsName, dsDesc, nil)
 
 	// add the training and target data variables. Ignore repeated columns.
 	trainVariables, err := schema.Path("trainData.trainData").Children()
@@ -189,12 +192,7 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 		varRole := variable.Path("varRole").Data().(string)
 		varType := d.mapType(variable.Path("varType").Data().(string))
 
-		varDesc := ""
-		varDescTmp, ok := variable.Path("varDesc").Data().(string)
-		if ok {
-			varDesc = varDescTmp
-		}
-		variable := model.NewVariable(varName, varDesc, varRole, varType, ds)
+		variable := metadata.NewVariable(varName, varType, varRole)
 		if !ds.HasVariable(variable) {
 			ds.AddVariable(variable)
 		}
@@ -211,5 +209,23 @@ func (d *Database) mapType(typ string) string {
 		return "FLOAT8"
 	default:
 		return "TEXT"
+	}
+}
+
+// MapType uses the variable type to map a string value to the proper type.
+func (d *Database) mapVariable(typ, value string) (interface{}, error) {
+	switch typ {
+	case "BIGINT":
+		if value == "" {
+			return nil, nil
+		}
+		return strconv.ParseInt(value, 10, 64)
+	case "FLOAT8":
+		if value == "" {
+			return nil, nil
+		}
+		return strconv.ParseFloat(value, 64)
+	default:
+		return value, nil
 	}
 }
