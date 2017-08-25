@@ -16,6 +16,15 @@ import (
 	"github.com/unchartedsoftware/plog"
 )
 
+const (
+	metadataTableCreationSQL = `CREATE TABLE %s (
+			name	varchar(40)	NOT NULL,
+			description	varchar(100),
+			role	varchar(20),
+			type	varchar(20)
+		);`
+)
+
 // Database is a struct representing a full logical database.
 type Database struct {
 	DB             *pg.DB
@@ -39,6 +48,37 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 	}
 
 	return database, nil
+}
+
+// StoreMetadata stores the variable information to the specified table.
+func (d *Database) StoreMetadata(tableName string) error {
+	variableTableName := fmt.Sprintf("%s_variable", tableName)
+
+	// Make sure the table is clear.
+	err := d.DropTable(variableTableName)
+	if err != nil {
+		return err
+	}
+
+	// Create the variable table.
+	log.Infof("Creating variable table %s", variableTableName)
+	createStatement := fmt.Sprintf(metadataTableCreationSQL, variableTableName)
+	_, err = d.DB.Exec(createStatement)
+	if err != nil {
+		return err
+	}
+
+	// Insert the variable metadata into the new table.
+	for _, v := range d.Tables[tableName].Variables {
+		insertStatement := "INSERT INTO %s (name, description, role, type) VALUES (?, ?, ?, ?);"
+		values := []interface{}{v.Name, v.Description, v.Type, v.Role}
+		_, err = d.DB.Exec(insertStatement, values...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // IngestRow parses the raw csv data and stores it to the table specified.

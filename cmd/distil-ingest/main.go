@@ -138,38 +138,39 @@ func main() {
 			DBPassword:           c.String("db-password"),
 		}
 
-		// create elasticsearch client
-		delugeClient, err := delugeElastic.NewClient(
-			delugeElastic.SetURL(config.ESEndpoint),
-			delugeElastic.SetHTTPClient(&http.Client{Timeout: timeout}),
-			delugeElastic.SetMaxRetries(10),
-			delugeElastic.SetSniff(false),
-			delugeElastic.SetGzip(true))
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-
-		// create elasticsearch client
-		elasticClient, err := elastic.NewClient(
-			elastic.SetURL(config.ESEndpoint),
-			elastic.SetHttpClient(&http.Client{Timeout: timeout}),
-			elastic.SetMaxRetries(10),
-			elastic.SetSniff(false),
-			elastic.SetGzip(true))
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-
-		// ingest the metadata
-		err = ingestMetadata(metadataIndexName, config.SchemaPath, elasticClient)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-
 		if config.ESEndpoint != "" {
+			// create elasticsearch client
+			delugeClient, err := delugeElastic.NewClient(
+				delugeElastic.SetURL(config.ESEndpoint),
+				delugeElastic.SetHTTPClient(&http.Client{Timeout: timeout}),
+				delugeElastic.SetMaxRetries(10),
+				delugeElastic.SetSniff(false),
+				delugeElastic.SetGzip(true))
+			if err != nil {
+				log.Error(err)
+				os.Exit(1)
+			}
+
+			// create elasticsearch client
+			elasticClient, err := elastic.NewClient(
+				elastic.SetURL(config.ESEndpoint),
+				elastic.SetHttpClient(&http.Client{Timeout: timeout}),
+				elastic.SetMaxRetries(10),
+				elastic.SetSniff(false),
+				elastic.SetGzip(true))
+			if err != nil {
+				log.Error(err)
+				os.Exit(1)
+			}
+
+			// ingest the metadata
+			err = ingestMetadata(metadataIndexName, config.SchemaPath, elasticClient)
+			if err != nil {
+				log.Error(err)
+				os.Exit(1)
+			}
+
+			// ingest the data
 			err = ingestES(config, delugeClient)
 			if err != nil {
 				log.Error(err)
@@ -189,7 +190,7 @@ func main() {
 		}
 
 		if config.Database != "" {
-			err = ingestPostgres(config)
+			err := ingestPostgres(config)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -277,6 +278,12 @@ func ingestPostgres(config *conf.Conf) error {
 		return err
 	}
 	log.Infof("Done table initialization")
+
+	err = pg.StoreMetadata(config.DBTable)
+	if err != nil {
+		return err
+	}
+	log.Infof("Done storing metadata")
 
 	// Load the data.
 	reader, err := os.Open(config.DatasetPath)
