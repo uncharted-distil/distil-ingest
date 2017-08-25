@@ -54,11 +54,10 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 func (d *Database) StoreMetadata(tableName string) error {
 	variableTableName := fmt.Sprintf("%s_variable", tableName)
 
-	// Make sure the table is clear.
+	// Make sure the table is clear. If the table did not previously exist,
+	// an error is returned. May as well ignore it since a serious problem
+	// will cause errors on the other statements as well.
 	err := d.DropTable(variableTableName)
-	if err != nil {
-		return err
-	}
 
 	// Create the variable table.
 	log.Infof("Creating variable table %s", variableTableName)
