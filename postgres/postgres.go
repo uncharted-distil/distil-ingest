@@ -69,7 +69,7 @@ func (d *Database) StoreMetadata(tableName string) error {
 
 	// Insert the variable metadata into the new table.
 	for _, v := range d.Tables[tableName].Variables {
-		insertStatement := "INSERT INTO %s (name, description, role, type) VALUES (?, ?, ?, ?);"
+		insertStatement := fmt.Sprintf("INSERT INTO %s (name, description, role, type) VALUES (?, ?, ?, ?);", variableTableName)
 		values := []interface{}{v.Name, v.Description, v.Type, v.Role}
 		_, err = d.DB.Exec(insertStatement, values...)
 		if err != nil {
