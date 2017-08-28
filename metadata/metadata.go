@@ -33,6 +33,15 @@ type Metadata struct {
 	classification *gabs.Container
 }
 
+// NewVariable creates a new variable.
+func NewVariable(name, typ, role string) *Variable {
+	return &Variable{
+		Name: name,
+		Type: typ,
+		Role: role,
+	}
+}
+
 // LoadMetadataFromSchema loads metadata from a single schema file.
 func LoadMetadataFromSchema(schemaPath string) (*Metadata, error) {
 	// unmarshall the schema file
