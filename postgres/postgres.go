@@ -127,7 +127,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	createStatement := `CREATE TABLE %s(%s);`
 	vars := ""
 	for _, variable := range ds.Variables {
-		vars = fmt.Sprintf("%s\n\"%s\" %s,", vars, variable.Name, variable.Type)
+		vars = fmt.Sprintf("%s\n\"%s\" %s,", vars, variable.Name, d.mapType(variable.Type))
 	}
 	if len(vars) > 0 {
 		vars = vars[:len(vars)-1]
@@ -203,24 +203,24 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 
 func (d *Database) mapType(typ string) string {
 	switch typ {
-	case "integer":
+	case "integertype":
 		return "BIGINT"
-	case "float":
+	case "floattype":
 		return "FLOAT8"
 	default:
 		return "TEXT"
 	}
 }
 
-// MapType uses the variable type to map a string value to the proper type.
+// mapVariable uses the variable type to map a string value to the proper type.
 func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 	switch typ {
-	case "BIGINT":
+	case "integertype":
 		if value == "" {
 			return nil, nil
 		}
 		return strconv.ParseInt(value, 10, 64)
-	case "FLOAT8":
+	case "floattype":
 		if value == "" {
 			return nil, nil
 		}
