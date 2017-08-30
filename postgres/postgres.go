@@ -26,6 +26,13 @@ const (
 		);`
 )
 
+var (
+	nonNullableTypes = map[string]bool{
+		"int":   true,
+		"float": true,
+	}
+)
+
 // Database is a struct representing a full logical database.
 type Database struct {
 	DB             *pg.DB
@@ -92,15 +99,21 @@ func (d *Database) IngestRow(tableName string, data string) error {
 	doc := &document.CSV{}
 	doc.SetData(data)
 	for i := 0; i < len(variables); i++ {
-		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
+		// Ignore rows that have an empty column.
+		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
+			log.Warn(fmt.Sprintf("%s has empty value in record %s", variables[i].Name, data))
+			return nil
+		} else {
+			insertStatement = fmt.Sprintf("%s, ?", insertStatement)
 
-		// Map the raw string value to the correct database value.
-		// Assume columns in metadata line up with columns in raw data.
-		dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
+			// Map the raw string value to the correct database value.
+			// Assume columns in metadata line up with columns in raw data.
+			dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
+			}
+			values[i] = dbValue
 		}
-		values[i] = dbValue
 	}
 	insertStatement = fmt.Sprintf("INSERT INTO %s VALUES (%s);", tableName, insertStatement[2:])
 
@@ -202,10 +215,11 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 }
 
 func (d *Database) mapType(typ string) string {
+	// NOTE: current classification has issues so if numerical, assume float64.
 	switch typ {
-	case "integertype":
-		return "BIGINT"
-	case "floattype":
+	case "int":
+		return "FLOAT8"
+	case "float":
 		return "FLOAT8"
 	default:
 		return "TEXT"
@@ -214,13 +228,14 @@ func (d *Database) mapType(typ string) string {
 
 // mapVariable uses the variable type to map a string value to the proper type.
 func (d *Database) mapVariable(typ, value string) (interface{}, error) {
+	// NOTE: current classification has issues so if numerical, assume float64.
 	switch typ {
-	case "integertype":
+	case "int":
 		if value == "" {
 			return nil, nil
 		}
-		return strconv.ParseInt(value, 10, 64)
-	case "floattype":
+		return strconv.ParseFloat(value, 64)
+	case "float":
 		if value == "" {
 			return nil, nil
 		}
@@ -228,4 +243,8 @@ func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 	default:
 		return value, nil
 	}
+}
+
+func (d *Database) isNullVariable(typ, value string) bool {
+	return value == "" && nonNullableTypes[typ]
 }

@@ -1,8 +1,8 @@
-hash: f68f1b894c7bdc3c8b745d322fddb6a9ab1cf070cd029f61364744ba2af200eb
-updated: 2017-08-18T15:23:46.825381159-04:00
+hash: 772ed6deaa827a6a80959a2201cf5016917eb0da13d6b3e41a3af3956c0cad69
+updated: 2017-08-30T09:10:08.499534936-04:00
 imports:
 - name: github.com/aws/aws-sdk-go
-  version: ce0ac9c36bff5e2ad4c5fefae43d735fd337f6fb
+  version: 7111a70b8bea15081468f11bc1450ac2fec2406b
   subpackages:
   - aws
   - aws/awserr
@@ -20,7 +20,6 @@ imports:
   - aws/request
   - aws/session
   - aws/signer/v4
-  - internal/shareddefaults
   - private/protocol
   - private/protocol/query
   - private/protocol/query/queryutil
@@ -30,11 +29,21 @@ imports:
   - service/s3
   - service/sts
 - name: github.com/go-ini/ini
-  version: c787282c39ac1fc618827141a1f762240def08a3
+  version: e7fea39b01aea8d5671f6858f0532f56e8bff3a5
+- name: github.com/go-pg/pg
+  version: 6b379280e4b806f329f36da1710cabe134991509
+  subpackages:
+  - internal
+  - internal/parser
+  - internal/pool
+  - orm
+  - types
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
 - name: github.com/jeffail/gabs
   version: 9cef256b595a9e616eb6aec1da446529b7705613
+- name: github.com/jinzhu/inflection
+  version: 1c35d901db3da928c72a72d8458480cc9ade058f
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/mgutz/ansi
@@ -65,7 +74,7 @@ imports:
 - name: github.com/unchartedsoftware/plog
   version: 24c9313ea3ff2a86868f9961420e5b72fb83a019
 - name: github.com/urfave/cli
-  version: 4b90d79a682b4bf685762c7452db20f2a676ecb2
+  version: f017f86fccc5a039a98f23311f34fdf78b014f78
 - name: golang.org/x/sys
   version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
   subpackages:
