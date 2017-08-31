@@ -19,7 +19,6 @@ func NewDataset(id, name, description string, meta *metadata.Metadata) *Dataset 
 		ID:              id,
 		Name:            name,
 		Description:     description,
-		Variables:       meta.Variables,
 		variablesLookup: make(map[string]bool),
 	}
 	if meta != nil {

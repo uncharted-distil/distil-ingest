@@ -28,8 +28,9 @@ const (
 
 var (
 	nonNullableTypes = map[string]bool{
-		"int":   true,
-		"float": true,
+		"int":     true,
+		"integer": true,
+		"float":   true,
 	}
 )
 
@@ -203,7 +204,7 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 	for _, variable := range variables {
 		varName := variable.Path("varName").Data().(string)
 		varRole := variable.Path("varRole").Data().(string)
-		varType := d.mapType(variable.Path("varType").Data().(string))
+		varType := variable.Path("varType").Data().(string)
 
 		variable := metadata.NewVariable(varName, varType, varRole)
 		if !ds.HasVariable(variable) {
@@ -219,6 +220,8 @@ func (d *Database) mapType(typ string) string {
 	switch typ {
 	case "int":
 		return "FLOAT8"
+	case "integer":
+		return "FLOAT8"
 	case "float":
 		return "FLOAT8"
 	default:
@@ -231,6 +234,11 @@ func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 	// NOTE: current classification has issues so if numerical, assume float64.
 	switch typ {
 	case "int":
+		if value == "" {
+			return nil, nil
+		}
+		return strconv.ParseFloat(value, 64)
+	case "integer":
 		if value == "" {
 			return nil, nil
 		}
