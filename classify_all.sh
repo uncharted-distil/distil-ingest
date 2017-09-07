@@ -5,7 +5,7 @@ AWS_PREFIX=https://s3.amazonaws.com/d3m-data/merged_o_data
 AWS_SUFFIX=_merged.csv
 OUTPUT=/data/classification_dn.json
 DATASETS=(o_185 o_196 o_313 o_38 o_4550)
-KAFKA_ENDPOINT=10.104.2.32:9092
+KAFKA_ENDPOINT=10.108.4.41:9092
 
 for DATASET in "${DATASETS[@]}"
 do
