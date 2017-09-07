@@ -24,6 +24,12 @@ const (
 			role	varchar(20),
 			type	varchar(20)
 		);`
+	resultTableCreationSQL = `CREATE TABLE %s (
+			result_id	varchar(1000)	NOT NULL,
+			index		BIGINT,
+			target		varchar(40),
+			value		varchar(200)
+		);`
 )
 
 var (
@@ -57,6 +63,26 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 	}
 
 	return database, nil
+}
+
+// CreateResultTable creates an empty table for the pipeline results.
+func (d *Database) CreateResultTable(tableName string) error {
+	resultTableName := fmt.Sprintf("%s_result", tableName)
+
+	// Make sure the table is clear. If the table did not previously exist,
+	// an error is returned. May as well ignore it since a serious problem
+	// will cause errors on the other statements as well.
+	err := d.DropTable(resultTableName)
+
+	// Create the variable table.
+	log.Infof("Creating result table %s", resultTableName)
+	createStatement := fmt.Sprintf(resultTableCreationSQL, resultTableName)
+	_, err = d.DB.Exec(createStatement)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // StoreMetadata stores the variable information to the specified table.
