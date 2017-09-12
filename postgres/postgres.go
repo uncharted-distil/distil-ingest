@@ -14,7 +14,6 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/conf"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres/model"
-	"github.com/unchartedsoftware/distil-ingest/postgres/service"
 	"github.com/unchartedsoftware/plog"
 )
 
@@ -23,6 +22,12 @@ const (
 			name	varchar(40)	NOT NULL,
 			role	varchar(20),
 			type	varchar(20)
+		);`
+	resultTableCreationSQL = `CREATE TABLE %s (
+			result_id	varchar(1000)	NOT NULL,
+			index		BIGINT,
+			target		varchar(40),
+			value		varchar(200)
 		);`
 )
 
@@ -36,9 +41,8 @@ var (
 
 // Database is a struct representing a full logical database.
 type Database struct {
-	DB             *pg.DB
-	DatasetService *service.DatasetService
-	Tables         map[string]*model.Dataset
+	DB     *pg.DB
+	Tables map[string]*model.Dataset
 }
 
 // NewDatabase creates a new database instance.
@@ -48,15 +52,33 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 		Password: config.DBPassword,
 		Database: config.Database,
 	})
-	ds := service.NewDatasetService(db)
 
 	database := &Database{
-		DatasetService: ds,
-		DB:             db,
-		Tables:         make(map[string]*model.Dataset),
+		DB:     db,
+		Tables: make(map[string]*model.Dataset),
 	}
 
 	return database, nil
+}
+
+// CreateResultTable creates an empty table for the pipeline results.
+func (d *Database) CreateResultTable(tableName string) error {
+	resultTableName := fmt.Sprintf("%s_result", tableName)
+
+	// Make sure the table is clear. If the table did not previously exist,
+	// an error is returned. May as well ignore it since a serious problem
+	// will cause errors on the other statements as well.
+	err := d.DropTable(resultTableName)
+
+	// Create the variable table.
+	log.Infof("Creating result table %s", resultTableName)
+	createStatement := fmt.Sprintf(resultTableCreationSQL, resultTableName)
+	_, err = d.DB.Exec(createStatement)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // StoreMetadata stores the variable information to the specified table.
@@ -104,17 +126,16 @@ func (d *Database) IngestRow(tableName string, data string) error {
 		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
 			log.Warn(fmt.Sprintf("%s has empty value in record %s", variables[i].Name, data))
 			return nil
-		} else {
-			insertStatement = fmt.Sprintf("%s, ?", insertStatement)
-
-			// Map the raw string value to the correct database value.
-			// Assume columns in metadata line up with columns in raw data.
-			dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
-			}
-			values[i] = dbValue
 		}
+		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
+
+		// Map the raw string value to the correct database value.
+		// Assume columns in metadata line up with columns in raw data.
+		dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
+		}
+		values[i] = dbValue
 	}
 	insertStatement = fmt.Sprintf("INSERT INTO %s VALUES (%s);", tableName, insertStatement[2:])
 
@@ -158,6 +179,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	return nil
 }
 
+// InitializeDataset initializes the dataset with the provided metadata.
 func (d *Database) InitializeDataset(meta *metadata.Metadata) (*model.Dataset, error) {
 	ds := model.NewDataset(meta.ID, meta.Name, meta.Description, meta)
 
@@ -181,14 +203,14 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 
 	// create a new object for our output metadata and write the parts of the schema
 	// we want into it - name, id, description, variable info
-	dsId := schema.Path("datasetId").Data().(string)
+	dsID := schema.Path("datasetId").Data().(string)
 	dsDesc := string(contents)
 	dsName := ""
 	val, ok := schema.Path("name").Data().(string)
 	if ok {
 		dsName = val
 	}
-	ds := model.NewDataset(dsId, dsName, dsDesc, nil)
+	ds := model.NewDataset(dsID, dsName, dsDesc, nil)
 
 	// add the training and target data variables. Ignore repeated columns.
 	trainVariables, err := schema.Path("trainData.trainData").Children()

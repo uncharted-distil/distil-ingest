@@ -317,6 +317,12 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	}
 	log.Infof("Done storing metadata")
 
+	err = pg.CreateResultTable(config.DBTable)
+	if err != nil {
+		return err
+	}
+	log.Infof("Done creating result table")
+
 	// Load the data.
 	reader, err := os.Open(config.DatasetPath)
 	scanner := bufio.NewScanner(reader)
