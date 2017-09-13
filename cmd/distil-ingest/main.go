@@ -323,6 +323,12 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	}
 	log.Infof("Done creating result table")
 
+	err = pg.CreatePipelineMetadataTables()
+	if err != nil {
+		return err
+	}
+	log.Infof("Done creating pipeline metadata tables")
+
 	// Load the data.
 	reader, err := os.Open(config.DatasetPath)
 	scanner := bufio.NewScanner(reader)
