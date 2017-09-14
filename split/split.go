@@ -1,0 +1,78 @@
+package split
+
+import (
+	"bytes"
+	"encoding/csv"
+	"io"
+	"os"
+
+	"github.com/pkg/errors"
+
+	"github.com/unchartedsoftware/distil-ingest/metadata"
+)
+
+func isNumeric(typ string) bool {
+	switch typ {
+	case "integer", "int", "float":
+		return true
+	default:
+		return false
+	}
+}
+
+// GetNumericColumnIndices returns a slice with the columsn for numeric types.
+func GetNumericColumnIndices(meta *metadata.Metadata) []int {
+	var numericCols []int
+	for index, variable := range meta.Variables {
+		if isNumeric(variable.Type) {
+			numericCols = append(numericCols, index)
+		}
+	}
+	return numericCols
+}
+
+// GetNumericColumns creates a new csv file of all numeric columns.
+func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool, includeHeader bool) ([]byte, error) {
+
+	// open the left and outfiles for line-by-line by processing
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open file")
+	}
+
+	numericCols := GetNumericColumnIndices(meta)
+
+	reader := csv.NewReader(file)
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
+	count := 0
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, errors.Wrap(err, "failed to read line from file")
+		}
+		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
+			numericLine := make([]string, len(numericCols))
+			for index, colIndex := range numericCols {
+				numericLine[index] = line[colIndex]
+			}
+			// write the csv line back out
+			writer.Write(numericLine)
+		}
+		count++
+	}
+	// flush writer
+	writer.Flush()
+
+	// close left
+	err = file.Close()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to close input file")
+	}
+
+	return output.Bytes(), nil
+}

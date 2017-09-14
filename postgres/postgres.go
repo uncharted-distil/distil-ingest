@@ -104,17 +104,15 @@ func (d *Database) IngestRow(tableName string, data string) error {
 		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
 			log.Warn(fmt.Sprintf("%s has empty value in record %s", variables[i].Name, data))
 			return nil
-		} else {
-			insertStatement = fmt.Sprintf("%s, ?", insertStatement)
-
-			// Map the raw string value to the correct database value.
-			// Assume columns in metadata line up with columns in raw data.
-			dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
-			}
-			values[i] = dbValue
 		}
+		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
+		// Map the raw string value to the correct database value.
+		// Assume columns in metadata line up with columns in raw data.
+		dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
+		}
+		values[i] = dbValue
 	}
 	insertStatement = fmt.Sprintf("INSERT INTO %s VALUES (%s);", tableName, insertStatement[2:])
 
@@ -158,6 +156,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	return nil
 }
 
+// InitializeDataset initializes the dataset.
 func (d *Database) InitializeDataset(meta *metadata.Metadata) (*model.Dataset, error) {
 	ds := model.NewDataset(meta.ID, meta.Name, meta.Description, meta)
 
@@ -181,14 +180,14 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 
 	// create a new object for our output metadata and write the parts of the schema
 	// we want into it - name, id, description, variable info
-	dsId := schema.Path("datasetId").Data().(string)
+	dsID := schema.Path("datasetId").Data().(string)
 	dsDesc := string(contents)
 	dsName := ""
 	val, ok := schema.Path("name").Data().(string)
 	if ok {
 		dsName = val
 	}
-	ds := model.NewDataset(dsId, dsName, dsDesc, nil)
+	ds := model.NewDataset(dsID, dsName, dsDesc, nil)
 
 	// add the training and target data variables. Ignore repeated columns.
 	trainVariables, err := schema.Path("trainData.trainData").Children()

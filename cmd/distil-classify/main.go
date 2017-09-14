@@ -14,7 +14,7 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/classify"
+	"github.com/unchartedsoftware/distil-ingest/kafka"
 )
 
 func splitAndTrim(arg string) []string {
@@ -36,7 +36,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "distil-classify"
 	app.Version = "0.1.0"
-	app.Usage = "Classify D3M training datasets"
+	app.Usage = "Classify D3M merged datasets"
 	app.UsageText = "distil-classify --kafka-endpoints=<urls> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -95,14 +95,14 @@ func main() {
 
 		// connect to kafka
 		log.Infof("Connecting to kafka `%s` as user `%s`", strings.Join(kafkaURLs, ","), kafkaUser)
-		client, err := classify.NewClient(kafkaURLs, kafkaUser)
+		client, err := kafka.NewClient(kafkaURLs, kafkaUser)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
 		// create consumer
-		consumer, err := client.NewConsumer(consumeTopic, classify.LatestOffset)
+		consumer, err := client.NewConsumer(consumeTopic, kafka.LatestOffset)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
@@ -116,8 +116,8 @@ func main() {
 		}
 
 		// dispatch classification task
-		log.Infof("Initializing classification for `%s` on topic `%s`", path, produceTopic)
-		err = producer.Produce(produceTopic, 0, &classify.Message{
+		log.Infof("Initializing classification for `%s` on topic `%s` with id `%s`", path, produceTopic, id)
+		err = producer.ProduceClassification(produceTopic, 0, &kafka.ClassificationMessage{
 			ID:       id,
 			Path:     path,
 			FileType: filetype,
@@ -130,7 +130,7 @@ func main() {
 		// consume classification results
 		log.Infof("Consuming classification for `%s` on topic `%s`", path, consumeTopic)
 		for {
-			res, err := consumer.Consume()
+			res, err := consumer.ConsumeClassification()
 			if err != nil {
 				if err == io.EOF {
 					log.Infof("Finished consuming")
@@ -139,11 +139,11 @@ func main() {
 				log.Errorf("%v", err)
 				continue
 			}
-			if res.Status == "Failure" {
-				return cli.NewExitError(fmt.Sprintf("Classification for `%s` failed", path), 2)
-			}
 			if res.ID == id {
-				log.Infof("Classification for `%s` successful", path)
+				if res.Status == "Failure" {
+					return cli.NewExitError(fmt.Sprintf("Classification for `%s` failed", path), 2)
+				}
+				log.Infof("Classification for `%s` of id `%s` successful", path, id)
 				// marshall result
 				bytes, err := json.MarshalIndent(res, "", "    ")
 				if err != nil {
