@@ -47,7 +47,8 @@ const (
 	resultMetadataTableCreationSQL = `CREATE TABLE %s (
 			request_id	varchar(200),
 			result_uuid	varchar(200),
-			result_uri	varchar(200)
+			result_uri	varchar(200),
+			progress	varchar(40)
 		);`
 )
 
