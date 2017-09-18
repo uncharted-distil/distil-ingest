@@ -18,9 +18,10 @@ const (
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name string `json:"varName"`
-	Type string `json:"varType"`
-	Role string `json:"varRole"`
+	Name       string `json:"varName"`
+	Type       string `json:"varType"`
+	Role       string `json:"varRole"`
+	Importance int    `json:"importance"`
 }
 
 // Metadata represents a collection of dataset descriptions.
@@ -105,6 +106,23 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 		return nil, err
 	}
 	return meta, nil
+}
+
+// LoadImportance wiull load the importance feature selection metric.
+func (m *Metadata) LoadImportance(importanceFile string, importanceMetric string, colIndices []int) error {
+	// unmarshall the schema file
+	importance, err := gabs.ParseJSONFile(importanceFile)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse importance file")
+	}
+	metric, err := importance.Path("features." + importanceMetric).Children()
+	if err != nil {
+		return errors.Wrap(err, "features attribute missing from file")
+	}
+	for index, col := range colIndices {
+		m.Variables[col].Importance = int(metric[index].Data().(float64))
+	}
+	return nil
 }
 
 func (m *Metadata) loadID() error {
@@ -337,6 +355,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 							},
 							"varType": {
 								"type": "text"
+							},
+							"importance": {
+								"type": "integer"
 							}
 						}
 					}

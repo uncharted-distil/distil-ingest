@@ -18,6 +18,7 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres"
+	"github.com/unchartedsoftware/distil-ingest/split"
 	"github.com/unchartedsoftware/plog"
 )
 
@@ -51,6 +52,11 @@ func main() {
 			Name:  "classification",
 			Value: "",
 			Usage: "The classification source path",
+		},
+		cli.StringFlag{
+			Name:  "importance",
+			Value: "",
+			Usage: "The importance source path",
 		},
 		cli.StringFlag{
 			Name:  "es-endpoint",
@@ -137,11 +143,15 @@ func main() {
 		if c.String("classification") == "" {
 			return cli.NewExitError("missing commandline flag `--classification`", 1)
 		}
+		if c.String("importance") == "" {
+			return cli.NewExitError("missing commandline flag `--importance`", 1)
+		}
 
 		config := &conf.Conf{
 			ESEndpoint:           c.String("es-endpoint"),
-			ESIndex:              c.String("es-index"),
+			ESIndex:              c.String("es-data-index"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
+			ImportancePath:       filepath.Clean(c.String("importance")),
 			SchemaPath:           filepath.Clean(c.String("schema")),
 			DatasetPath:          filepath.Clean(c.String("dataset")),
 			ErrThreshold:         c.Float64("error-threshold"),
@@ -160,6 +170,14 @@ func main() {
 		meta, err := metadata.LoadMetadataFromClassification(
 			config.SchemaPath,
 			config.ClassificationPath)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
+		// load importance rankings
+		colIndices := split.GetNumericColumnIndices(meta)
+		err = meta.LoadImportance(config.ImportancePath, "importance_on1stpc", colIndices)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
