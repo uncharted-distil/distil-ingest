@@ -2,11 +2,13 @@ package kafka
 
 import (
 	"encoding/json"
-	"io"
 
 	"github.com/optiopay/kafka"
 	"github.com/optiopay/kafka/proto"
 	"github.com/pkg/errors"
+	"io"
+	"strconv"
+	"strings"
 )
 
 // ImportanceMessage represents a kafka classification message.
@@ -26,6 +28,25 @@ type ImportanceResult struct {
 	Raw      string                 `json:"-"`
 }
 
+func parseMalformedComponents(pc string) ([]int, error) {
+	pc = strings.Replace(pc, "[", "", -1)
+	pc = strings.Replace(pc, "]", "", -1)
+	pc = strings.Replace(pc, "\n", "", -1)
+	split := strings.Split(pc, " ")
+	var features []int
+	for _, rank := range split {
+		if rank == "" {
+			continue
+		}
+		num, err := strconv.Atoi(rank)
+		if err != nil {
+			return nil, err
+		}
+		features = append(features, num)
+	}
+	return features, nil
+}
+
 // ConsumeImportance consumes and returns the next portion of the topic.
 func (c *Consumer) ConsumeImportance() (*ImportanceResult, error) {
 	msg, err := c.consumers[c.consumerIndex].Consume()
@@ -42,6 +63,25 @@ func (c *Consumer) ConsumeImportance() (*ImportanceResult, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to unmarshal json")
 	}
+	// TODO: remove this, features at currently serialized incorrectly
+	firstPC, ok := res.Features["importance_on1stpc"].(string)
+	if !ok {
+		return nil, errors.Wrap(err, "`importance_on1stpc` missing from response json")
+	}
+	allPCs := res.Features["importance_onallpcs"].(string)
+	if !ok {
+		return nil, errors.Wrap(err, "`importance_onallpcs` missing from response json")
+	}
+	parsedFirstPC, err := parseMalformedComponents(firstPC)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse malformed `importance_on1stpc` json")
+	}
+	parsedAllPCs, err := parseMalformedComponents(allPCs)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse malformed `importance_onallpcs` json")
+	}
+	res.Features["importance_on1stpc"] = parsedFirstPC
+	res.Features["importance_onallpcs"] = parsedAllPCs
 	res.Raw = string(msg.Value)
 	return res, nil
 }

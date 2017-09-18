@@ -48,6 +48,7 @@ func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool,
 	output := &bytes.Buffer{}
 	writer := csv.NewWriter(output)
 	count := 0
+	var prevLine []string
 	for {
 		line, err := reader.Read()
 		if err == io.EOF {
@@ -58,10 +59,22 @@ func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool,
 		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
 			numericLine := make([]string, len(numericCols))
 			for index, colIndex := range numericCols {
-				numericLine[index] = line[colIndex]
+				// TODO: this is a temp fix for missing values
+				val := line[colIndex]
+				if val == "" {
+					if prevLine != nil && prevLine[colIndex] != "" {
+						// substitute previous rows value if we have it
+						val = prevLine[colIndex]
+					} else {
+						// otherwise 0
+						val = "0"
+					}
+				}
+				numericLine[index] = val
 			}
 			// write the csv line back out
 			writer.Write(numericLine)
+			prevLine = line
 		}
 		count++
 	}

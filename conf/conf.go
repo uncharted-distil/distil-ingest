@@ -14,6 +14,7 @@ type Conf struct {
 
 	// d3m dataset directory path
 	ClassificationPath string
+	ImportancePath     string
 	SchemaPath         string
 	DatasetPath        string
 

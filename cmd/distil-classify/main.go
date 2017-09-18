@@ -137,7 +137,7 @@ func main() {
 					break
 				}
 				log.Errorf("%v", err)
-				continue
+				break
 			}
 			if res.ID == id {
 				if res.Status == "Failure" {

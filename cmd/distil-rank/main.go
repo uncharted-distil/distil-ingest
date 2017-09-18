@@ -123,7 +123,7 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--output-bucket`", 1)
 		}
 
-		classificationPath := filepath.Clean(c.String("classification"))
+		//classificationPath := filepath.Clean(c.String("classification"))
 		schemaPath := filepath.Clean(c.String("schema"))
 		datasetPath := filepath.Clean(c.String("dataset"))
 		outputBucket := c.String("output-bucket")
@@ -139,9 +139,8 @@ func main() {
 		id := "uncharted_" + uuid.NewV4().String()
 
 		// load the metadata
-		meta, err := metadata.LoadMetadataFromClassification(
-			schemaPath,
-			classificationPath)
+		//meta, err := metadata.LoadMetadataFromClassification(schemaPath, classificationPath)
+		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
@@ -214,7 +213,7 @@ func main() {
 					break
 				}
 				log.Errorf("%v", err)
-				continue
+				break
 			}
 			if res.ID == id {
 				if res.Status == "Failure" {
