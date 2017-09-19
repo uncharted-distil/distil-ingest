@@ -54,6 +54,11 @@ func main() {
 			Usage: "The classification source path",
 		},
 		cli.StringFlag{
+			Name:  "summary",
+			Value: "",
+			Usage: "The summary output path",
+		},
+		cli.StringFlag{
 			Name:  "importance",
 			Value: "",
 			Usage: "The importance source path",
@@ -143,6 +148,9 @@ func main() {
 		if c.String("classification") == "" {
 			return cli.NewExitError("missing commandline flag `--classification`", 1)
 		}
+		if c.String("summary") == "" {
+			return cli.NewExitError("missing commandline flag `--summary`", 1)
+		}
 		if c.String("importance") == "" {
 			return cli.NewExitError("missing commandline flag `--importance`", 1)
 		}
@@ -151,6 +159,7 @@ func main() {
 			ESEndpoint:           c.String("es-endpoint"),
 			ESIndex:              c.String("es-data-index"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
+			SummaryPath:          filepath.Clean(c.String("summary")),
 			ImportancePath:       filepath.Clean(c.String("importance")),
 			SchemaPath:           filepath.Clean(c.String("schema")),
 			DatasetPath:          filepath.Clean(c.String("dataset")),
@@ -178,6 +187,13 @@ func main() {
 		// load importance rankings
 		colIndices := split.GetNumericColumnIndices(meta)
 		err = meta.LoadImportance(config.ImportancePath, "importance_on1stpc", colIndices)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
+		// load summary
+		err = meta.LoadSummary(config.SummaryPath, false)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
