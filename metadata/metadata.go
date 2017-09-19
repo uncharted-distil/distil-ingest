@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
@@ -29,6 +33,7 @@ type Metadata struct {
 	ID             string
 	Name           string
 	Description    string
+	Summary        string
 	Variables      []Variable
 	schema         *gabs.Container
 	classification *gabs.Container
@@ -122,6 +127,88 @@ func (m *Metadata) LoadImportance(importanceFile string, importanceMetric string
 	for index, col := range colIndices {
 		m.Variables[col].Importance = int(metric[index].Data().(float64))
 	}
+	return nil
+}
+
+func writeSummaryFile(summaryFile string, summary string) error {
+	return ioutil.WriteFile(summaryFile, []byte(summary), 0644)
+}
+
+func (m *Metadata) setSummaryFallback() {
+	if len(m.Description) < 256 {
+		m.Summary = m.Description
+	} else {
+		m.Summary = m.Description[:256] + "..."
+	}
+}
+
+func summaryAPICall(str string, lines int, apiKey string) ([]byte, error) {
+	// form args
+	form := url.Values{}
+	form.Add("sm_api_input", str)
+	// url
+	url := fmt.Sprintf("http://api.smmry.com/&SM_API_KEY=%s&SM_LENGTH=%d", apiKey, lines)
+	// post req
+	req, err := http.NewRequest("POST", url, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// client
+	client := &http.Client{}
+	// send it
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Summary request failed")
+	}
+	defer resp.Body.Close()
+	// parse response body
+	return ioutil.ReadAll(resp.Body)
+}
+
+// LoadSummary loads a description summary
+func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
+	// use cache if available
+	if useCache {
+		b, err := ioutil.ReadFile(summaryFile)
+		if err == nil {
+			m.Summary = string(b)
+			return nil
+		}
+	}
+	// load api key
+	key := os.Getenv("SMMRY_API_KEY")
+	if key == "" {
+		return errors.New("SMMRY api key is missing from env var `SMMRY_API_KEY`")
+	}
+
+	// send summary API call
+	body, err := summaryAPICall(m.Description, 5, key)
+	if err != nil {
+		return errors.Wrap(err, "failed reading summary body")
+	}
+
+	// parse response
+	container, err := gabs.ParseJSON(body)
+	if err != nil {
+		return errors.Wrap(err, "failed parsing summary body as JSON")
+	}
+
+	// check for API error
+	if container.Path("sm_api_error").Data() != nil {
+		// error message
+		//errStr := container.Path("sm_api_message").Data().(string)
+
+		// fallback to description
+		m.setSummaryFallback()
+	} else {
+		summary, ok := container.Path("sm_api_content").Data().(string)
+		if !ok {
+			m.setSummaryFallback()
+		} else {
+			m.Summary = summary
+		}
+	}
+
+	// cache summary file
+	writeSummaryFile(summaryFile, m.Summary)
 	return nil
 }
 
@@ -258,6 +345,7 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 		"name":        meta.Name,
 		"datasetId":   meta.ID,
 		"description": meta.Description,
+		"summary":     meta.Summary,
 		"variables":   vars,
 	}
 
@@ -337,6 +425,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 						"type": "text"
 					},
 					"description": {
+						"type": "text"
+					},
+					"summary": {
 						"type": "text"
 					},
 					"variables": {
