@@ -13,6 +13,7 @@ type Conf struct {
 	ScanBufferSize int
 
 	// d3m dataset directory path
+	TypeSource         string
 	ClassificationPath string
 	ImportancePath     string
 	SummaryPath        string

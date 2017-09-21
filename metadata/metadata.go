@@ -1,9 +1,11 @@
 package metadata
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -37,6 +39,8 @@ type Metadata struct {
 	Variables      []Variable
 	schema         *gabs.Container
 	classification *gabs.Container
+	NumRows        int64
+	NumBytes       int64
 }
 
 // NewVariable creates a new variable.
@@ -212,6 +216,50 @@ func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 	return nil
 }
 
+func numLines(r io.Reader) (int, error) {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count, nil
+
+		case err != nil:
+			return count, err
+		}
+	}
+}
+
+// LoadDatasetStats loads the dataset and computes various stats.
+func (m *Metadata) LoadDatasetStats(datasetPath string) error {
+
+	// open the left and outfiles for line-by-line by processing
+	f, err := os.Open(datasetPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to open dataset file")
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		return errors.Wrap(err, "failed to acquire stats on dataset file")
+	}
+
+	m.NumBytes = fi.Size()
+
+	lines, err := numLines(f)
+	if err != nil {
+		return errors.Wrap(err, "failed to count rows in file")
+	}
+
+	m.NumRows = int64(lines)
+	return nil
+}
+
 func (m *Metadata) loadID() error {
 	id, ok := m.schema.Path("datasetId").Data().(string)
 	if !ok {
@@ -346,6 +394,8 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 		"datasetId":   meta.ID,
 		"description": meta.Description,
 		"summary":     meta.Summary,
+		"numRows":     meta.NumRows,
+		"numBytes":    meta.NumBytes,
 		"variables":   vars,
 	}
 
@@ -429,6 +479,12 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 					},
 					"summary": {
 						"type": "text"
+					},
+					"numRows": {
+						"type": "long"
+					},
+					"numBytes": {
+						"type": "long"
 					},
 					"variables": {
 						"properties": {

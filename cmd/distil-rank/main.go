@@ -49,6 +49,11 @@ func main() {
 			Usage: "The dataset schema file path",
 		},
 		cli.StringFlag{
+			Name:  "type-source",
+			Value: "schema",
+			Usage: "The source for the type information, either `schema` or `classification`",
+		},
+		cli.StringFlag{
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
@@ -123,7 +128,8 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--output-bucket`", 1)
 		}
 
-		//classificationPath := filepath.Clean(c.String("classification"))
+		classificationPath := filepath.Clean(c.String("classification"))
+		typeSource := c.String("type-source")
 		schemaPath := filepath.Clean(c.String("schema"))
 		datasetPath := filepath.Clean(c.String("dataset"))
 		outputBucket := c.String("output-bucket")
@@ -139,11 +145,15 @@ func main() {
 		id := "uncharted_" + uuid.NewV4().String()
 
 		// load the metadata
-		//meta, err := metadata.LoadMetadataFromClassification(schemaPath, classificationPath)
-		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
+		var meta *metadata.Metadata
+		var err error
+		if typeSource == "classification" {
+			meta, err = metadata.LoadMetadataFromClassification(
+				schemaPath,
+				classificationPath)
+		} else {
+			meta, err = metadata.LoadMetadataFromSchema(
+				schemaPath)
 		}
 
 		// split numeric columns
