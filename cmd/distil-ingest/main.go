@@ -44,6 +44,11 @@ func main() {
 			Usage: "The dataset schema file path",
 		},
 		cli.StringFlag{
+			Name:  "type-source",
+			Value: "schema",
+			Usage: "The source for the type information, either `schema` or `classification`",
+		},
+		cli.StringFlag{
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
@@ -158,6 +163,7 @@ func main() {
 		config := &conf.Conf{
 			ESEndpoint:           c.String("es-endpoint"),
 			ESIndex:              c.String("es-data-index"),
+			TypeSource:           c.String("type-source"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
 			SummaryPath:          filepath.Clean(c.String("summary")),
 			ImportancePath:       filepath.Clean(c.String("importance")),
@@ -176,9 +182,17 @@ func main() {
 		}
 
 		// load the metadata
-		meta, err := metadata.LoadMetadataFromClassification(
-			config.SchemaPath,
-			config.ClassificationPath)
+		var meta *metadata.Metadata
+		var err error
+		if config.TypeSource == "classification" {
+			meta, err = metadata.LoadMetadataFromClassification(
+				config.SchemaPath,
+				config.ClassificationPath)
+		} else {
+			meta, err = metadata.LoadMetadataFromSchema(
+				config.SchemaPath)
+		}
+
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
@@ -193,7 +207,14 @@ func main() {
 		}
 
 		// load summary
-		err = meta.LoadSummary(config.SummaryPath, false)
+		err = meta.LoadSummary(config.SummaryPath, true)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
+		// load stats
+		err = meta.LoadDatasetStats(config.DatasetPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
