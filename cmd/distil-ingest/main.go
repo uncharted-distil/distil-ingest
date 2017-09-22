@@ -18,13 +18,16 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres"
+	"github.com/unchartedsoftware/distil-ingest/postgres/model"
+	"github.com/unchartedsoftware/distil-ingest/split"
 	"github.com/unchartedsoftware/plog"
 )
 
 const (
-	timeout           = time.Second * 60 * 5
-	errSampleSize     = 10
-	metadataIndexName = "datasets"
+	timeout                  = time.Second * 60 * 5
+	errSampleSize            = 10
+	metadataIndexName        = "datasets"
+	typeSourceClassification = "classification"
 )
 
 func main() {
@@ -43,6 +46,11 @@ func main() {
 			Usage: "The dataset schema file path",
 		},
 		cli.StringFlag{
+			Name:  "type-source",
+			Value: "schema",
+			Usage: "The source for the type information, either `schema` or `classification`",
+		},
+		cli.StringFlag{
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
@@ -51,6 +59,16 @@ func main() {
 			Name:  "classification",
 			Value: "",
 			Usage: "The classification source path",
+		},
+		cli.StringFlag{
+			Name:  "summary",
+			Value: "",
+			Usage: "The summary output path",
+		},
+		cli.StringFlag{
+			Name:  "importance",
+			Value: "",
+			Usage: "The importance source path",
 		},
 		cli.StringFlag{
 			Name:  "es-endpoint",
@@ -137,11 +155,20 @@ func main() {
 		if c.String("classification") == "" {
 			return cli.NewExitError("missing commandline flag `--classification`", 1)
 		}
+		if c.String("summary") == "" {
+			return cli.NewExitError("missing commandline flag `--summary`", 1)
+		}
+		if c.String("importance") == "" {
+			return cli.NewExitError("missing commandline flag `--importance`", 1)
+		}
 
 		config := &conf.Conf{
 			ESEndpoint:           c.String("es-endpoint"),
-			ESIndex:              c.String("es-index"),
+			ESIndex:              c.String("es-data-index"),
+			TypeSource:           c.String("type-source"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
+			SummaryPath:          filepath.Clean(c.String("summary")),
+			ImportancePath:       filepath.Clean(c.String("importance")),
 			SchemaPath:           filepath.Clean(c.String("schema")),
 			DatasetPath:          filepath.Clean(c.String("dataset")),
 			ErrThreshold:         c.Float64("error-threshold"),
@@ -157,9 +184,39 @@ func main() {
 		}
 
 		// load the metadata
-		meta, err := metadata.LoadMetadataFromClassification(
-			config.SchemaPath,
-			config.ClassificationPath)
+		var meta *metadata.Metadata
+		var err error
+		if config.TypeSource == typeSourceClassification {
+			meta, err = metadata.LoadMetadataFromClassification(
+				config.SchemaPath,
+				config.ClassificationPath)
+		} else {
+			meta, err = metadata.LoadMetadataFromSchema(
+				config.SchemaPath)
+		}
+
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
+		// load importance rankings
+		colIndices := split.GetNumericColumnIndices(meta)
+		err = meta.LoadImportance(config.ImportancePath, "importance_on1stpc", colIndices)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
+		// load summary
+		err = meta.LoadSummary(config.SummaryPath, true)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
+		// load stats
+		err = meta.LoadDatasetStats(config.DatasetPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
@@ -300,9 +357,17 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	}
 
 	// Create the database table.
-	ds, err := pg.InitializeDataset(meta)
-	if err != nil {
-		return err
+	var ds *model.Dataset
+	if config.TypeSource == typeSourceClassification {
+		ds, err = pg.InitializeDataset(meta)
+		if err != nil {
+			return err
+		}
+	} else {
+		ds, err = pg.ParseMetadata(config.SchemaPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = pg.InitializeTable(config.DBTable, ds)

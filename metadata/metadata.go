@@ -1,11 +1,17 @@
 package metadata
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
@@ -18,9 +24,10 @@ const (
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name string `json:"varName"`
-	Type string `json:"varType"`
-	Role string `json:"varRole"`
+	Name       string `json:"varName"`
+	Type       string `json:"varType"`
+	Role       string `json:"varRole"`
+	Importance int    `json:"importance"`
 }
 
 // Metadata represents a collection of dataset descriptions.
@@ -28,9 +35,12 @@ type Metadata struct {
 	ID             string
 	Name           string
 	Description    string
+	Summary        string
 	Variables      []Variable
 	schema         *gabs.Container
 	classification *gabs.Container
+	NumRows        int64
+	NumBytes       int64
 }
 
 // NewVariable creates a new variable.
@@ -105,6 +115,149 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 		return nil, err
 	}
 	return meta, nil
+}
+
+// LoadImportance wiull load the importance feature selection metric.
+func (m *Metadata) LoadImportance(importanceFile string, importanceMetric string, colIndices []int) error {
+	// unmarshall the schema file
+	importance, err := gabs.ParseJSONFile(importanceFile)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse importance file")
+	}
+	metric, err := importance.Path("features." + importanceMetric).Children()
+	if err != nil {
+		return errors.Wrap(err, "features attribute missing from file")
+	}
+	for index, col := range colIndices {
+		m.Variables[col].Importance = int(metric[index].Data().(float64))
+	}
+	return nil
+}
+
+func writeSummaryFile(summaryFile string, summary string) error {
+	return ioutil.WriteFile(summaryFile, []byte(summary), 0644)
+}
+
+func (m *Metadata) setSummaryFallback() {
+	if len(m.Description) < 256 {
+		m.Summary = m.Description
+	} else {
+		m.Summary = m.Description[:256] + "..."
+	}
+}
+
+func summaryAPICall(str string, lines int, apiKey string) ([]byte, error) {
+	// form args
+	form := url.Values{}
+	form.Add("sm_api_input", str)
+	// url
+	url := fmt.Sprintf("http://api.smmry.com/&SM_API_KEY=%s&SM_LENGTH=%d", apiKey, lines)
+	// post req
+	req, err := http.NewRequest("POST", url, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// client
+	client := &http.Client{}
+	// send it
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Summary request failed")
+	}
+	defer resp.Body.Close()
+	// parse response body
+	return ioutil.ReadAll(resp.Body)
+}
+
+// LoadSummary loads a description summary
+func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
+	// use cache if available
+	if useCache {
+		b, err := ioutil.ReadFile(summaryFile)
+		if err == nil {
+			m.Summary = string(b)
+			return nil
+		}
+	}
+	// load api key
+	key := os.Getenv("SMMRY_API_KEY")
+	if key == "" {
+		return errors.New("SMMRY api key is missing from env var `SMMRY_API_KEY`")
+	}
+
+	// send summary API call
+	body, err := summaryAPICall(m.Description, 5, key)
+	if err != nil {
+		return errors.Wrap(err, "failed reading summary body")
+	}
+
+	// parse response
+	container, err := gabs.ParseJSON(body)
+	if err != nil {
+		return errors.Wrap(err, "failed parsing summary body as JSON")
+	}
+
+	// check for API error
+	if container.Path("sm_api_error").Data() != nil {
+		// error message
+		//errStr := container.Path("sm_api_message").Data().(string)
+
+		// fallback to description
+		m.setSummaryFallback()
+	} else {
+		summary, ok := container.Path("sm_api_content").Data().(string)
+		if !ok {
+			m.setSummaryFallback()
+		} else {
+			m.Summary = summary
+		}
+	}
+
+	// cache summary file
+	writeSummaryFile(summaryFile, m.Summary)
+	return nil
+}
+
+func numLines(r io.Reader) (int, error) {
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		switch {
+		case err == io.EOF:
+			return count, nil
+
+		case err != nil:
+			return count, err
+		}
+	}
+}
+
+// LoadDatasetStats loads the dataset and computes various stats.
+func (m *Metadata) LoadDatasetStats(datasetPath string) error {
+
+	// open the left and outfiles for line-by-line by processing
+	f, err := os.Open(datasetPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to open dataset file")
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		return errors.Wrap(err, "failed to acquire stats on dataset file")
+	}
+
+	m.NumBytes = fi.Size()
+
+	lines, err := numLines(f)
+	if err != nil {
+		return errors.Wrap(err, "failed to count rows in file")
+	}
+
+	m.NumRows = int64(lines)
+	return nil
 }
 
 func (m *Metadata) loadID() error {
@@ -240,6 +393,9 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 		"name":        meta.Name,
 		"datasetId":   meta.ID,
 		"description": meta.Description,
+		"summary":     meta.Summary,
+		"numRows":     meta.NumRows,
+		"numBytes":    meta.NumBytes,
 		"variables":   vars,
 	}
 
@@ -321,6 +477,15 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 					"description": {
 						"type": "text"
 					},
+					"summary": {
+						"type": "text"
+					},
+					"numRows": {
+						"type": "long"
+					},
+					"numBytes": {
+						"type": "long"
+					},
 					"variables": {
 						"properties": {
 							"varDescription": {
@@ -337,6 +502,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 							},
 							"varType": {
 								"type": "text"
+							},
+							"importance": {
+								"type": "integer"
 							}
 						}
 					}

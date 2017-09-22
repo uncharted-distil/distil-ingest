@@ -3,7 +3,9 @@
 DATA_DIR=~/data/d3m
 SCHEMA=/data/dataSchema.json
 MERGED=/data/merged.csv
-CLASSIFICATION=/data/classification_dn.json
+CLASSIFICATION=/data/classification.json
+SUMMARY=/data/summary.json
+IMPORTANCE=/data/importance.json
 METADATA_INDEX=datasets
 DATASETS=(o_185 o_196 o_313 o_38 o_4550)
 ES_ENDPOINT=http://localhost:9200
@@ -20,5 +22,7 @@ do
         --schema="$DATA_DIR/$DATASET/$SCHEMA" \
         --dataset="$DATA_DIR/$DATASET/$MERGED" \
         --classification="$DATA_DIR/$DATASET/$CLASSIFICATION" \
+        --summary="$DATA_DIR/$DATASET/$SUMMARY" \
+        --importance="$DATA_DIR/$DATASET/$IMPORTANCE" \
         --clear-existing
 done

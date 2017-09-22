@@ -198,7 +198,6 @@ func (d *Database) IngestRow(tableName string, data string) error {
 			return nil
 		}
 		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
-
 		// Map the raw string value to the correct database value.
 		// Assume columns in metadata line up with columns in raw data.
 		dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
