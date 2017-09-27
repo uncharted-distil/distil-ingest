@@ -46,6 +46,10 @@ func main() {
 			Value: "",
 			Usage: "The dataset schema file path",
 		},
+		cli.BoolFlag{
+			Name:  "include-raw-dataset",
+			Usage: "If true, will process raw datasets",
+		},
 		cli.StringFlag{
 			Name:  "kafka-endpoints",
 			Value: "",
@@ -103,6 +107,7 @@ func main() {
 		filetype := c.String("filetype")
 		outputFilePath := c.String("output")
 		id := "uncharted_" + uuid.NewV4().String()
+		includeRaw := c.Bool("include-raw-dataset")
 
 		// Check if it is a raw dataset
 		isRaw, err := metadata.IsRawDataset(schemaPath)
@@ -110,7 +115,7 @@ func main() {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 1)
 		}
-		if isRaw {
+		if isRaw && !includeRaw {
 			log.Infof("Not processing dataset because it is a raw dataset")
 			return nil
 		}

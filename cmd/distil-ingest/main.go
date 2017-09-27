@@ -45,6 +45,10 @@ func main() {
 			Value: "",
 			Usage: "The dataset schema file path",
 		},
+		cli.BoolFlag{
+			Name:  "include-raw-dataset",
+			Usage: "If true, will process raw datasets",
+		},
 		cli.StringFlag{
 			Name:  "type-source",
 			Value: "schema",
@@ -181,6 +185,7 @@ func main() {
 			DBTable:              c.String("db-table"),
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
+			IncludeRaw:           c.Bool("include-raw-dataset"),
 		}
 
 		// Check if it is a raw dataset
@@ -189,7 +194,7 @@ func main() {
 			log.Error(err)
 			os.Exit(1)
 		}
-		if isRaw {
+		if isRaw && !config.IncludeRaw {
 			log.Infof("Not processing dataset because it is a raw dataset")
 			return nil
 		}

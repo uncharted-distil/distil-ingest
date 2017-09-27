@@ -32,4 +32,7 @@ type Conf struct {
 	DBTable    string
 	DBUser     string
 	DBPassword string
+
+	// control flags
+	IncludeRaw bool
 }
