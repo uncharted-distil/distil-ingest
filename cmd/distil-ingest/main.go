@@ -183,9 +183,19 @@ func main() {
 			DBPassword:           c.String("db-password"),
 		}
 
+		// Check if it is a raw dataset
+		isRaw, err := metadata.IsRawDataset(config.SchemaPath)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+		if isRaw {
+			log.Infof("Not processing dataset because it is a raw dataset")
+			return nil
+		}
+
 		// load the metadata
 		var meta *metadata.Metadata
-		var err error
 		if config.TypeSource == typeSourceClassification {
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,

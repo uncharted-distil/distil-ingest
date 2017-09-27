@@ -11,6 +11,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/unchartedsoftware/distil-ingest/merge"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/s3"
 )
 
@@ -95,6 +96,17 @@ func main() {
 		outputPath := filepath.Clean(c.String("output-path"))
 		hasHeader := c.Bool("has-header")
 		includeHeader := c.Bool("include-header")
+
+		// Check if it is a raw dataset
+		isRaw, err := metadata.IsRawDataset(schemaPath)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 1)
+		}
+		if isRaw {
+			log.Infof("Not processing dataset because it is a raw dataset")
+			return nil
+		}
 
 		// Merge targets into training data before ingest
 		indices, err := merge.GetColIndices(schemaPath, d3mIndexColName)

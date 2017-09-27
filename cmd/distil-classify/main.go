@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/unchartedsoftware/distil-ingest/kafka"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 )
 
 func splitAndTrim(arg string) []string {
@@ -39,6 +41,11 @@ func main() {
 	app.Usage = "Classify D3M merged datasets"
 	app.UsageText = "distil-classify --kafka-endpoints=<urls> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "schema",
+			Value: "",
+			Usage: "The dataset schema file path",
+		},
 		cli.StringFlag{
 			Name:  "kafka-endpoints",
 			Value: "",
@@ -80,10 +87,14 @@ func main() {
 		if c.String("kafka-endpoints") == "" {
 			return cli.NewExitError("missing commandline flag `--kafka-endpoints`", 1)
 		}
+		if c.String("schema") == "" {
+			return cli.NewExitError("missing commandline flag `--schema`", 1)
+		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
 
+		schemaPath := filepath.Clean(c.String("schema"))
 		produceTopic := c.String("produce-topic")
 		consumeTopic := c.String("consume-topic")
 		kafkaURLs := splitAndTrim(c.String("kafka-endpoints"))
@@ -92,6 +103,17 @@ func main() {
 		filetype := c.String("filetype")
 		outputFilePath := c.String("output")
 		id := "uncharted_" + uuid.NewV4().String()
+
+		// Check if it is a raw dataset
+		isRaw, err := metadata.IsRawDataset(schemaPath)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 1)
+		}
+		if isRaw {
+			log.Infof("Not processing dataset because it is a raw dataset")
+			return nil
+		}
 
 		// connect to kafka
 		log.Infof("Connecting to kafka `%s` as user `%s`", strings.Join(kafkaURLs, ","), kafkaUser)

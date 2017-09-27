@@ -144,9 +144,19 @@ func main() {
 		outputFilePath := c.String("output")
 		id := "uncharted_" + uuid.NewV4().String()
 
+		// Check if it is a raw dataset
+		isRaw, err := metadata.IsRawDataset(schemaPath)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 1)
+		}
+		if isRaw {
+			log.Infof("Not processing dataset because it is a raw dataset")
+			return nil
+		}
+
 		// load the metadata
 		var meta *metadata.Metadata
-		var err error
 		if typeSource == "classification" {
 			meta, err = metadata.LoadMetadataFromClassification(
 				schemaPath,
