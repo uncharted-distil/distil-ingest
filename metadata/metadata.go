@@ -52,6 +52,22 @@ func NewVariable(name, typ, role string) *Variable {
 	}
 }
 
+// IsRawDataset checks the schema to determine if it is a raw dataset.
+func IsRawDataset(schemaPath string) (bool, error) {
+	// schema file has "rawData": true | false
+	schema, err := gabs.ParseJSONFile(schemaPath)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse schema file")
+	}
+
+	isRaw, ok := schema.Path("rawData").Data().(bool)
+	if !ok {
+		return false, errors.Errorf("could not determine if dataset is raw")
+	}
+
+	return isRaw, nil
+}
+
 // LoadMetadataFromSchema loads metadata from a single schema file.
 func LoadMetadataFromSchema(schemaPath string) (*Metadata, error) {
 	// unmarshall the schema file
