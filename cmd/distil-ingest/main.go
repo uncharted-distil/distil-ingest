@@ -217,7 +217,7 @@ func main() {
 
 		// load importance rankings
 		colIndices := split.GetNumericColumnIndices(meta)
-		err = meta.LoadImportance(config.ImportancePath, "importance_on1stpc", colIndices)
+		err = meta.LoadImportance(config.ImportancePath, colIndices)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)

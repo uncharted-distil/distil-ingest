@@ -20,12 +20,12 @@ type ImportanceMessage struct {
 
 // ImportanceResult represents a kafka classification result.
 type ImportanceResult struct {
-	ID       string                 `json:"id"`
-	Status   string                 `json:"status"`
-	Features map[string]interface{} `json:"features"`
-	Path     string                 `json:"path"`
-	FileType string                 `json:"filetype"`
-	Raw      string                 `json:"-"`
+	ID       string    `json:"id"`
+	Status   string    `json:"status"`
+	Features []float64 `json:"features"`
+	Path     string    `json:"path"`
+	FileType string    `json:"filetype"`
+	Raw      string    `json:"-"`
 }
 
 func parseMalformedComponents(pc string) ([]int, error) {
@@ -63,25 +63,7 @@ func (c *Consumer) ConsumeImportance() (*ImportanceResult, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to unmarshal json")
 	}
-	// TODO: remove this, features at currently serialized incorrectly
-	firstPC, ok := res.Features["importance_on1stpc"].(string)
-	if !ok {
-		return nil, errors.Wrap(err, "`importance_on1stpc` missing from response json")
-	}
-	allPCs := res.Features["importance_onallpcs"].(string)
-	if !ok {
-		return nil, errors.Wrap(err, "`importance_onallpcs` missing from response json")
-	}
-	parsedFirstPC, err := parseMalformedComponents(firstPC)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse malformed `importance_on1stpc` json")
-	}
-	parsedAllPCs, err := parseMalformedComponents(allPCs)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse malformed `importance_onallpcs` json")
-	}
-	res.Features["importance_on1stpc"] = parsedFirstPC
-	res.Features["importance_onallpcs"] = parsedAllPCs
+
 	res.Raw = string(msg.Value)
 	return res, nil
 }
