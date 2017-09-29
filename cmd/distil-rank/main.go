@@ -48,6 +48,10 @@ func main() {
 			Value: "",
 			Usage: "The dataset schema file path",
 		},
+		cli.BoolFlag{
+			Name:  "include-raw-dataset",
+			Usage: "If true, will process raw datasets",
+		},
 		cli.StringFlag{
 			Name:  "type-source",
 			Value: "schema",
@@ -136,6 +140,7 @@ func main() {
 		outputKey := c.String("output-key")
 		hasHeader := c.Bool("has-header")
 		includeHeader := c.Bool("include-header")
+		includeRaw := c.Bool("include-raw-dataset")
 
 		produceTopic := c.String("produce-topic")
 		consumeTopic := c.String("consume-topic")
@@ -144,9 +149,19 @@ func main() {
 		outputFilePath := c.String("output")
 		id := "uncharted_" + uuid.NewV4().String()
 
+		// Check if it is a raw dataset
+		isRaw, err := metadata.IsRawDataset(schemaPath)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 1)
+		}
+		if isRaw && !includeRaw {
+			log.Infof("Not processing dataset because it is a raw dataset")
+			return nil
+		}
+
 		// load the metadata
 		var meta *metadata.Metadata
-		var err error
 		if typeSource == "classification" {
 			meta, err = metadata.LoadMetadataFromClassification(
 				schemaPath,

@@ -98,7 +98,7 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 	return database, nil
 }
 
-// CreateResultTable creates an empty table for the pipeline results.
+// CreatePipelineMetadataTables creates an empty table for the pipeline results.
 func (d *Database) CreatePipelineMetadataTables() error {
 	// Create the pipeline tables.
 	log.Infof("Creating pipeline metadata tables.")
