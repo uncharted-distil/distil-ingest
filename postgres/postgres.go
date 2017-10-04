@@ -196,19 +196,22 @@ func (d *Database) IngestRow(tableName string, data string) error {
 	doc := &document.CSV{}
 	doc.SetData(data)
 	for i := 0; i < len(variables); i++ {
-		// Ignore rows that have an empty column.
+		// Default columns that have an empty column.
+		var val interface{}
+		var err error
 		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
 			log.Warn(fmt.Sprintf("%s has empty value in record %s", variables[i].Name, data))
-			return nil
+			val = d.defaultValue(variables[i].Type)
+		} else {
+			// Map the raw string value to the correct database value.
+			// Assume columns in metadata line up with columns in raw data.
+			val, err = d.mapVariable(variables[i].Type, doc.Cols[i])
+			if err != nil {
+				return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
+			}
 		}
 		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
-		// Map the raw string value to the correct database value.
-		// Assume columns in metadata line up with columns in raw data.
-		dbValue, err := d.mapVariable(variables[i].Type, doc.Cols[i])
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
-		}
-		values[i] = dbValue
+		values[i] = val
 	}
 	insertStatement = fmt.Sprintf("INSERT INTO %s VALUES (%s);", tableName, insertStatement[2:])
 
@@ -345,6 +348,19 @@ func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 		return strconv.ParseFloat(value, 64)
 	default:
 		return value, nil
+	}
+}
+
+func (d *Database) defaultValue(typ string) interface{} {
+	switch typ {
+	case "int":
+		return float64(0)
+	case "integer":
+		return float64(0)
+	case "float":
+		return float64(0)
+	default:
+		return ""
 	}
 }
 
