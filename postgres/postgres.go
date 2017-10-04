@@ -40,17 +40,21 @@ const (
 			session_id	varchar(200)
 		);`
 	requestTableCreationSQL = `CREATE TABLE %s (
-			session_id	varchar(200),
-			request_id	varchar(200),
-			dataset		varchar(200),
-			progress	varchar(40)
+			session_id			varchar(200),
+			request_id			varchar(200),
+			dataset				varchar(200),
+			progress			varchar(40),
+			created_time		timestamp,
+			last_updated_time	timestamp
 		);`
 	resultMetadataTableCreationSQL = `CREATE TABLE %s (
-			request_id	varchar(200),
-			pipeline_id	varchar(200),
-			result_uuid	varchar(200),
-			result_uri	varchar(200),
-			progress	varchar(40)
+			request_id		varchar(200),
+			pipeline_id		varchar(200),
+			result_uuid		varchar(200),
+			result_uri		varchar(200),
+			progress		varchar(40),
+			output_type		varchar(200),
+			created_time	timestamp
 		);`
 	requestFeatureTableCreationSQL = `CREATE TABLE %s (
 			request_id		varchar(200),
