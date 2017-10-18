@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/jeffail/gabs"
@@ -24,10 +25,11 @@ const (
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name       string `json:"varName"`
-	Type       string `json:"varType"`
-	Role       string `json:"varRole"`
-	Importance int    `json:"importance"`
+	Name           string `json:"varName"`
+	Type           string `json:"varType"`
+	Role           string `json:"varRole"`
+	Importance     int    `json:"importance"`
+	SuggestedTypes []interface{}
 }
 
 // Metadata represents a collection of dataset descriptions.
@@ -41,7 +43,6 @@ type Metadata struct {
 	classification *gabs.Container
 	NumRows        int64
 	NumBytes       int64
-	Types          map[string][]interface{}
 }
 
 // NewVariable creates a new variable.
@@ -117,17 +118,6 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 		classification: classification,
 	}
 
-	// extract the field types
-	labels, err := classification.S("labels").ChildrenMap()
-	if err != nil {
-		return nil, err
-	}
-	types := make(map[string][]interface{})
-	for index, label := range labels {
-		types[index] = label.Data().([]interface{})
-	}
-	meta.Types = types
-
 	err = meta.loadName()
 	if err != nil {
 		return nil, err
@@ -144,6 +134,22 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	if err != nil {
 		return nil, err
 	}
+
+	// extract the field types
+	labels, err := classification.S("labels").ChildrenMap()
+	if err != nil {
+		return nil, err
+	}
+
+	for index, label := range labels {
+		i, err := strconv.Atoi(index)
+		if err != nil {
+			return nil, err
+		}
+
+		meta.Variables[i].SuggestedTypes = label.Data().([]interface{})
+	}
+
 	return meta, nil
 }
 
@@ -427,7 +433,6 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 		"numRows":     meta.NumRows,
 		"numBytes":    meta.NumBytes,
 		"variables":   vars,
-		"types":       meta.Types,
 	}
 
 	bytes, err := json.Marshal(source)
