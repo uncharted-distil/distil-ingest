@@ -198,22 +198,15 @@ func (d *Database) IngestRow(tableName string, data string) error {
 	for i := 0; i < len(variables); i++ {
 		// Default columns that have an empty column.
 		var val interface{}
-		var err error
 		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
-			log.Warn(fmt.Sprintf("%s has empty value in record %s", variables[i].Name, data))
-			val = d.defaultValue(variables[i].Type)
+			val = nil
 		} else {
-			// Map the raw string value to the correct database value.
-			// Assume columns in metadata line up with columns in raw data.
-			val, err = d.mapVariable(variables[i].Type, doc.Cols[i])
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("Failed to parse column %s", variables[i].Name))
-			}
+			val = doc.Cols[i]
 		}
 		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
 		values[i] = val
 	}
-	insertStatement = fmt.Sprintf("INSERT INTO %s VALUES (%s);", tableName, insertStatement[2:])
+	insertStatement = fmt.Sprintf("INSERT INTO %s_base VALUES (%s);", tableName, insertStatement[2:])
 
 	_, err := d.DB.Exec(insertStatement, values...)
 
@@ -234,20 +227,36 @@ func (d *Database) DropTable(tableName string) error {
 func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	d.Tables[tableName] = ds
 
-	// Create the statement that will be used to create the table.
-	createStatement := `CREATE TABLE %s(%s);`
-	vars := ""
+	// Create the view and table statements.
+	// The table has everything stored as a string.
+	// The view uses casting to set the types.
+	createStatementTable := `CREATE TABLE %s_base (%s);`
+	createStatementView := `CREATE VIEW %s AS SELECT %s FROM %s_base;`
+	varsTable := ""
+	varsView := ""
 	for _, variable := range ds.Variables {
-		vars = fmt.Sprintf("%s\n\"%s\" %s,", vars, variable.Name, d.mapType(variable.Type))
+		varsTable = fmt.Sprintf("%s\n\"%s\" TEXT,", varsTable, variable.Name)
+		varsView = fmt.Sprintf("%s\nCOALESCE(CAST(\"%s\" AS %s), %v) AS \"%s\",",
+			varsView, variable.Name, d.mapType(variable.Type), d.defaultValue(variable.Type), variable.Name)
 	}
-	if len(vars) > 0 {
-		vars = vars[:len(vars)-1]
+	if len(varsTable) > 0 {
+		varsTable = varsTable[:len(varsTable)-1]
+		varsView = varsView[:len(varsView)-1]
 	}
-	createStatement = fmt.Sprintf(createStatement, tableName, vars)
+	createStatementTable = fmt.Sprintf(createStatementTable, tableName, varsTable)
 	log.Infof("Creating table %s", tableName)
 
 	// Create the table.
-	_, err := d.DB.Exec(createStatement)
+	_, err := d.DB.Exec(createStatementTable)
+	if err != nil {
+		return err
+	}
+
+	createStatementView = fmt.Sprintf(createStatementView, tableName, varsView, tableName)
+	log.Infof("Creating view %s", tableName)
+
+	// Create the table.
+	_, err = d.DB.Exec(createStatementView)
 	if err != nil {
 		return err
 	}
@@ -360,7 +369,7 @@ func (d *Database) defaultValue(typ string) interface{} {
 	case "float":
 		return float64(0)
 	default:
-		return ""
+		return "''"
 	}
 }
 
