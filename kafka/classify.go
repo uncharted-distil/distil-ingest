@@ -18,13 +18,14 @@ type ClassificationMessage struct {
 
 // ClassificationResult represents a kafka classification result.
 type ClassificationResult struct {
-	ID       string                 `json:"id"`
-	Status   string                 `json:"status"`
-	Samples  map[string]interface{} `json:"samples"`
-	Labels   map[string]interface{} `json:"labels"`
-	Path     string                 `json:"path"`
-	FileType string                 `json:"filetype"`
-	Raw      string                 `json:"-"`
+	ID            string                 `json:"id"`
+	Status        string                 `json:"status"`
+	Samples       map[string]interface{} `json:"samples"`
+	Labels        map[string]interface{} `json:"labels"`
+	Probabilities map[string]interface{} `json:"label_probabilities"`
+	Path          string                 `json:"path"`
+	FileType      string                 `json:"filetype"`
+	Raw           string                 `json:"-"`
 }
 
 // ConsumeClassification consumes and returns the next portion of the topic.
@@ -44,6 +45,7 @@ func (c *Consumer) ConsumeClassification() (*ClassificationResult, error) {
 		return nil, errors.Wrap(err, "unable to unmarshal json")
 	}
 	res.Raw = string(msg.Value)
+
 	return res, nil
 }
 

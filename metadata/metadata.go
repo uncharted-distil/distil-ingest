@@ -25,11 +25,17 @@ const (
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name           string        `json:"varName"`
-	Type           string        `json:"varType"`
-	Role           string        `json:"varRole"`
-	Importance     int           `json:"importance"`
-	SuggestedTypes []interface{} `json:"suggestedTypes"`
+	Name           string           `json:"varName"`
+	Type           string           `json:"varType"`
+	Role           string           `json:"varRole"`
+	Importance     int              `json:"importance"`
+	SuggestedTypes []*SuggestedType `json:"suggestedTypes"`
+}
+
+// SuggestedType represents a classified variable type.
+type SuggestedType struct {
+	Type        string  `json:"type"`
+	Probability float64 `json:"probability"`
 }
 
 // Metadata represents a collection of dataset descriptions.
@@ -138,16 +144,41 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	// extract the field types
 	labels, err := classification.S("labels").ChildrenMap()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Unable to parse labels")
+	}
+	probabilities, err := classification.S("label_probabilities").ChildrenMap()
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to parse probabilities")
 	}
 
+	// build labels & probabilities lookups.
+	labelsParsed := make(map[string][]interface{})
 	for index, label := range labels {
+		labelsParsed[index] = label.Data().([]interface{})
+	}
+
+	probabilitiesParsed := make(map[string][]interface{})
+	for index, prob := range probabilities {
+		probabilitiesParsed[index] = prob.Data().([]interface{})
+	}
+
+	// build the suggested types structures
+	for index, label := range labelsParsed {
 		i, err := strconv.Atoi(index)
 		if err != nil {
 			return nil, err
 		}
 
-		meta.Variables[i].SuggestedTypes = label.Data().([]interface{})
+		prob := probabilitiesParsed[index]
+		types := make([]*SuggestedType, len(prob))
+		for j := 0; j < len(prob); j++ {
+			types[j] = &SuggestedType{
+				Type:        label[j].(string),
+				Probability: prob[j].(float64),
+			}
+		}
+
+		meta.Variables[i].SuggestedTypes = types
 	}
 
 	return meta, nil
