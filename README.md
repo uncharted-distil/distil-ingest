@@ -1,5 +1,7 @@
 # distil-ingest
 
+[![CircleCI](https://circleci.com/gh/unchartedsoftware/distil-ingest.svg?style=svg&circle-token=b53431703f25a09b518e948735d679a8bfb7b04a)](https://circleci.com/gh/unchartedsoftware/distil-ingest)
+
 ## Dependencies
 
 Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified and `$GOPATH/bin` in your `PATH`.
