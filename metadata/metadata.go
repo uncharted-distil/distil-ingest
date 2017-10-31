@@ -28,6 +28,8 @@ type Variable struct {
 	Name           string           `json:"varName"`
 	Type           string           `json:"varType"`
 	Role           string           `json:"varRole"`
+	OriginalName   string           `json:"varOriginalName"`
+	DisplayName    string           `json:"varDisplayName"`
 	Importance     int              `json:"importance"`
 	SuggestedTypes []*SuggestedType `json:"suggestedTypes"`
 }
@@ -54,9 +56,10 @@ type Metadata struct {
 // NewVariable creates a new variable.
 func NewVariable(name, typ, role string) *Variable {
 	return &Variable{
-		Name: name,
-		Type: typ,
-		Role: role,
+		Name:         name,
+		Type:         typ,
+		Role:         role,
+		OriginalName: name,
 	}
 }
 
@@ -410,9 +413,10 @@ func (m *Metadata) loadVariables() error {
 		varRole := v.Path("varRole").Data().(string)
 		varName := v.Path("varName").Data().(string)
 		variables = append(variables, Variable{
-			Name: varName,
-			Type: varTypes[index],
-			Role: varRole,
+			Name:         varName,
+			Type:         varTypes[index],
+			Role:         varRole,
+			OriginalName: varName,
 		})
 	}
 
