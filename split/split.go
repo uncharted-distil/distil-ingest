@@ -32,7 +32,7 @@ func GetNumericColumnIndices(meta *metadata.Metadata) []int {
 }
 
 // GetNumericColumns creates a new csv file of all numeric columns.
-func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool, includeHeader bool) ([]byte, error) {
+func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool) ([]byte, error) {
 
 	// open the left and outfiles for line-by-line by processing
 	file, err := os.Open(filename)
@@ -56,7 +56,7 @@ func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool,
 		} else if err != nil {
 			return nil, errors.Wrap(err, "failed to read line from file")
 		}
-		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
+		if count > 0 || !hasHeader {
 			numericLine := make([]string, len(numericCols))
 			for index, colIndex := range numericCols {
 				// TODO: this is a temp fix for missing values
