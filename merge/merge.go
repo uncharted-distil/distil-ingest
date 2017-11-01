@@ -24,8 +24,6 @@ type FileLink struct {
 }
 
 func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
-
-	fmt.Println("laoding file link for", filename)
 	// open file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -60,7 +58,6 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 			indices[variable.Name] = index
 		}
 	}
-	fmt.Println("Search for index under name", indices)
 
 	// search file link for index
 	var indexName string
@@ -68,7 +65,6 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 	for colIndex, colName := range header {
 		_, ok := indices[colName]
 		if ok {
-			fmt.Println("Found index", colName, "in col", colIndex)
 			indexName = colName
 			indexCol = colIndex
 			break
@@ -77,15 +73,12 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 
 	// build lookups for each row
 	lookup := make(map[string][]string)
-	for i, row := range rows {
+	for _, row := range rows {
 		// copy row, without the index
 		var rowWithoutIndex []string
 		rowWithoutIndex = append(rowWithoutIndex, row[0:indexCol]...)
 		rowWithoutIndex = append(rowWithoutIndex, row[indexCol+1:]...)
 		indexVal := row[indexCol]
-		if i < 10 {
-			fmt.Println(indexVal, ":", rowWithoutIndex)
-		}
 		lookup[indexVal] = rowWithoutIndex
 	}
 
@@ -100,13 +93,11 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 
 // InjectFileLinks traverses all file links and injests the relevant data.
 func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string) ([]byte, error) {
-
 	// determine if there are any links
 	var linkColumns []int
 	for col, variable := range meta.Variables {
 		if variable.Type == "file" {
 			// flag file link
-			fmt.Println("detected index on col", col)
 			linkColumns = append(linkColumns, col)
 		}
 	}
@@ -123,13 +114,12 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 	for {
 		line, err := reader.Read()
 		if err == io.EOF {
-			fmt.Println("breaking after", count, "lines")
 			break
 		} else if err != nil {
 			return nil, errors.Wrapf(err, "failed read to line %d", count)
 		}
 
-		// NOTE: there is no heade rby this step
+		// NOTE: there is no header by this step
 
 		// check if we have loaded the links that exist in the row
 		for _, col := range linkColumns {
@@ -137,7 +127,6 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 			filename := line[col]
 			link, ok := links[filename]
 			if !ok {
-				fmt.Println("loaded file link", filename)
 				l, err := readFileLink(meta, fmt.Sprintf("%s/%s", rawDataPath, filename))
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed read file link %s from col %d of line %d", filename, col, count)
@@ -151,10 +140,6 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 			// look up row in link file based on link index
 			linkedRow := link.Lookup[linkIndex]
 
-			if count < 10 {
-				fmt.Println(filename, "->", linkIndex, ":", linkedRow)
-			}
-
 			// inject row into line
 			line = append(line, linkedRow...)
 		}
@@ -165,8 +150,6 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 	}
 
 	writer.Flush()
-
-	fmt.Println("read", count, "lines from merged file")
 
 	return output.Bytes(), nil
 }
@@ -296,23 +279,6 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasH
 	}
 	// flush writer
 	writer.Flush()
-
-	//
-	// c := 0
-	// m := output.Bytes()
-	// r2 := csv.NewReader(bytes.NewBuffer(m))
-	//
-	// for {
-	// 	_, err := r2.Read()
-	// 	if err == io.EOF {
-	// 		fmt.Println("breaking after", c, "lines")
-	// 		break
-	// 	}
-	// 	c++
-	// }
-	//
-	// fmt.Println("read", count, "lines from merged file")
-	///
 
 	return output.Bytes(), count, missed, nil
 }

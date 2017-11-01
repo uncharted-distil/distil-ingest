@@ -114,13 +114,6 @@ func main() {
 			return nil
 		}
 
-		// load the metadata from schema
-		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 1)
-		}
-
 		// get indices to join datasets on
 		indices, err := merge.GetColIndices(schemaPath, d3mIndexColName)
 		if err != nil {
@@ -144,6 +137,13 @@ func main() {
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// load the metadata from schema
+		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 1)
 		}
 
 		// merge file links in dataset
