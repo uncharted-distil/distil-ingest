@@ -71,10 +71,6 @@ func main() {
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
 		},
-		cli.BoolFlag{
-			Name:  "include-header",
-			Usage: "Whether or not to include the header row in the merged file",
-		},
 		cli.StringFlag{
 			Name:  "output-bucket",
 			Value: "",
@@ -139,7 +135,6 @@ func main() {
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
 		hasHeader := c.Bool("has-header")
-		includeHeader := c.Bool("include-header")
 		includeRaw := c.Bool("include-raw-dataset")
 
 		produceTopic := c.String("produce-topic")
@@ -176,8 +171,7 @@ func main() {
 		output, err := split.GetNumericColumns(
 			datasetPath,
 			meta,
-			hasHeader,
-			includeHeader)
+			hasHeader)
 
 		// get AWS S3 client
 		s3Client, err := s3.NewClient()

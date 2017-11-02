@@ -25,7 +25,6 @@ do
         --output-bucket="$AWS_OUTPUT_BUCKET" \
         --output-key="$AWS_OUTPUT_KEY_PREFIX/$DATASET$AWS_OUTPUT_KEY_SUFFIX" \
         --has-header=$HAS_HEADER \
-        --include-header=$INCLUDE_HEADER \
         --kafka-endpoints="$KAFKA_ENDPOINT" \
         --output="$DATA_DIR/$DATASET/$OUTPUT"
 done

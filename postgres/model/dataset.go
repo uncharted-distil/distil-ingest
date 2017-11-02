@@ -9,7 +9,7 @@ type Dataset struct {
 	ID              string
 	Name            string
 	Description     string
-	Variables       []metadata.Variable
+	Variables       []*metadata.Variable
 	variablesLookup map[string]bool
 }
 
@@ -35,6 +35,6 @@ func (ds *Dataset) HasVariable(variable *metadata.Variable) bool {
 
 // AddVariable adds a variable to the dataset.
 func (ds *Dataset) AddVariable(variable *metadata.Variable) {
-	ds.Variables = append(ds.Variables, *variable)
+	ds.Variables = append(ds.Variables, variable)
 	ds.variablesLookup[variable.Name] = true
 }
