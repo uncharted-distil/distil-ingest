@@ -452,13 +452,10 @@ func (m *Metadata) mergeVariables(left []*gabs.Container, right []*gabs.Containe
 // provided index.
 func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error {
 
-	// filter variables for surce object
+	// filter variables for source object
 	var vars []Variable
 	for _, v := range meta.Variables {
-		// exclude index
-		if v.Role != "index" {
-			vars = append(vars, v)
-		}
+		vars = append(vars, v)
 	}
 	source := map[string]interface{}{
 		"name":        meta.Name,

@@ -237,6 +237,15 @@ func main() {
 			os.Exit(1)
 		}
 
+		// set the d3m index to int regardless of what gets returned.
+		// TODO: This should be done on parsing of the classificaiton
+		// but that leads to errors downstream!
+		for i, v := range meta.Variables {
+			if v.Name == "d3mIndex" {
+				meta.Variables[i].Type = "integer"
+			}
+		}
+
 		if config.ESEndpoint != "" {
 			// create elasticsearch client
 			delugeClient, err := delugeElastic.NewClient(
@@ -374,11 +383,13 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	// Create the database table.
 	var ds *model.Dataset
 	if config.TypeSource == typeSourceClassification {
+		log.Infof("Initializing with the classification information")
 		ds, err = pg.InitializeDataset(meta)
 		if err != nil {
 			return err
 		}
 	} else {
+		log.Infof("Initializing with the schema information")
 		ds, err = pg.ParseMetadata(config.SchemaPath)
 		if err != nil {
 			return err

@@ -328,7 +328,7 @@ func (d *Database) mapType(typ string) string {
 	case "int":
 		return "FLOAT8"
 	case "integer":
-		return "FLOAT8"
+		return "INTEGER"
 	case "float":
 		return "FLOAT8"
 	default:
@@ -349,7 +349,7 @@ func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 		if value == "" {
 			return nil, nil
 		}
-		return strconv.ParseFloat(value, 64)
+		return strconv.ParseInt(value, 10, 32)
 	case "float":
 		if value == "" {
 			return nil, nil
@@ -365,7 +365,7 @@ func (d *Database) defaultValue(typ string) interface{} {
 	case "int":
 		return float64(0)
 	case "integer":
-		return float64(0)
+		return int(0)
 	case "float":
 		return float64(0)
 	default:
