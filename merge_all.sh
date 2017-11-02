@@ -9,7 +9,7 @@ AWS_OUTPUT_BUCKET=d3m-data
 AWS_OUTPUT_KEY_PREFIX=merged_o_data
 AWS_OUTPUT_KEY_SUFFIX=_merged.csv
 OUTPUT_PATH=/data/merged.csv
-DATASETS=(r_32 o_185 o_196 o_313 o_38 o_4550)
+DATASETS=(r_26 r_27 r_32 r_60 o_185 o_196 o_313 o_38 o_4550)
 HAS_HEADER=1
 
 for DATASET in "${DATASETS[@]}"
