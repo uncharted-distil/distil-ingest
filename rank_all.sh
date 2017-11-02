@@ -11,7 +11,6 @@ OUTPUT=/data/importance.json
 DATASETS=(o_185 o_196 o_313 o_38 o_4550)
 KAFKA_ENDPOINT=10.108.4.41:9092
 HAS_HEADER=1
-INCLUDE_HEADER=0
 
 for DATASET in "${DATASETS[@]}"
 do
@@ -26,5 +25,6 @@ do
         --output-key="$AWS_OUTPUT_KEY_PREFIX/$DATASET$AWS_OUTPUT_KEY_SUFFIX" \
         --has-header=$HAS_HEADER \
         --kafka-endpoints="$KAFKA_ENDPOINT" \
-        --output="$DATA_DIR/$DATASET/$OUTPUT"
+        --output="$DATA_DIR/$DATASET/$OUTPUT" \
+        --include-raw-dataset
 done

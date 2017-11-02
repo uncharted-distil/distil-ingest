@@ -24,5 +24,6 @@ do
         --classification="$DATA_DIR/$DATASET/$CLASSIFICATION" \
         --summary="$DATA_DIR/$DATASET/$SUMMARY" \
         --importance="$DATA_DIR/$DATASET/$IMPORTANCE" \
-        --clear-existing
+        --clear-existing \
+        --include-raw-dataset
 done

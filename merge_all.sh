@@ -11,8 +11,6 @@ AWS_OUTPUT_KEY_SUFFIX=_merged.csv
 OUTPUT_PATH=/data/merged.csv
 DATASETS=(r_32 o_185 o_196 o_313 o_38 o_4550)
 HAS_HEADER=1
-INCLUDE_HEADER=0
-INCLUDE_RAW=1
 
 for DATASET in "${DATASETS[@]}"
 do
@@ -28,5 +26,5 @@ do
         --output-key="$AWS_OUTPUT_KEY_PREFIX/$DATASET$AWS_OUTPUT_KEY_SUFFIX" \
         --output-path="$DATA_DIR/$DATASET/$OUTPUT_PATH" \
         --has-header=$HAS_HEADER \
-        --include-raw-dataset=$INCLUDE_RAW
+        --include-raw-dataset
 done

@@ -15,5 +15,6 @@ do
     go run cmd/distil-classify/main.go \
         --kafka-endpoints="$KAFKA_ENDPOINT" \
         --dataset="$AWS_PREFIX/$DATASET$AWS_SUFFIX" \
-        --output="$DATA_DIR/$DATASET/$OUTPUT"
+        --output="$DATA_DIR/$DATASET/$OUTPUT" \
+        --include-raw-dataset
 done
