@@ -158,11 +158,13 @@ func main() {
 		// load the metadata
 		var meta *metadata.Metadata
 		if typeSource == "classification" {
+			log.Infof("Loading metadata from classification file")
 			meta, err = metadata.LoadMetadataFromClassification(
 				schemaPath,
 				classificationPath)
 		} else {
-			meta, err = metadata.LoadMetadataFromSchema(
+			log.Infof("Loading metadata from schema file")
+			meta, err = metadata.LoadMetadataFromOriginalSchema(
 				schemaPath)
 		}
 

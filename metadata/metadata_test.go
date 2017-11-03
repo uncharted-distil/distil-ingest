@@ -14,7 +14,7 @@ import (
 
 func TestMetadataFromSchema(t *testing.T) {
 
-	meta, err := LoadMetadataFromSchema("./testdata/dataSchema.json")
+	meta, err := LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
 	assert.NoError(t, err)
 
 	description, err := ioutil.ReadFile("./testdata/dataDescription.txt")
@@ -78,7 +78,7 @@ func TestIngestMetadata(t *testing.T) {
 	client, err := elastic.NewSimpleClient(elastic.SetURL(testServer.URL))
 	assert.NoError(t, err)
 
-	meta, err := LoadMetadataFromSchema("./testdata/dataSchema.json")
+	meta, err := LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
 	assert.NoError(t, err)
 
 	err = IngestMetadata(client, "test_index", meta)

@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/jeffail/gabs"
@@ -46,6 +45,7 @@ type Metadata struct {
 	Name           string
 	Description    string
 	Summary        string
+	Raw            bool
 	Variables      []*Variable
 	schema         *gabs.Container
 	classification *gabs.Container
@@ -80,17 +80,18 @@ func IsRawDataset(schemaPath string) (bool, error) {
 	return isRaw, nil
 }
 
-// LoadMetadataFromSchema loads metadata from a single schema file.
-func LoadMetadataFromSchema(schemaPath string) (*Metadata, error) {
-	// unmarshall the schema file
-	schema, err := gabs.ParseJSONFile(schemaPath)
+// LoadMetadataFromOriginalSchema loads metadata from a schema file.
+func LoadMetadataFromOriginalSchema(schemaPath string) (*Metadata, error) {
+	meta := &Metadata{}
+	err := meta.loadSchema(schemaPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse schema file")
-	}
-	meta := &Metadata{
-		schema: schema,
+		return nil, err
 	}
 	err = meta.loadName()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadRaw()
 	if err != nil {
 		return nil, err
 	}
@@ -102,33 +103,25 @@ func LoadMetadataFromSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadVariables()
+	err = meta.loadOriginalSchemaVariables()
 	if err != nil {
 		return nil, err
 	}
 	return meta, nil
 }
 
-// LoadMetadataFromClassification loads metadata from a schema and
-// classification file.
-func LoadMetadataFromClassification(schemaPath string, classificationPath string) (*Metadata, error) {
-	// unmarshall the schema file
-	schema, err := gabs.ParseJSONFile(schemaPath)
+// LoadMetadataFromMergedSchema loads metadata from a merged schema file.
+func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
+	meta := &Metadata{}
+	err := meta.loadMergedSchema(schemaPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse schema file")
+		return nil, err
 	}
-	// unmarshall the classification file
-	classification, err := gabs.ParseJSONFile(classificationPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse classification file")
-	}
-
-	meta := &Metadata{
-		schema:         schema,
-		classification: classification,
-	}
-
 	err = meta.loadName()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadRaw()
 	if err != nil {
 		return nil, err
 	}
@@ -140,52 +133,77 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadVariables()
+	err = meta.loadMergedSchemaVariables()
 	if err != nil {
 		return nil, err
 	}
-
-	// extract the field types
-	labels, err := classification.S("labels").ChildrenMap()
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to parse labels")
-	}
-	probabilities, err := classification.S("label_probabilities").ChildrenMap()
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to parse probabilities")
-	}
-
-	// build labels & probabilities lookups.
-	labelsParsed := make(map[string][]interface{})
-	for index, label := range labels {
-		labelsParsed[index] = label.Data().([]interface{})
-	}
-
-	probabilitiesParsed := make(map[string][]interface{})
-	for index, prob := range probabilities {
-		probabilitiesParsed[index] = prob.Data().([]interface{})
-	}
-
-	// build the suggested types structures
-	for index, label := range labelsParsed {
-		i, err := strconv.Atoi(index)
-		if err != nil {
-			return nil, err
-		}
-
-		prob := probabilitiesParsed[index]
-		types := make([]*SuggestedType, len(prob))
-		for j := 0; j < len(prob); j++ {
-			types[j] = &SuggestedType{
-				Type:        label[j].(string),
-				Probability: prob[j].(float64),
-			}
-		}
-
-		meta.Variables[i].SuggestedTypes = types
-	}
-
 	return meta, nil
+}
+
+// LoadMetadataFromClassification loads metadata from a merged schema and
+// classification file.
+func LoadMetadataFromClassification(schemaPath string, classificationPath string) (*Metadata, error) {
+	meta := &Metadata{}
+	err := meta.loadMergedSchema(schemaPath)
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadClassification(classificationPath)
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadName()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadRaw()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadID()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadDescription(schemaPath)
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadClassificationVariables()
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+func (m *Metadata) loadSchema(schemaPath string) error {
+	schema, err := gabs.ParseJSONFile(schemaPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse schema file")
+	}
+	m.schema = schema
+	return nil
+}
+
+func (m *Metadata) loadMergedSchema(schemaPath string) error {
+	schema, err := gabs.ParseJSONFile(schemaPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse merged schema file")
+	}
+	// confirm merged schema
+	if schema.Path("mergedSchema").Data() == nil {
+		return fmt.Errorf("schema file provided is not the proper merged schema")
+	}
+	m.schema = schema
+	return nil
+}
+
+func (m *Metadata) loadClassification(classificationPath string) error {
+	classification, err := gabs.ParseJSONFile(classificationPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse classification file")
+	}
+	m.classification = classification
+	return nil
 }
 
 // LoadImportance wiull load the importance feature selection metric.
@@ -331,6 +349,15 @@ func (m *Metadata) LoadDatasetStats(datasetPath string) error {
 	return nil
 }
 
+func (m *Metadata) loadRaw() error {
+	isRaw, ok := m.schema.Path("rawData").Data().(bool)
+	if !ok {
+		m.Raw = false
+	}
+	m.Raw = isRaw
+	return nil
+}
+
 func (m *Metadata) loadID() error {
 	id, ok := m.schema.Path("datasetId").Data().(string)
 	if !ok {
@@ -360,9 +387,84 @@ func (m *Metadata) loadDescription(schemaPath string) error {
 	return nil
 }
 
-func (m *Metadata) loadVariables() error {
-	// add the training and target data variables - - don't include the index
-	// columns in the final values
+func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
+	if v.Path("varName").Data() == nil {
+		return nil, fmt.Errorf("unable to parse variable name")
+	}
+	varName := v.Path("varName").Data().(string)
+	varType := ""
+	if v.Path("varType").Data() != nil {
+		varType = v.Path("varType").Data().(string)
+	}
+	varRole := ""
+	if v.Path("varRole").Data() != nil {
+		varRole = v.Path("varRole").Data().(string)
+	}
+	varFileType := ""
+	if v.Path("varFileType").Data() != nil {
+		varFileType = v.Path("varFileType").Data().(string)
+	}
+	varFileFormat := ""
+	if v.Path("varFileFormat").Data() != nil {
+		varFileFormat = v.Path("varFileFormat").Data().(string)
+	}
+	return NewVariable(
+		varName,
+		varType,
+		varRole,
+		varFileType,
+		varFileFormat), nil
+}
+
+func (m *Metadata) parseClassification(index int, labels map[string]*gabs.Container) (string, error) {
+	// parse classification
+	colKey := fmt.Sprintf("%d", index)
+	col, ok := labels[colKey]
+	if !ok {
+		return "", errors.Errorf("no label found for key `%s`", colKey)
+	}
+	varTypeLabels, err := col.Children()
+	if err != nil {
+		return "", errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", col))
+	}
+	if len(varTypeLabels) > 0 {
+		// TODO: fix so we don't always just use first classification
+		return varTypeLabels[0].Data().(string), nil
+	}
+	return defaultVarType, nil
+}
+
+func (m *Metadata) parseSuggestedTypes(index int, labels map[string]*gabs.Container, probabilities map[string]*gabs.Container) ([]*SuggestedType, error) {
+	// parse probabilities
+	colKey := fmt.Sprintf("%d", index)
+	labelsCol, ok := labels[colKey]
+	if !ok {
+		return nil, errors.Errorf("no label found for key `%s`", colKey)
+	}
+	probabilitiesCol, ok := probabilities[colKey]
+	if !ok {
+		return nil, errors.Errorf("no probabilities found for key `%s`", colKey)
+	}
+	varTypeLabels, err := labelsCol.Children()
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", labelsCol))
+	}
+	varProbabilities, err := probabilitiesCol.Children()
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse probabilities for column `%d`", probabilitiesCol))
+	}
+	var suggested []*SuggestedType
+	for index, label := range varTypeLabels {
+		prob := varProbabilities[index]
+		suggested = append(suggested, &SuggestedType{
+			Type:        label.Data().(string),
+			Probability: prob.Data().(float64),
+		})
+	}
+	return suggested, nil
+}
+
+func (m *Metadata) loadOriginalSchemaVariables() error {
 	trainVariables, err := m.schema.Path("trainData.trainData").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse training data")
@@ -372,67 +474,65 @@ func (m *Metadata) loadVariables() error {
 		return errors.Wrap(err, "failed to parse target data")
 	}
 	schemaVariables := m.mergeVariables(trainVariables, targetVariables)
-
-	var varTypes []string
-
-	if m.classification != nil {
-		// get variable types from classification
-		labels, err := m.classification.Path("labels").ChildrenMap()
+	for _, v := range schemaVariables {
+		variable, err := m.parseSchemaVariable(v)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse classification types")
+			return err
 		}
+		m.Variables = append(m.Variables, variable)
+	}
+	return nil
+}
 
-		for index := range schemaVariables {
-			colKey := fmt.Sprintf("%d", index)
-			col, ok := labels[colKey]
-			if !ok {
-				return errors.Errorf("no column found for key `%s`", colKey)
-			}
-			varTypeLabels, err := col.Children()
-			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("failed to parse varType for column `%d`", col))
-			}
-			varType := defaultVarType
-			if len(varTypeLabels) > 0 {
-				// TODO: fix so we don't always just use first classification
-				varType = varTypeLabels[0].Data().(string)
-			}
-			varTypes = append(varTypes, varType)
+func (m *Metadata) loadMergedSchemaVariables() error {
+	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse training data")
+	}
+	for _, v := range schemaVariables {
+		variable, err := m.parseSchemaVariable(v)
+		if err != nil {
+			return err
 		}
+		m.Variables = append(m.Variables, variable)
+	}
+	return nil
+}
 
-	} else {
-		// get variable types from schema
-		for _, v := range schemaVariables {
-			varType := v.Path("varType").Data().(string)
-			varTypes = append(varTypes, varType)
-		}
+func (m *Metadata) loadClassificationVariables() error {
+	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse merged data")
+	}
+	labels, err := m.classification.Path("labels").ChildrenMap()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse classification labels")
 	}
 
-	var variables []*Variable
+	probabilities, err := m.classification.Path("label_probabilities").ChildrenMap()
+	if err != nil {
+		return errors.Wrap(err, "Unable to parse classification probabilities")
+	}
 
 	for index, v := range schemaVariables {
-		varName := v.Path("varName").Data().(string)
-		varRole := ""
-		if v.Path("varRole").Data() != nil {
-			varRole = v.Path("varRole").Data().(string)
+		variable, err := m.parseSchemaVariable(v)
+		if err != nil {
+			return err
 		}
-		varFileType := ""
-		if v.Path("varFileType").Data() != nil {
-			varFileType = v.Path("varFileType").Data().(string)
+		typ, err := m.parseClassification(index, labels)
+		if err != nil {
+			return err
 		}
-		varFileFormat := ""
-		if v.Path("varFileFormat").Data() != nil {
-			varFileFormat = v.Path("varFileFormat").Data().(string)
-		}
-		variables = append(variables, NewVariable(
-			varName,
-			varTypes[index],
-			varRole,
-			varFileType,
-			varFileFormat))
-	}
 
-	m.Variables = variables
+		suggestedTypes, err := m.parseSuggestedTypes(index, labels, probabilities)
+		if err != nil {
+			return err
+		}
+		// override type with classification / probabilities
+		variable.Type = typ
+		variable.SuggestedTypes = suggestedTypes
+		m.Variables = append(m.Variables, variable)
+	}
 	return nil
 }
 
@@ -458,6 +558,26 @@ func (m *Metadata) mergeVariables(left []*gabs.Container, right []*gabs.Containe
 		added[name] = true
 	}
 	return res
+}
+
+// WriteMergedSchema exports the current meta data as a merged schema file.
+func (m *Metadata) WriteMergedSchema(path string) error {
+	// create output format
+	output := map[string]interface{}{
+		"datasetId":    m.ID,
+		"description":  m.Description,
+		"rawData":      m.Raw,
+		"mergedSchema": "true",
+		"mergedData": map[string]interface{}{
+			"mergedData": m.Variables,
+		},
+	}
+	bytes, err := json.Marshal(output)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal merged schema file output")
+	}
+	// write copy to disk
+	return ioutil.WriteFile(path, bytes, 0644)
 }
 
 // IngestMetadata adds a document consisting of the metadata to the

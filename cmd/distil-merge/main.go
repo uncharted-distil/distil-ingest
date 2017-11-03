@@ -140,7 +140,7 @@ func main() {
 		}
 
 		// load the metadata from schema
-		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
+		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 1)
