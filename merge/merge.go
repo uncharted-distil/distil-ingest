@@ -82,6 +82,18 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 		lookup[indexVal] = rowWithoutIndex
 	}
 
+	// copy header, without the index
+	var headerWithoutIndex []string
+	headerWithoutIndex = append(headerWithoutIndex, header[0:indexCol]...)
+	headerWithoutIndex = append(headerWithoutIndex, header[indexCol+1:]...)
+
+	// add header variables to metadata
+	for _, name := range headerWithoutIndex {
+		meta.Variables = append(meta.Variables, &metadata.Variable{
+			Name: name,
+		})
+	}
+
 	return &FileLink{
 		Name:      filename,
 		Header:    header,

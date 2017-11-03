@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATA_DIR=~/data/d3m
-SCHEMA=/data/dataSchema.json
+SCHEMA=/data/mergedDataSchema.json
 MERGED=/data/merged.csv
 CLASSIFICATION=/data/classification.json
 AWS_OUTPUT_BUCKET=d3m-data

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATA_DIR=~/data/d3m
-SCHEMA=/data/dataSchema.json
+SCHEMA=/data/mergedDataSchema.json
 AWS_PREFIX=https://s3.amazonaws.com/d3m-data/merged_o_data
 AWS_SUFFIX=_merged.csv
 OUTPUT=/data/classification.json

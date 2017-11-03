@@ -25,12 +25,12 @@ const (
 // Variable represents a single variable description.
 type Variable struct {
 	Name           string           `json:"varName"`
-	Type           string           `json:"varType"`
-	FileType       string           `json:"varFileType"`
-	FileFormat     string           `json:"varFileFormat"`
-	Role           string           `json:"varRole"`
-	Importance     int              `json:"importance"`
-	SuggestedTypes []*SuggestedType `json:"suggestedTypes"`
+	Type           string           `json:"varType,omitempty"`
+	FileType       string           `json:"varFileType,omitempty"`
+	FileFormat     string           `json:"varFileFormat,omitempty"`
+	Role           string           `json:"varRole,omitempty"`
+	Importance     int              `json:"importance,omitempty"`
+	SuggestedTypes []*SuggestedType `json:"suggestedTypes,omitempty"`
 }
 
 // SuggestedType represents a classified variable type.
@@ -572,7 +572,7 @@ func (m *Metadata) WriteMergedSchema(path string) error {
 			"mergedData": m.Variables,
 		},
 	}
-	bytes, err := json.Marshal(output)
+	bytes, err := json.MarshalIndent(output, "", "    ")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal merged schema file output")
 	}
