@@ -49,6 +49,11 @@ func main() {
 			Usage: "The training targets file path",
 		},
 		cli.StringFlag{
+			Name:  "raw-data",
+			Value: "",
+			Usage: "The raw dat a file path",
+		},
+		cli.StringFlag{
 			Name:  "output-bucket",
 			Value: "",
 			Usage: "The merged output AWS S3 bucket",
@@ -66,10 +71,6 @@ func main() {
 		cli.BoolFlag{
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
-		},
-		cli.BoolFlag{
-			Name:  "include-header",
-			Usage: "Whether or not to include the header row in the merged file",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
@@ -95,14 +96,14 @@ func main() {
 		schemaPath := filepath.Clean(c.String("schema"))
 		trainingDataPath := filepath.Clean(c.String("training-data"))
 		trainingTargetsPath := filepath.Clean(c.String("training-targets"))
+		rawDataPath := filepath.Clean(c.String("raw-data"))
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
 		outputPath := filepath.Clean(c.String("output-path"))
 		hasHeader := c.Bool("has-header")
-		includeHeader := c.Bool("include-header")
 		includeRaw := c.Bool("include-raw-dataset")
 
-		// Check if it is a raw dataset
+		// check if it is a raw dataset
 		isRaw, err := metadata.IsRawDataset(schemaPath)
 		if err != nil {
 			log.Errorf("%+v", err)
@@ -113,7 +114,7 @@ func main() {
 			return nil
 		}
 
-		// Merge targets into training data before ingest
+		// get indices to join datasets on
 		indices, err := merge.GetColIndices(schemaPath, d3mIndexColName)
 		if err != nil {
 			log.Errorf("%+v", err)
@@ -126,13 +127,27 @@ func main() {
 			indices.LeftColIdx,
 			indices.RightColIdx)
 
-		output, success, failed, err := merge.LeftJoin(
+		// merge targets into training data
+		merged, success, failed, err := merge.LeftJoin(
 			trainingDataPath,
 			indices.LeftColIdx,
 			trainingTargetsPath,
 			indices.RightColIdx,
-			hasHeader,
-			includeHeader)
+			hasHeader)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// load the metadata from schema
+		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 1)
+		}
+
+		// merge file links in dataset
+		output, err := merge.InjectFileLinks(meta, merged, rawDataPath)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

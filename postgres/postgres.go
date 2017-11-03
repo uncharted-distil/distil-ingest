@@ -310,10 +310,21 @@ func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
 
 	for _, variable := range variables {
 		varName := variable.Path("varName").Data().(string)
-		varRole := variable.Path("varRole").Data().(string)
+		varRole := ""
+		if variable.Path("varRole").Data() != nil {
+			varRole = variable.Path("varRole").Data().(string)
+		}
 		varType := variable.Path("varType").Data().(string)
+		varFileType := ""
+		if variable.Path("varFileType").Data() != nil {
+			varFileType = variable.Path("varFileType").Data().(string)
+		}
+		varFileFormat := ""
+		if variable.Path("varFileFormat").Data() != nil {
+			varFileFormat = variable.Path("varFileFormat").Data().(string)
+		}
 
-		variable := metadata.NewVariable(varName, varType, varRole)
+		variable := metadata.NewVariable(varName, varType, varRole, varFileType, varFileFormat)
 		if !ds.HasVariable(variable) {
 			ds.AddVariable(variable)
 		}

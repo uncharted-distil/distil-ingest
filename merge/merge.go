@@ -10,7 +10,149 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
+
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 )
+
+// FileLink represents a link between a dataset col and a file.
+type FileLink struct {
+	Name      string
+	Header    []string
+	IndexName string
+	IndexCol  int
+	Lookup    map[string][]string
+}
+
+func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
+	// open file
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to open file %s", filename)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+
+	// read header
+	header, err := reader.Read()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read header from csv file %s", filename)
+	}
+
+	// read rows
+	var rows [][]string
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, errors.Wrapf(err, "failed read from %s", filename)
+		}
+		rows = append(rows, line)
+	}
+
+	// create map of indices in the dataset
+	indices := make(map[string]int)
+	for index, variable := range meta.Variables {
+		if variable.Role == "index" {
+			indices[variable.Name] = index
+		}
+	}
+
+	// search file link for index
+	var indexName string
+	var indexCol int
+	for colIndex, colName := range header {
+		_, ok := indices[colName]
+		if ok {
+			indexName = colName
+			indexCol = colIndex
+			break
+		}
+	}
+
+	// build lookups for each row
+	lookup := make(map[string][]string)
+	for _, row := range rows {
+		// copy row, without the index
+		var rowWithoutIndex []string
+		rowWithoutIndex = append(rowWithoutIndex, row[0:indexCol]...)
+		rowWithoutIndex = append(rowWithoutIndex, row[indexCol+1:]...)
+		indexVal := row[indexCol]
+		lookup[indexVal] = rowWithoutIndex
+	}
+
+	return &FileLink{
+		Name:      filename,
+		Header:    header,
+		IndexName: indexName,
+		IndexCol:  indices[indexName],
+		Lookup:    lookup,
+	}, nil
+}
+
+// InjectFileLinks traverses all file links and injests the relevant data.
+func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string) ([]byte, error) {
+	// determine if there are any links
+	var linkColumns []int
+	for col, variable := range meta.Variables {
+		if variable.Type == "file" {
+			// flag file link
+			linkColumns = append(linkColumns, col)
+		}
+	}
+
+	// create reader
+	reader := csv.NewReader(bytes.NewBuffer(merged))
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
+
+	count := 0
+	links := make(map[string]*FileLink)
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, errors.Wrapf(err, "failed read to line %d", count)
+		}
+
+		// NOTE: there is no header by this step
+
+		// check if we have loaded the links that exist in the row
+		for _, col := range linkColumns {
+			// check if link already exists
+			filename := line[col]
+			link, ok := links[filename]
+			if !ok {
+				l, err := readFileLink(meta, fmt.Sprintf("%s/%s", rawDataPath, filename))
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed read file link %s from col %d of line %d", filename, col, count)
+				}
+				links[filename] = l
+				link = l
+			}
+
+			// find link index in line
+			linkIndex := line[link.IndexCol]
+			// look up row in link file based on link index
+			linkedRow := link.Lookup[linkIndex]
+
+			// inject row into line
+			line = append(line, linkedRow...)
+		}
+
+		// write the output
+		writer.Write(line)
+		count++
+	}
+
+	writer.Flush()
+
+	return output.Bytes(), nil
+}
 
 func parseD3MIndex(schema *gabs.Container, path string) (int, error) {
 	// find the row ID column and store it for quick retrieval
@@ -62,13 +204,14 @@ func GetColIndices(schemaPath string, columnName string) (*JoinIndices, error) {
 	return &JoinIndices{LeftColIdx: trainIndex, RightColIdx: targetsIndex}, nil
 }
 
-func buildIndex(filename string, colIdx int, hasHeader bool, includeHeader bool) (map[string][]string, error) {
+func buildIndex(filename string, colIdx int, hasHeader bool) (map[string][]string, error) {
 	// load data from csv file into a map indexed by the values from the specified column
 	var index = make(map[string][]string)
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to open file %s", filename)
 	}
+	defer file.Close()
 	reader := csv.NewReader(file)
 	count := 0
 	for {
@@ -79,21 +222,20 @@ func buildIndex(filename string, colIdx int, hasHeader bool, includeHeader bool)
 			return nil, errors.Wrapf(err, "failed read line %d from %s", count, filename)
 		}
 
-		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
+		if count > 0 || !hasHeader {
 			key := line[colIdx]
 			index[key] = append(line[:colIdx], line[colIdx+1:]...)
 		}
 		count++
 	}
-	file.Close()
 	return index, nil
 }
 
 // LeftJoin provides a function to join to csv files based on the specified column
-func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasHeader bool, includeHeader bool) ([]byte, int, int, error) {
+func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasHeader bool) ([]byte, int, int, error) {
 
 	// load the right file into a hash table indexed by the d3mIndex col
-	index, err := buildIndex(rightFile, rightCol, hasHeader, includeHeader)
+	index, err := buildIndex(rightFile, rightCol, hasHeader)
 	if err != nil {
 		return nil, -1, -1, err
 	}
@@ -103,6 +245,7 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasH
 	if err != nil {
 		return nil, -1, -1, errors.Wrap(err, "failed to open left operand file")
 	}
+	defer leftCsvFile.Close()
 
 	// perform a left join, leaving unmatched right values emptys
 	reader := csv.NewReader(leftCsvFile)
@@ -120,7 +263,7 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasH
 		} else if err != nil {
 			return nil, -1, -1, errors.Wrap(err, "failed to read line from left operand file")
 		}
-		if count > 0 || !hasHeader || (hasHeader && includeHeader) {
+		if count > 0 || !hasHeader {
 			key := line[leftCol]
 			rightVals, ok := index[key]
 			if !ok {
@@ -136,12 +279,6 @@ func LeftJoin(leftFile string, leftCol int, rightFile string, rightCol int, hasH
 	}
 	// flush writer
 	writer.Flush()
-
-	// close left
-	err = leftCsvFile.Close()
-	if err != nil {
-		return nil, -1, -1, errors.Wrap(err, "failed to close left input file")
-	}
 
 	return output.Bytes(), count, missed, nil
 }

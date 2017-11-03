@@ -27,6 +27,8 @@ const (
 type Variable struct {
 	Name           string           `json:"varName"`
 	Type           string           `json:"varType"`
+	FileType       string           `json:"varFileType"`
+	FileFormat     string           `json:"varFileFormat"`
 	Role           string           `json:"varRole"`
 	OriginalName   string           `json:"varOriginalName"`
 	DisplayName    string           `json:"varDisplayName"`
@@ -46,7 +48,7 @@ type Metadata struct {
 	Name           string
 	Description    string
 	Summary        string
-	Variables      []Variable
+	Variables      []*Variable
 	schema         *gabs.Container
 	classification *gabs.Container
 	NumRows        int64
@@ -54,12 +56,14 @@ type Metadata struct {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(name, typ, role string) *Variable {
+func NewVariable(name, typ, role, fileType, fileFormat string) *Variable {
 	return &Variable{
-		Name:         name,
-		Type:         typ,
-		Role:         role,
+		Name:       name,
+		Type:       typ,
+		Role:       role,
 		OriginalName: name,
+		FileType:   fileType,
+		FileFormat: fileFormat,
 	}
 }
 
@@ -407,17 +411,28 @@ func (m *Metadata) loadVariables() error {
 		}
 	}
 
-	var variables []Variable
+	var variables []*Variable
 
 	for index, v := range schemaVariables {
-		varRole := v.Path("varRole").Data().(string)
 		varName := v.Path("varName").Data().(string)
-		variables = append(variables, Variable{
-			Name:         varName,
-			Type:         varTypes[index],
-			Role:         varRole,
-			OriginalName: varName,
-		})
+		varRole := ""
+		if v.Path("varRole").Data() != nil {
+			varRole = v.Path("varRole").Data().(string)
+		}
+		varFileType := ""
+		if v.Path("varFileType").Data() != nil {
+			varFileType = v.Path("varFileType").Data().(string)
+		}
+		varFileFormat := ""
+		if v.Path("varFileFormat").Data() != nil {
+			varFileFormat = v.Path("varFileFormat").Data().(string)
+		}
+		variables = append(variables, NewVariable(
+			varName,
+			varTypes[index],
+			varRole,
+			varFileType,
+			varFileFormat))
 	}
 
 	m.Variables = variables
@@ -452,8 +467,8 @@ func (m *Metadata) mergeVariables(left []*gabs.Container, right []*gabs.Containe
 // provided index.
 func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error {
 
-	// filter variables for source object
-	var vars []Variable
+	// filter variables for surce object
+	var vars []*Variable
 	for _, v := range meta.Variables {
 		vars = append(vars, v)
 	}
@@ -569,6 +584,12 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 								"type": "text"
 							},
 							"varType": {
+								"type": "text"
+							},
+							"varOriginalName": {
+								"type": "text"
+							},
+							"varDisplayName": {
 								"type": "text"
 							},
 							"importance": {

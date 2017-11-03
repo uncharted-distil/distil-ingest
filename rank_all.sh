@@ -8,10 +8,9 @@ AWS_OUTPUT_BUCKET=d3m-data
 AWS_OUTPUT_KEY_PREFIX=numeric_o_data
 AWS_OUTPUT_KEY_SUFFIX=_numeric.csv
 OUTPUT=/data/importance.json
-DATASETS=(o_185 o_196 o_313 o_38 o_4550)
+DATASETS=(r_26 r_27 r_32 r_60 o_185 o_196 o_313 o_38 o_4550)
 KAFKA_ENDPOINT=10.108.4.41:9092
 HAS_HEADER=1
-INCLUDE_HEADER=0
 
 for DATASET in "${DATASETS[@]}"
 do
@@ -25,7 +24,7 @@ do
         --output-bucket="$AWS_OUTPUT_BUCKET" \
         --output-key="$AWS_OUTPUT_KEY_PREFIX/$DATASET$AWS_OUTPUT_KEY_SUFFIX" \
         --has-header=$HAS_HEADER \
-        --include-header=$INCLUDE_HEADER \
         --kafka-endpoints="$KAFKA_ENDPOINT" \
-        --output="$DATA_DIR/$DATASET/$OUTPUT"
+        --output="$DATA_DIR/$DATASET/$OUTPUT" \
+        --include-raw-dataset
 done

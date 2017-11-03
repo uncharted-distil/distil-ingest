@@ -7,7 +7,7 @@ CLASSIFICATION=/data/classification.json
 SUMMARY=/data/summary.json
 IMPORTANCE=/data/importance.json
 METADATA_INDEX=datasets
-DATASETS=(o_185 o_196 o_313 o_38 o_4550)
+DATASETS=(r_26 r_27 r_32 r_60 o_185 o_196 o_313 o_38 o_4550)
 ES_ENDPOINT=http://localhost:9200
 
 for DATASET in "${DATASETS[@]}"
@@ -24,5 +24,6 @@ do
         --classification="$DATA_DIR/$DATASET/$CLASSIFICATION" \
         --summary="$DATA_DIR/$DATASET/$SUMMARY" \
         --importance="$DATA_DIR/$DATASET/$IMPORTANCE" \
-        --clear-existing
+        --clear-existing \
+        --include-raw-dataset
 done
