@@ -2,13 +2,9 @@ package postgres
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"strconv"
 
 	"github.com/go-pg/pg"
-	"github.com/jeffail/gabs"
-	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/deluge/document"
 	"github.com/unchartedsoftware/distil-ingest/conf"
@@ -267,68 +263,6 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 // InitializeDataset initializes the dataset with the provided metadata.
 func (d *Database) InitializeDataset(meta *metadata.Metadata) (*model.Dataset, error) {
 	ds := model.NewDataset(meta.ID, meta.Name, meta.Description, meta)
-
-	return ds, nil
-}
-
-// ParseMetadata parses the schema information into a dataset.
-func (d *Database) ParseMetadata(schemaPath string) (*model.Dataset, error) {
-	// Unmarshall the schema file
-	schema, err := gabs.ParseJSONFile(schemaPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parses schema file")
-	}
-
-	// load data description text
-	descPath := schema.Path("descriptionFile").Data().(string)
-	contents, err := ioutil.ReadFile(filepath.Dir(schemaPath) + "/" + descPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to load description file")
-	}
-
-	// create a new object for our output metadata and write the parts of the schema
-	// we want into it - name, id, description, variable info
-	dsID := schema.Path("datasetId").Data().(string)
-	dsDesc := string(contents)
-	dsName := ""
-	val, ok := schema.Path("name").Data().(string)
-	if ok {
-		dsName = val
-	}
-	ds := model.NewDataset(dsID, dsName, dsDesc, nil)
-
-	// add the training and target data variables. Ignore repeated columns.
-	trainVariables, err := schema.Path("trainData.trainData").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse training data")
-	}
-	targetVariables, err := schema.Path("trainData.trainTargets").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to parse target data")
-	}
-	variables := append(trainVariables, targetVariables...)
-
-	for _, variable := range variables {
-		varName := variable.Path("varName").Data().(string)
-		varRole := ""
-		if variable.Path("varRole").Data() != nil {
-			varRole = variable.Path("varRole").Data().(string)
-		}
-		varType := variable.Path("varType").Data().(string)
-		varFileType := ""
-		if variable.Path("varFileType").Data() != nil {
-			varFileType = variable.Path("varFileType").Data().(string)
-		}
-		varFileFormat := ""
-		if variable.Path("varFileFormat").Data() != nil {
-			varFileFormat = variable.Path("varFileFormat").Data().(string)
-		}
-
-		variable := metadata.NewVariable(varName, varType, varRole, varFileType, varFileFormat)
-		if !ds.HasVariable(variable) {
-			ds.AddVariable(variable)
-		}
-	}
 
 	return ds, nil
 }
