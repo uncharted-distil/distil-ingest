@@ -207,7 +207,7 @@ func main() {
 				config.ClassificationPath)
 		} else {
 			log.Infof("Loading metadata from schema file")
-			meta, err = metadata.LoadMetadataFromOriginalSchema(
+			meta, err = metadata.LoadMetadataFromMergedSchema(
 				config.SchemaPath)
 		}
 
