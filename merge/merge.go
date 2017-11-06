@@ -16,11 +16,9 @@ import (
 
 // FileLink represents a link between a dataset col and a file.
 type FileLink struct {
-	Name      string
-	Header    []string
-	IndexName string
-	IndexCol  int
-	Lookup    map[string][]string
+	Name     string
+	IndexCol int
+	Lookup   map[string][]string
 }
 
 func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
@@ -90,16 +88,14 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 	// add header variables to metadata
 	for _, name := range headerWithoutIndex {
 		meta.Variables = append(meta.Variables, &metadata.Variable{
-			Name: name,
+			Name: metadata.NormalizeVariableName(name),
 		})
 	}
 
 	return &FileLink{
-		Name:      filename,
-		Header:    header,
-		IndexName: indexName,
-		IndexCol:  indices[indexName],
-		Lookup:    lookup,
+		Name:     filename,
+		IndexCol: indices[indexName],
+		Lookup:   lookup,
 	}, nil
 }
 

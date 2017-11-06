@@ -53,10 +53,17 @@ type Metadata struct {
 	NumBytes       int64
 }
 
+// NormalizeVariableName normalizes a variable name.
+func NormalizeVariableName(name string) string {
+	return strings.Replace(name, ".", "_", -1)
+}
+
 // NewVariable creates a new variable.
 func NewVariable(name, typ, role, fileType, fileFormat string) *Variable {
+	// normalize name
+
 	return &Variable{
-		Name:       name,
+		Name:       NormalizeVariableName(name),
 		Type:       typ,
 		Role:       role,
 		FileType:   fileType,
@@ -213,12 +220,15 @@ func (m *Metadata) LoadImportance(importanceFile string, colIndices []int) error
 	if err != nil {
 		return errors.Wrap(err, "failed to parse importance file")
 	}
-	metric, err := importance.Path("features").Children()
-	if err != nil {
-		return errors.Wrap(err, "features attribute missing from file")
-	}
-	for index, col := range colIndices {
-		m.Variables[col].Importance = int(metric[index].Data().(float64))
+	// if no numeric fields, features will be null
+	if importance.Path("features").Data() != nil {
+		metric, err := importance.Path("features").Children()
+		if err != nil {
+			return errors.Wrap(err, "features attribute missing from file")
+		}
+		for index, col := range colIndices {
+			m.Variables[col].Importance = int(metric[index].Data().(float64))
+		}
 	}
 	return nil
 }
