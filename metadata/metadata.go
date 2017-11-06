@@ -377,6 +377,12 @@ func (m *Metadata) loadName() error {
 }
 
 func (m *Metadata) loadDescription(schemaPath string) error {
+	// load from property
+	if m.schema.Path("description").Data() != nil {
+		m.Description = m.schema.Path("description").Data().(string)
+		return nil
+	}
+	// load from description file
 	descPath := m.schema.Path("descriptionFile").Data().(string)
 	fullDescPath := fmt.Sprintf("%s/%s", filepath.Dir(schemaPath), descPath)
 	contents, err := ioutil.ReadFile(fullDescPath)
