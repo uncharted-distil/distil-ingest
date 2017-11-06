@@ -2,13 +2,11 @@ package kafka
 
 import (
 	"encoding/json"
+	"io"
 
 	"github.com/optiopay/kafka"
 	"github.com/optiopay/kafka/proto"
 	"github.com/pkg/errors"
-	"io"
-	"strconv"
-	"strings"
 )
 
 // ImportanceMessage represents a kafka classification message.
@@ -25,26 +23,8 @@ type ImportanceResult struct {
 	Features []float64 `json:"features"`
 	Path     string    `json:"path"`
 	FileType string    `json:"filetype"`
-	Raw      string    `json:"-"`
-}
-
-func parseMalformedComponents(pc string) ([]int, error) {
-	pc = strings.Replace(pc, "[", "", -1)
-	pc = strings.Replace(pc, "]", "", -1)
-	pc = strings.Replace(pc, "\n", "", -1)
-	split := strings.Split(pc, " ")
-	var features []int
-	for _, rank := range split {
-		if rank == "" {
-			continue
-		}
-		num, err := strconv.Atoi(rank)
-		if err != nil {
-			return nil, err
-		}
-		features = append(features, num)
-	}
-	return features, nil
+	Error    string    `json:"error"`
+	Raw      string    `json:"raw"`
 }
 
 // ConsumeImportance consumes and returns the next portion of the topic.

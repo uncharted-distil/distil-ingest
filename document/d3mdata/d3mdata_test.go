@@ -11,7 +11,7 @@ import (
 
 func TestGetSource(t *testing.T) {
 
-	meta, err := metadata.LoadMetadataFromSchema("./testdata/dataSchema.json")
+	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
 	assert.NoError(t, err)
 
 	// Create a document using the test json schema
@@ -62,7 +62,7 @@ func TestGetSource(t *testing.T) {
 
 func TestGetMapping(t *testing.T) {
 
-	meta, err := metadata.LoadMetadataFromSchema("./testdata/dataSchema.json")
+	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
 	assert.NoError(t, err)
 
 	// Create a document using the test json schema
@@ -99,7 +99,7 @@ func TestGetMapping(t *testing.T) {
 
 func TestID(t *testing.T) {
 
-	meta, err := metadata.LoadMetadataFromSchema("./testdata/dataSchema.json")
+	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
 	assert.NoError(t, err)
 
 	// Create a document using the test json schema

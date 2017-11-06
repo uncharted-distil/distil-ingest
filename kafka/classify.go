@@ -25,7 +25,8 @@ type ClassificationResult struct {
 	Probabilities map[string]interface{} `json:"label_probabilities"`
 	Path          string                 `json:"path"`
 	FileType      string                 `json:"filetype"`
-	Raw           string                 `json:"-"`
+	Error         string                 `json:"error"`
+	Raw           string                 `json:"raw"`
 }
 
 // ConsumeClassification consumes and returns the next portion of the topic.

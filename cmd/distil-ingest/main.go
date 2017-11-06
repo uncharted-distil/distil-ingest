@@ -18,7 +18,6 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres"
-	"github.com/unchartedsoftware/distil-ingest/postgres/model"
 	"github.com/unchartedsoftware/distil-ingest/split"
 	"github.com/unchartedsoftware/plog"
 )
@@ -202,11 +201,13 @@ func main() {
 		// load the metadata
 		var meta *metadata.Metadata
 		if config.TypeSource == typeSourceClassification {
+			log.Infof("Loading metadata from classification file")
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,
 				config.ClassificationPath)
 		} else {
-			meta, err = metadata.LoadMetadataFromSchema(
+			log.Infof("Loading metadata from schema file")
+			meta, err = metadata.LoadMetadataFromMergedSchema(
 				config.SchemaPath)
 		}
 
@@ -372,17 +373,9 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	}
 
 	// Create the database table.
-	var ds *model.Dataset
-	if config.TypeSource == typeSourceClassification {
-		ds, err = pg.InitializeDataset(meta)
-		if err != nil {
-			return err
-		}
-	} else {
-		ds, err = pg.ParseMetadata(config.SchemaPath)
-		if err != nil {
-			return err
-		}
+	ds, err := pg.InitializeDataset(meta)
+	if err != nil {
+		return err
 	}
 
 	err = pg.InitializeTable(config.DBTable, ds)

@@ -69,17 +69,17 @@ func (d *D3MData) GetMapping() (string, error) {
 		case "integer", "int":
 			varType = "long"
 			break
-		case "float":
+		case "float", "latitude", "longitude":
 			varType = "double"
 			break
 		case "text":
 			varType = "text"
 			break
-		case "categorical", "ordinal", "unknown", "location":
+		case "categorical", "ordinal", "address", "city", "state", "country", "email", "phone", "postal_code", "uri":
 			varType = "keyword"
 			break
-		case "dateTime":
-			varType = "date" // for now
+		case "dateTime", "datetime":
+			varType = "date"
 			break
 		case "boolean":
 			varType = "boolean"
@@ -109,22 +109,21 @@ func (d *D3MData) GetSource() (interface{}, error) {
 
 		var varValue interface{}
 
-		// set value
 		switch v.Type {
-		case "integer", "int", "dateTime":
+		case "integer", "int", "dateTime", "datetime":
 			varValue, _ = d.Int64(index)
 			break
-		case "float":
+		case "float", "latitude", "longitude":
 			varValue, _ = d.Float64(index)
 			break
-		case "text", "categorical", "ordinal", "location", "unknown":
+		case "text", "categorical", "ordinal", "address", "city", "state", "country", "email", "phone", "postal_code", "uri":
 			varValue, _ = d.String(index)
 			break
 		case "boolean":
 			varValue, _ = d.Bool(index)
 			break
 		default:
-			return nil, fmt.Errorf("Unknown data type %s", v.Type)
+			return "", fmt.Errorf("unknown data type %s", v.Type)
 		}
 
 		// set entry
