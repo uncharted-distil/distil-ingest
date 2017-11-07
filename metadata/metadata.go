@@ -29,6 +29,8 @@ type Variable struct {
 	FileType       string           `json:"varFileType,omitempty"`
 	FileFormat     string           `json:"varFileFormat,omitempty"`
 	Role           string           `json:"varRole,omitempty"`
+	OriginalName   string           `json:"varOriginalName,omitempty"`
+	DisplayName    string           `json:"varDisplayName,omitempty"`
 	Importance     int              `json:"importance,omitempty"`
 	SuggestedTypes []*SuggestedType `json:"suggestedTypes,omitempty"`
 }
@@ -61,13 +63,14 @@ func NormalizeVariableName(name string) string {
 // NewVariable creates a new variable.
 func NewVariable(name, typ, role, fileType, fileFormat string) *Variable {
 	// normalize name
-
+	normed := NormalizeVariableName(name)
 	return &Variable{
-		Name:       NormalizeVariableName(name),
-		Type:       typ,
-		Role:       role,
-		FileType:   fileType,
-		FileFormat: fileFormat,
+		Name:         normed,
+		Type:         typ,
+		Role:         role,
+		OriginalName: normed,
+		FileType:     fileType,
+		FileFormat:   fileFormat,
 	}
 }
 
@@ -603,10 +606,7 @@ func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error 
 	// filter variables for surce object
 	var vars []*Variable
 	for _, v := range meta.Variables {
-		// exclude index
-		if v.Role != "index" {
-			vars = append(vars, v)
-		}
+		vars = append(vars, v)
 	}
 	source := map[string]interface{}{
 		"name":        meta.Name,
@@ -720,6 +720,12 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 								"type": "text"
 							},
 							"varType": {
+								"type": "text"
+							},
+							"varOriginalName": {
+								"type": "text"
+							},
+							"varDisplayName": {
 								"type": "text"
 							},
 							"importance": {
