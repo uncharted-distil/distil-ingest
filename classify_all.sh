@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DATA_DIR=~/data/d3m
+SCHEMA=/data/mergedDataSchema.json
 AWS_PREFIX=https://s3.amazonaws.com/d3m-data/merged_o_data
 AWS_SUFFIX=_merged.csv
 OUTPUT=/data/classification.json
@@ -13,6 +14,7 @@ do
     echo " Classifying $DATASET dataset"
     echo "--------------------------------------------------------------------------------"
     go run cmd/distil-classify/main.go \
+        --schema="$DATA_DIR/$DATASET/$SCHEMA" \
         --kafka-endpoints="$KAFKA_ENDPOINT" \
         --dataset="$AWS_PREFIX/$DATASET$AWS_SUFFIX" \
         --output="$DATA_DIR/$DATASET/$OUTPUT" \

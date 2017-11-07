@@ -2,6 +2,7 @@
 
 DATA_DIR=~/data/d3m
 SCHEMA=/data/dataSchema.json
+OUTPUT_SCHEMA=/data/mergedDataSchema.json
 TRAINING_DATA=/data/trainData.csv
 TRAINING_TARGETS=/data/trainTargets.csv
 RAW_DATA=/data/raw_data
@@ -25,6 +26,7 @@ do
         --output-bucket="$AWS_OUTPUT_BUCKET" \
         --output-key="$AWS_OUTPUT_KEY_PREFIX/$DATASET$AWS_OUTPUT_KEY_SUFFIX" \
         --output-path="$DATA_DIR/$DATASET/$OUTPUT_PATH" \
+        --output-schema-path="$DATA_DIR/$DATASET/$OUTPUT_SCHEMA" \
         --has-header=$HAS_HEADER \
         --include-raw-dataset
 done

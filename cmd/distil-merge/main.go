@@ -68,6 +68,11 @@ func main() {
 			Value: "",
 			Usage: "The merged output path",
 		},
+		cli.StringFlag{
+			Name:  "output-schema-path",
+			Value: "",
+			Usage: "The merged schema path",
+		},
 		cli.BoolFlag{
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
@@ -93,6 +98,9 @@ func main() {
 		if c.String("output-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-path`", 1)
 		}
+		if c.String("output-schema-path") == "" {
+			return cli.NewExitError("missing commandline flag `--output-schema-path`", 1)
+		}
 		schemaPath := filepath.Clean(c.String("schema"))
 		trainingDataPath := filepath.Clean(c.String("training-data"))
 		trainingTargetsPath := filepath.Clean(c.String("training-targets"))
@@ -100,6 +108,7 @@ func main() {
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
 		outputPath := filepath.Clean(c.String("output-path"))
+		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
 		hasHeader := c.Bool("has-header")
 		includeRaw := c.Bool("include-raw-dataset")
 
@@ -140,7 +149,7 @@ func main() {
 		}
 
 		// load the metadata from schema
-		meta, err := metadata.LoadMetadataFromSchema(schemaPath)
+		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 1)
@@ -169,6 +178,13 @@ func main() {
 
 		// write copy to disk
 		err = ioutil.WriteFile(outputPath, output, 0644)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 5)
+		}
+
+		// write merged metadata out to disk
+		err = meta.WriteMergedSchema(outputSchemaPath)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 5)
