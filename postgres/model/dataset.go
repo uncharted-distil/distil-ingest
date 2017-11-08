@@ -11,6 +11,8 @@ type Dataset struct {
 	Description     string
 	Variables       []*metadata.Variable
 	variablesLookup map[string]bool
+	insertBatch     []string
+	insertArgs      []interface{}
 }
 
 // NewDataset creates a new dataset instance.
@@ -25,7 +27,14 @@ func NewDataset(id, name, description string, meta *metadata.Metadata) *Dataset 
 		ds.Variables = meta.Variables
 	}
 
+	ds.ResetBatch()
+
 	return ds
+}
+
+func (ds *Dataset) ResetBatch() {
+	ds.insertBatch = make([]string, 0)
+	ds.insertArgs = make([]interface{}, 0)
 }
 
 // HasVariable checks to see if a variable is already contained in the dataset.
@@ -37,4 +46,21 @@ func (ds *Dataset) HasVariable(variable *metadata.Variable) bool {
 func (ds *Dataset) AddVariable(variable *metadata.Variable) {
 	ds.Variables = append(ds.Variables, variable)
 	ds.variablesLookup[variable.Name] = true
+}
+
+func (ds *Dataset) AddInsert(statement string, args []interface{}) {
+	ds.insertBatch = append(ds.insertBatch, statement)
+	ds.insertArgs = append(ds.insertArgs, args...)
+}
+
+func (ds *Dataset) GetBatch() []string {
+	return ds.insertBatch
+}
+
+func (ds *Dataset) GetBatchSize() int {
+	return len(ds.insertBatch)
+}
+
+func (ds *Dataset) GetBatchArgs() []interface{} {
+	return ds.insertArgs
 }

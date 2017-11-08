@@ -108,6 +108,11 @@ func main() {
 			Value: "",
 			Usage: "The database password to use for authentication.",
 		},
+		cli.IntFlag{
+			Name:  "db-batch-size",
+			Value: 1000,
+			Usage: "The bulk batch size for database ingest",
+		},
 		cli.Int64Flag{
 			Name:  "batch-size",
 			Value: 1024 * 1024 * 20,
@@ -184,6 +189,7 @@ func main() {
 			DBTable:              c.String("db-table"),
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
+			DBBatchSize:          c.Int("db-batch-size"),
 			IncludeRaw:           c.Bool("include-raw-dataset"),
 		}
 
@@ -420,6 +426,11 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 		if err != nil {
 			log.Warn(fmt.Sprintf("%v", err))
 		}
+	}
+
+	err = pg.InsertRemainingRows()
+	if err != nil {
+		log.Warn(fmt.Sprintf("%v", err))
 	}
 
 	log.Info("Done ingestion")
