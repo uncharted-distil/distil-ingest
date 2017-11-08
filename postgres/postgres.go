@@ -3,8 +3,10 @@ package postgres
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/go-pg/pg"
+	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/deluge/document"
 	"github.com/unchartedsoftware/distil-ingest/conf"
@@ -74,8 +76,9 @@ var (
 
 // Database is a struct representing a full logical database.
 type Database struct {
-	DB     *pg.DB
-	Tables map[string]*model.Dataset
+	DB        *pg.DB
+	Tables    map[string]*model.Dataset
+	BatchSize int
 }
 
 // NewDatabase creates a new database instance.
@@ -87,8 +90,9 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 	})
 
 	database := &Database{
-		DB:     db,
-		Tables: make(map[string]*model.Dataset),
+		DB:        db,
+		Tables:    make(map[string]*model.Dataset),
+		BatchSize: config.DBBatchSize,
 	}
 
 	return database, nil
@@ -129,6 +133,16 @@ func (d *Database) CreatePipelineMetadataTables() error {
 	}
 
 	return nil
+}
+
+func (d *Database) executeInserts(tableName string) error {
+	ds := d.Tables[tableName]
+
+	insertStatement := fmt.Sprintf("INSERT INTO %s_base VALUES %s;", tableName, strings.Join(ds.GetBatch(), ", "))
+
+	_, err := d.DB.Exec(insertStatement, ds.GetBatchArgs()...)
+
+	return err
 }
 
 // CreateResultTable creates an empty table for the pipeline results.
@@ -202,11 +216,33 @@ func (d *Database) IngestRow(tableName string, data string) error {
 		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
 		values[i] = val
 	}
-	insertStatement = fmt.Sprintf("INSERT INTO %s_base VALUES (%s);", tableName, insertStatement[2:])
+	insertStatement = fmt.Sprintf("(%s)", insertStatement[2:])
+	ds.AddInsert(insertStatement, values)
 
-	_, err := d.DB.Exec(insertStatement, values...)
+	if ds.GetBatchSize() >= d.BatchSize {
+		err := d.executeInserts(tableName)
+		if err != nil {
+			return errors.Wrap(err, "unable to insert to table "+tableName)
+		}
 
-	return err
+		ds.ResetBatch()
+	}
+
+	return nil
+}
+
+// InsertRemainingRows empties all batches and inserts the data to the database.
+func (d *Database) InsertRemainingRows() error {
+	for tableName, ds := range d.Tables {
+		if ds.GetBatchSize() > 0 {
+			err := d.executeInserts(tableName)
+			if err != nil {
+				return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+			}
+		}
+	}
+
+	return nil
 }
 
 // DropTable drops the specified table from the database.

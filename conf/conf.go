@@ -28,10 +28,11 @@ type Conf struct {
 	ErrThreshold float64
 
 	// postgres config
-	Database   string
-	DBTable    string
-	DBUser     string
-	DBPassword string
+	Database    string
+	DBTable     string
+	DBUser      string
+	DBPassword  string
+	DBBatchSize int
 
 	// control flags
 	IncludeRaw bool
