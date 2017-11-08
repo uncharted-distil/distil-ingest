@@ -32,6 +32,7 @@ func NewDataset(id, name, description string, meta *metadata.Metadata) *Dataset 
 	return ds
 }
 
+// ResetBatch clears the batch contents.
 func (ds *Dataset) ResetBatch() {
 	ds.insertBatch = make([]string, 0)
 	ds.insertArgs = make([]interface{}, 0)
@@ -48,19 +49,23 @@ func (ds *Dataset) AddVariable(variable *metadata.Variable) {
 	ds.variablesLookup[variable.Name] = true
 }
 
+// AddInsert adds an insert statement and parameters to the batch.
 func (ds *Dataset) AddInsert(statement string, args []interface{}) {
 	ds.insertBatch = append(ds.insertBatch, statement)
 	ds.insertArgs = append(ds.insertArgs, args...)
 }
 
+// GetBatch returns the insert statement batch.
 func (ds *Dataset) GetBatch() []string {
 	return ds.insertBatch
 }
 
+// GetBatchSize gets the insert batch count.
 func (ds *Dataset) GetBatchSize() int {
 	return len(ds.insertBatch)
 }
 
+// GetBatchArgs returns the insert batch arguments.
 func (ds *Dataset) GetBatchArgs() []interface{} {
 	return ds.insertArgs
 }

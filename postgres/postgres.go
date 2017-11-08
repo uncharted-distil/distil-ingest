@@ -138,7 +138,7 @@ func (d *Database) CreatePipelineMetadataTables() error {
 func (d *Database) executeInserts(tableName string) error {
 	ds := d.Tables[tableName]
 
-	insertStatement := fmt.Sprintf("INSERT INTO %s_base VALUES %s;", tableName, strings.Join(ds.GetBatch(), ","))
+	insertStatement := fmt.Sprintf("INSERT INTO %s_base VALUES %s;", tableName, strings.Join(ds.GetBatch(), ", "))
 
 	_, err := d.DB.Exec(insertStatement, ds.GetBatchArgs()...)
 
@@ -216,7 +216,7 @@ func (d *Database) IngestRow(tableName string, data string) error {
 		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
 		values[i] = val
 	}
-	insertStatement = fmt.Sprintf("(%s);", tableName, insertStatement[2:])
+	insertStatement = fmt.Sprintf("(%s)", insertStatement[2:])
 	ds.AddInsert(insertStatement, values)
 
 	if ds.GetBatchSize() >= d.BatchSize {
