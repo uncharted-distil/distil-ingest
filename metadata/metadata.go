@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/jeffail/gabs"
@@ -435,24 +436,6 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varFileFormat), nil
 }
 
-func (m *Metadata) parseClassification(index int, labels map[string]*gabs.Container) (string, error) {
-	// parse classification
-	colKey := fmt.Sprintf("%d", index)
-	col, ok := labels[colKey]
-	if !ok {
-		return "", errors.Errorf("no label found for key `%s`", colKey)
-	}
-	varTypeLabels, err := col.Children()
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", col))
-	}
-	if len(varTypeLabels) > 0 {
-		// TODO: fix so we don't always just use first classification
-		return varTypeLabels[0].Data().(string), nil
-	}
-	return defaultVarType, nil
-}
-
 func (m *Metadata) parseSuggestedTypes(index int, labels map[string]*gabs.Container, probabilities map[string]*gabs.Container) ([]*SuggestedType, error) {
 	// parse probabilities
 	colKey := fmt.Sprintf("%d", index)
@@ -480,6 +463,10 @@ func (m *Metadata) parseSuggestedTypes(index int, labels map[string]*gabs.Contai
 			Probability: prob.Data().(float64),
 		})
 	}
+	// sort by probability
+	sort.Slice(suggested, func(i, j int) bool {
+		return suggested[i].Probability > suggested[j].Probability
+	})
 	return suggested, nil
 }
 
@@ -538,18 +525,18 @@ func (m *Metadata) loadClassificationVariables() error {
 		if err != nil {
 			return err
 		}
-		typ, err := m.parseClassification(index, labels)
-		if err != nil {
-			return err
-		}
-
+		// get suggested types
 		suggestedTypes, err := m.parseSuggestedTypes(index, labels, probabilities)
 		if err != nil {
 			return err
 		}
-		// override type with classification / probabilities
-		variable.Type = typ
 		variable.SuggestedTypes = suggestedTypes
+		// set type to that with highest probability
+		if len(suggestedTypes) > 0 {
+			variable.Type = suggestedTypes[0].Type
+		} else {
+			variable.Type = defaultVarType
+		}
 		m.Variables = append(m.Variables, variable)
 	}
 	return nil
