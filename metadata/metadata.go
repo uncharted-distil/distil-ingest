@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,6 +15,8 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
 	"gopkg.in/olivere/elastic.v5"
+
+	"github.com/unchartedsoftware/distil-ingest/smmry"
 )
 
 const (
@@ -241,35 +241,6 @@ func writeSummaryFile(summaryFile string, summary string) error {
 	return ioutil.WriteFile(summaryFile, []byte(summary), 0644)
 }
 
-func (m *Metadata) setSummaryFallback() {
-	if len(m.Description) < 256 {
-		m.Summary = m.Description
-	} else {
-		m.Summary = m.Description[:256] + "..."
-	}
-}
-
-func summaryAPICall(str string, lines int, apiKey string) ([]byte, error) {
-	// form args
-	form := url.Values{}
-	form.Add("sm_api_input", str)
-	// url
-	url := fmt.Sprintf("http://api.smmry.com/&SM_API_KEY=%s&SM_LENGTH=%d", apiKey, lines)
-	// post req
-	req, err := http.NewRequest("POST", url, strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	// client
-	client := &http.Client{}
-	// send it
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "Summary request failed")
-	}
-	defer resp.Body.Close()
-	// parse response body
-	return ioutil.ReadAll(resp.Body)
-}
-
 // LoadSummary loads a description summary
 func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 	// use cache if available
@@ -280,40 +251,13 @@ func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 			return nil
 		}
 	}
-	// load api key
-	key := os.Getenv("SMMRY_API_KEY")
-	if key == "" {
-		return errors.New("SMMRY api key is missing from env var `SMMRY_API_KEY`")
-	}
-
-	// send summary API call
-	body, err := summaryAPICall(m.Description, 5, key)
+	// request summary
+	summary, err := smmry.GetSummary(m.Description)
 	if err != nil {
-		return errors.Wrap(err, "failed reading summary body")
+		return err
 	}
-
-	// parse response
-	container, err := gabs.ParseJSON(body)
-	if err != nil {
-		return errors.Wrap(err, "failed parsing summary body as JSON")
-	}
-
-	// check for API error
-	if container.Path("sm_api_error").Data() != nil {
-		// error message
-		//errStr := container.Path("sm_api_message").Data().(string)
-
-		// fallback to description
-		m.setSummaryFallback()
-	} else {
-		summary, ok := container.Path("sm_api_content").Data().(string)
-		if !ok {
-			m.setSummaryFallback()
-		} else {
-			m.Summary = summary
-		}
-	}
-
+	// set summary
+	m.Summary = summary
 	// cache summary file
 	writeSummaryFile(summaryFile, m.Summary)
 	return nil
@@ -436,7 +380,21 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varFileFormat), nil
 }
 
-func (m *Metadata) parseSuggestedTypes(index int, labels map[string]*gabs.Container, probabilities map[string]*gabs.Container) ([]*SuggestedType, error) {
+func (m *Metadata) cleanVarType(name string, typ string) string {
+	// set the d3m index to int regardless of what gets returned
+	if name == "d3mIndex" {
+		return "index"
+	}
+	// map types
+	switch typ {
+	case "int":
+		return "integer"
+	default:
+		return typ
+	}
+}
+
+func (m *Metadata) parseSuggestedTypes(name string, index int, labels map[string]*gabs.Container, probabilities map[string]*gabs.Container) ([]*SuggestedType, error) {
 	// parse probabilities
 	colKey := fmt.Sprintf("%d", index)
 	labelsCol, ok := labels[colKey]
@@ -458,9 +416,11 @@ func (m *Metadata) parseSuggestedTypes(index int, labels map[string]*gabs.Contai
 	var suggested []*SuggestedType
 	for index, label := range varTypeLabels {
 		prob := varProbabilities[index]
+		typ := label.Data().(string)
+		probability := prob.Data().(float64)
 		suggested = append(suggested, &SuggestedType{
-			Type:        label.Data().(string),
-			Probability: prob.Data().(float64),
+			Type:        m.cleanVarType(name, typ),
+			Probability: probability,
 		})
 	}
 	// sort by probability
@@ -526,7 +486,7 @@ func (m *Metadata) loadClassificationVariables() error {
 			return err
 		}
 		// get suggested types
-		suggestedTypes, err := m.parseSuggestedTypes(index, labels, probabilities)
+		suggestedTypes, err := m.parseSuggestedTypes(variable.Name, index, labels, probabilities)
 		if err != nil {
 			return err
 		}
