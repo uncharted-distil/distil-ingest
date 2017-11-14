@@ -68,7 +68,7 @@ const (
 
 var (
 	nonNullableTypes = map[string]bool{
-		"int":     true,
+		"index":   true,
 		"integer": true,
 		"float":   true,
 	}
@@ -306,10 +306,10 @@ func (d *Database) InitializeDataset(meta *metadata.Metadata) (*model.Dataset, e
 func (d *Database) mapType(typ string) string {
 	// NOTE: current classification has issues so if numerical, assume float64.
 	switch typ {
-	case "int":
-		return "FLOAT8"
-	case "integer":
+	case "index":
 		return "INTEGER"
+	case "integer":
+		return "FLOAT8"
 	case "float":
 		return "FLOAT8"
 	default:
@@ -321,16 +321,16 @@ func (d *Database) mapType(typ string) string {
 func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 	// NOTE: current classification has issues so if numerical, assume float64.
 	switch typ {
-	case "int":
-		if value == "" {
-			return nil, nil
-		}
-		return strconv.ParseFloat(value, 64)
-	case "integer":
+	case "index":
 		if value == "" {
 			return nil, nil
 		}
 		return strconv.ParseInt(value, 10, 32)
+	case "integer":
+		if value == "" {
+			return nil, nil
+		}
+		return strconv.ParseFloat(value, 64)
 	case "float":
 		if value == "" {
 			return nil, nil
@@ -343,10 +343,10 @@ func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 
 func (d *Database) defaultValue(typ string) interface{} {
 	switch typ {
-	case "int":
-		return float64(0)
-	case "integer":
+	case "index":
 		return int(0)
+	case "integer":
+		return float64(0)
 	case "float":
 		return float64(0)
 	default:
