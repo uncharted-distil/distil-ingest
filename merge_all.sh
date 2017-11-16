@@ -23,8 +23,6 @@ do
         --training-data="$DATA_DIR/$DATASET/$TRAINING_DATA" \
         --training-targets="$DATA_DIR/$DATASET/$TRAINING_TARGETS" \
         --raw-data="$DATA_DIR/$DATASET/$RAW_DATA" \
-        --output-bucket="$AWS_OUTPUT_BUCKET" \
-        --output-key="$AWS_OUTPUT_KEY_PREFIX/$DATASET$AWS_OUTPUT_KEY_SUFFIX" \
         --output-path="$DATA_DIR/$DATASET/$OUTPUT_PATH" \
         --output-schema-path="$DATA_DIR/$DATASET/$OUTPUT_SCHEMA" \
         --has-header=$HAS_HEADER \
