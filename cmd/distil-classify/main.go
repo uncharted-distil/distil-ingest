@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,12 +9,11 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/kafka"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-ingest/rest"
 )
 
 func splitAndTrim(arg string) []string {
@@ -39,7 +36,7 @@ func main() {
 	app.Name = "distil-classify"
 	app.Version = "0.1.0"
 	app.Usage = "Classify D3M merged datasets"
-	app.UsageText = "distil-classify --kafka-endpoints=<urls> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-classify --rest-endpoint=<url> --classification-function=<function> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "schema",
@@ -51,24 +48,14 @@ func main() {
 			Usage: "If true, will process raw datasets",
 		},
 		cli.StringFlag{
-			Name:  "kafka-endpoints",
+			Name:  "rest-endpoint",
 			Value: "",
-			Usage: "The kafka endpoint urls, comma separated",
+			Usage: "The REST endpoint url",
 		},
 		cli.StringFlag{
-			Name:  "kafka-user",
-			Value: "uncharted-distil",
-			Usage: "The kafka user",
-		},
-		cli.StringFlag{
-			Name:  "consume-topic",
-			Value: "column_datatype_classifications",
-			Usage: "The topic to consume a classification",
-		},
-		cli.StringFlag{
-			Name:  "produce-topic",
-			Value: "classify_column_datatypes",
-			Usage: "The topic to produce a classification",
+			Name:  "classification-function",
+			Value: "",
+			Usage: "The classification function to use",
 		},
 		cli.StringFlag{
 			Name:  "dataset",
@@ -87,9 +74,11 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-
-		if c.String("kafka-endpoints") == "" {
-			return cli.NewExitError("missing commandline flag `--kafka-endpoints`", 1)
+		if c.String("rest-endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
+		}
+		if c.String("classification-function") == "" {
+			return cli.NewExitError("missing commandline flag `--classification-function`", 1)
 		}
 		if c.String("schema") == "" {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
@@ -99,14 +88,10 @@ func main() {
 		}
 
 		schemaPath := filepath.Clean(c.String("schema"))
-		produceTopic := c.String("produce-topic")
-		consumeTopic := c.String("consume-topic")
-		kafkaURLs := splitAndTrim(c.String("kafka-endpoints"))
-		kafkaUser := c.String("kafka-user")
+		classificationFunction := c.String("classification-function")
+		restBaseEndpoint := c.String("rest-endpoint")
 		path := c.String("dataset")
-		filetype := c.String("filetype")
 		outputFilePath := c.String("output")
-		id := "uncharted_" + uuid.NewV4().String()
 		includeRaw := c.Bool("include-raw-dataset")
 
 		// Check if it is a raw dataset
@@ -120,72 +105,32 @@ func main() {
 			return nil
 		}
 
-		// connect to kafka
-		log.Infof("Connecting to kafka `%s` as user `%s`", strings.Join(kafkaURLs, ","), kafkaUser)
-		client, err := kafka.NewClient(kafkaURLs, kafkaUser)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
+		// initialize REST client
+		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
+		client := rest.NewClient(restBaseEndpoint)
 
 		// create consumer
-		consumer, err := client.NewConsumer(consumeTopic, kafka.LatestOffset)
+		classifier := rest.NewClassifier(classificationFunction, client)
+
+		// classify the file
+		classification, err := classifier.ClassifyFile(path)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		log.Infof("Classification for `%s` successful", path)
+		// marshall result
+		bytes, err := json.MarshalIndent(classification, "", "    ")
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-
-		// create producer
-		producer, err := client.NewProducer()
+		// write to file
+		log.Infof("Writing classification to file `%s`", outputFilePath)
+		err = ioutil.WriteFile(outputFilePath, bytes, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// dispatch classification task
-		log.Infof("Initializing classification for `%s` on topic `%s` with id `%s`", path, produceTopic, id)
-		err = producer.ProduceClassification(produceTopic, 0, &kafka.ClassificationMessage{
-			ID:       id,
-			Path:     path,
-			FileType: filetype,
-		})
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// consume classification results
-		log.Infof("Consuming classification for `%s` on topic `%s`", path, consumeTopic)
-		for {
-			res, err := consumer.ConsumeClassification()
-			if err != nil {
-				if err == io.EOF {
-					log.Infof("Finished consuming")
-					break
-				}
-				log.Errorf("%v", err)
-				break
-			}
-			if res.ID == id {
-				if res.Status == "Failure" {
-					return cli.NewExitError(fmt.Sprintf("Classification for `%s` failed", path), 2)
-				}
-				log.Infof("Classification for `%s` of id `%s` successful", path, id)
-				// marshall result
-				bytes, err := json.MarshalIndent(res, "", "    ")
-				if err != nil {
-					log.Errorf("%+v", err)
-					return cli.NewExitError(errors.Cause(err), 2)
-				}
-				// write to file
-				log.Infof("Writing classification to file `%s`", outputFilePath)
-				err = ioutil.WriteFile(outputFilePath, bytes, 0644)
-				if err != nil {
-					log.Errorf("%+v", err)
-					return cli.NewExitError(errors.Cause(err), 2)
-				}
-				break
-			}
 		}
 
 		return nil
