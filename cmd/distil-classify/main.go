@@ -109,7 +109,7 @@ func main() {
 		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
 		client := rest.NewClient(restBaseEndpoint)
 
-		// create consumer
+		// create classifier
 		classifier := rest.NewClassifier(classificationFunction, client)
 
 		// classify the file
