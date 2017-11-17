@@ -68,46 +68,28 @@ func main() {
 			Usage: "Whether or not the CSV file has a header row",
 		},
 		cli.StringFlag{
-			Name:  "output-bucket",
+			Name:  "rest-endpoint",
 			Value: "",
-			Usage: "The merged output AWS S3 bucket",
+			Usage: "The REST endpoint url",
 		},
 		cli.StringFlag{
-			Name:  "output-key",
+			Name:  "ranking-function",
 			Value: "",
-			Usage: "The merged output AWS S3 key",
-		},
-		cli.StringFlag{
-			Name:  "kafka-endpoints",
-			Value: "",
-			Usage: "The kafka endpoint urls, comma separated",
-		},
-		cli.StringFlag{
-			Name:  "kafka-user",
-			Value: "uncharted-distil",
-			Usage: "The kafka user",
-		},
-		cli.StringFlag{
-			Name:  "consume-topic",
-			Value: "feature_selection_results",
-			Usage: "The topic to consume a ranking",
-		},
-		cli.StringFlag{
-			Name:  "produce-topic",
-			Value: "feature_selection_input",
-			Usage: "The topic to produce a ranking",
+			Usage: "The ranking function to use",
 		},
 		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The ranking output file path",
 		},
+		cli.StringFlag{
+			Name:  "numeric-output",
+			Value: "",
+			Usage: "The numeric output file path to use for numeric variables to rank",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.String("kafka-endpoints") == "" {
-			return cli.NewExitError("missing commandline flag `--kafka-endpoints`", 1)
-		}
 		if c.String("schema") == "" {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
 		}
@@ -117,11 +99,14 @@ func main() {
 		if c.String("classification") == "" {
 			return cli.NewExitError("missing commandline flag `--classification`", 1)
 		}
-		if c.String("output-key") == "" {
-			return cli.NewExitError("missing commandline flag `--output-key`", 1)
+		if c.String("rest-endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
 		}
-		if c.String("output-bucket") == "" {
-			return cli.NewExitError("missing commandline flag `--output-bucket`", 1)
+		if c.String("ranking-function") == "" {
+			return cli.NewExitError("missing commandline flag `--ranking-function`", 1)
+		}
+		if c.String("numeric-output") == "" {
+			return cli.NewExitError("missing commandline flag `--numeric-output`", 1)
 		}
 
 		classificationPath := filepath.Clean(c.String("classification"))
