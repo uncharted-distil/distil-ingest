@@ -435,13 +435,9 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varFileFormat), nil
 }
 
-func (m *Metadata) parseClassification(index int, labels map[string]*gabs.Container) (string, error) {
+func (m *Metadata) parseClassification(index int, labels []*gabs.Container) (string, error) {
 	// parse classification
-	colKey := fmt.Sprintf("%d", index)
-	col, ok := labels[colKey]
-	if !ok {
-		return "", errors.Errorf("no label found for key `%s`", colKey)
-	}
+	col := labels[index]
 	varTypeLabels, err := col.Children()
 	if err != nil {
 		return "", errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", col))
@@ -453,17 +449,10 @@ func (m *Metadata) parseClassification(index int, labels map[string]*gabs.Contai
 	return defaultVarType, nil
 }
 
-func (m *Metadata) parseSuggestedTypes(index int, labels map[string]*gabs.Container, probabilities map[string]*gabs.Container) ([]*SuggestedType, error) {
+func (m *Metadata) parseSuggestedTypes(index int, labels []*gabs.Container, probabilities []*gabs.Container) ([]*SuggestedType, error) {
 	// parse probabilities
-	colKey := fmt.Sprintf("%d", index)
-	labelsCol, ok := labels[colKey]
-	if !ok {
-		return nil, errors.Errorf("no label found for key `%s`", colKey)
-	}
-	probabilitiesCol, ok := probabilities[colKey]
-	if !ok {
-		return nil, errors.Errorf("no probabilities found for key `%s`", colKey)
-	}
+	labelsCol := labels[index]
+	probabilitiesCol := probabilities[index]
 	varTypeLabels, err := labelsCol.Children()
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", labelsCol))
@@ -523,12 +512,12 @@ func (m *Metadata) loadClassificationVariables() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to parse merged data")
 	}
-	labels, err := m.classification.Path("labels").ChildrenMap()
+	labels, err := m.classification.Path("labels").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse classification labels")
 	}
 
-	probabilities, err := m.classification.Path("label_probabilities").ChildrenMap()
+	probabilities, err := m.classification.Path("label_probabilities").Children()
 	if err != nil {
 		return errors.Wrap(err, "Unable to parse classification probabilities")
 	}

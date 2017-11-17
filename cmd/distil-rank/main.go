@@ -144,6 +144,10 @@ func main() {
 			meta, err = metadata.LoadMetadataFromMergedSchema(
 				schemaPath)
 		}
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 
 		// split numeric columns
 		log.Infof("Splitting out numeric columns from %s for ranking and writing to %s", datasetPath, numericOutputFile)
