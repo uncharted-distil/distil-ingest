@@ -33,6 +33,7 @@ const (
 	resultMetadataTableName = "result"
 	resultScoreTableName    = "result_score"
 	requestFeatureTableName = "request_feature"
+	requestFilterTableName  = "request_filter"
 
 	sessionTableCreationSQL = `CREATE TABLE %s (
 			session_id	varchar(200)
@@ -58,6 +59,14 @@ const (
 			request_id		varchar(200),
 			feature_name	varchar(40),
 			feature_type	varchar(20)
+		);`
+	requestFilterTableCreationSQL = `CREATE TABLE %s (
+			request_id			varchar(200),
+			feature_name		varchar(40),
+			filter_type			varchar(40),
+			filter_min			double precision,
+			filter_max			double precision,
+			filter_categories	varchar(200)
 		);`
 	resultScoreTableCreationSQL = `CREATE TABLE %s (
 			pipeline_id	varchar(200),
@@ -122,6 +131,12 @@ func (d *Database) CreatePipelineMetadataTables() error {
 
 	d.DropTable(requestFeatureTableName)
 	_, err = d.DB.Exec(fmt.Sprintf(requestFeatureTableCreationSQL, requestFeatureTableName))
+	if err != nil {
+		return err
+	}
+
+	d.DropTable(requestFilterTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(requestFilterTableCreationSQL, requestFilterTableName))
 	if err != nil {
 		return err
 	}
