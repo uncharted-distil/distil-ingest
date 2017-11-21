@@ -12,6 +12,7 @@ HAS_HEADER=1
 REST_ENDPOINT=HTTP://localhost:5000
 RANKING_FUNCTION=pca
 NUMERIC_OUTPUT_SUFFIX=_numeric.csv
+DATASET_DATA_DIR=data
 
 for DATASET in "${DATASETS[@]}"
 do
@@ -23,7 +24,7 @@ do
         --dataset="$DATA_DIR/$DATASET/$MERGED" \
         --rest-endpoint="$REST_ENDPOINT" \
         --ranking-function="$RANKING_FUNCTION" \
-        --numeric-output="$DATA_DIR/$DATASET/$DATASET$NUMERIC_OUTPUT" \
+        --numeric-output="$DATA_DIR/$DATASET/$DATASET_DATA_DIR/$DATASET$NUMERIC_OUTPUT_SUFFIX" \
         --classification="$DATA_DIR/$DATASET/$CLASSIFICATION" \
         --has-header=$HAS_HEADER \
         --output="$DATA_DIR/$DATASET/$OUTPUT" \

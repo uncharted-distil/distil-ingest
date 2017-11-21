@@ -35,40 +35,24 @@ func (r *Ranker) RankFile(filename string) (*ImportanceResult, error) {
 		return nil, errors.Wrap(err, "Unable to rank file")
 	}
 
-	fmt.Printf("RANKED: %s\n", string(result))
-
 	importanceData := make([]interface{}, 0)
 	err = json.Unmarshal(result, &importanceData)
 	if err != nil {
+		fmt.Printf("RANKED: %v", string(result))
 		return nil, errors.Wrap(err, "Unable to unmarshal importance response")
 	}
 
-	// importanceRaw, ok := result.([]interface{})
-	// if !ok {
-	// 	return nil, fmt.Errorf("Unable to parse returned types")
-	// }
-	// // Probabilities are [][]float64. Need to parse it all manually.
-	// probabilitiesRaw, ok := classifiedData.([]interface{})
-	// if !ok {
-	// 	return nil, fmt.Errorf("Unable to parse returned probabilities")
-	// }
-	// probabilities := make([][]float64, len(probabilitiesRaw))
-	// for i, pr := range probabilitiesRaw {
-	// 	p, ok := pr.([]interface{})
-	// 	if !ok {
-	// 		return nil, fmt.Errorf("Unable to parse returned probability floats")
-	// 	}
-	// 	probabilities[i] = make([]float64, len(p))
-	//
-	// 	// Parse the inner float array.
-	// 	for j, pf := range p {
-	// 		f, ok := pf.(float64)
-	// 		if !ok {
-	// 			return nil, fmt.Errorf("Unable to parse returned probability float")
-	// 		}
-	// 		probabilities[i][j] = f
-	// 	}
-	// }
+	features := make([]float64, len(importanceData))
+	for i, imp := range importanceData {
+		f, ok := imp.(float64)
+		if !ok {
+			return nil, fmt.Errorf("Unable to parse float importance ranking")
+		}
+		features[i] = f
+	}
 
-	return nil, nil
+	return &ImportanceResult{
+		Path:     filename,
+		Features: features,
+	}, nil
 }
