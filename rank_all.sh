@@ -6,7 +6,6 @@ MERGED=/data/merged.csv
 CLASSIFICATION=/data/classification.json
 OUTPUT=/data/importance.json
 DATASETS=(r_26 r_27 r_32 r_60 o_185 o_196 o_313 o_38 o_4550)
-KAFKA_ENDPOINT=10.108.4.41:9092
 TYPE_SOURCE=classification
 HAS_HEADER=1
 REST_ENDPOINT=HTTP://localhost:5000
