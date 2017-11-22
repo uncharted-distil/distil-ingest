@@ -13,7 +13,7 @@ import (
 
 func isNumeric(typ string) bool {
 	switch typ {
-	case "integer", "int", "float":
+	case "integer", "float":
 		return true
 	default:
 		return false
