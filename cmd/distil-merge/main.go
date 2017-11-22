@@ -89,12 +89,6 @@ func main() {
 		if c.String("training-targets") == "" {
 			return cli.NewExitError("missing commandline flag `--training-targets`", 1)
 		}
-		if c.String("output-bucket") == "" {
-			return cli.NewExitError("missing commandline flag `--output-bucket`", 1)
-		}
-		if c.String("output-key") == "" {
-			return cli.NewExitError("missing commandline flag `--output-key`", 1)
-		}
 		if c.String("output-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-path`", 1)
 		}
@@ -170,10 +164,12 @@ func main() {
 		}
 
 		// write merged output to AWS S3
-		err = s3.WriteToBucket(client, outputBucket, outputKey, output)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 4)
+		if outputBucket != "" {
+			err = s3.WriteToBucket(client, outputBucket, outputKey, output)
+			if err != nil {
+				log.Errorf("%+v", err)
+				return cli.NewExitError(errors.Cause(err), 4)
+			}
 		}
 
 		// write copy to disk
@@ -192,7 +188,10 @@ func main() {
 
 		// log success / failure
 		if failed == 0 {
-			log.Infof("Merged %d lines successfully, written to %s/%s", success, outputBucket, outputKey)
+			log.Infof("Merged %d lines successfully, written to %s", success, outputPath)
+			if outputBucket != "" {
+				log.Infof("Merged %d lines successfully, written to %s/%s", success, outputBucket, outputKey)
+			}
 		} else {
 			log.Warnf("Merged %d lines, %d lines unmatched, written to %s/%s", success, failed, outputBucket, outputKey)
 		}

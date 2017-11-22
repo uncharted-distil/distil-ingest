@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,13 +9,11 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/satori/go.uuid"
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/kafka"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/s3"
+	"github.com/unchartedsoftware/distil-ingest/rest"
 	"github.com/unchartedsoftware/distil-ingest/split"
 )
 
@@ -72,46 +68,28 @@ func main() {
 			Usage: "Whether or not the CSV file has a header row",
 		},
 		cli.StringFlag{
-			Name:  "output-bucket",
+			Name:  "rest-endpoint",
 			Value: "",
-			Usage: "The merged output AWS S3 bucket",
+			Usage: "The REST endpoint url",
 		},
 		cli.StringFlag{
-			Name:  "output-key",
+			Name:  "ranking-function",
 			Value: "",
-			Usage: "The merged output AWS S3 key",
-		},
-		cli.StringFlag{
-			Name:  "kafka-endpoints",
-			Value: "",
-			Usage: "The kafka endpoint urls, comma separated",
-		},
-		cli.StringFlag{
-			Name:  "kafka-user",
-			Value: "uncharted-distil",
-			Usage: "The kafka user",
-		},
-		cli.StringFlag{
-			Name:  "consume-topic",
-			Value: "feature_selection_results",
-			Usage: "The topic to consume a ranking",
-		},
-		cli.StringFlag{
-			Name:  "produce-topic",
-			Value: "feature_selection_input",
-			Usage: "The topic to produce a ranking",
+			Usage: "The ranking function to use",
 		},
 		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The ranking output file path",
 		},
+		cli.StringFlag{
+			Name:  "numeric-output",
+			Value: "",
+			Usage: "The numeric output file path to use for numeric variables to rank",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.String("kafka-endpoints") == "" {
-			return cli.NewExitError("missing commandline flag `--kafka-endpoints`", 1)
-		}
 		if c.String("schema") == "" {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
 		}
@@ -121,28 +99,27 @@ func main() {
 		if c.String("classification") == "" {
 			return cli.NewExitError("missing commandline flag `--classification`", 1)
 		}
-		if c.String("output-key") == "" {
-			return cli.NewExitError("missing commandline flag `--output-key`", 1)
+		if c.String("rest-endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
 		}
-		if c.String("output-bucket") == "" {
-			return cli.NewExitError("missing commandline flag `--output-bucket`", 1)
+		if c.String("ranking-function") == "" {
+			return cli.NewExitError("missing commandline flag `--ranking-function`", 1)
+		}
+		if c.String("numeric-output") == "" {
+			return cli.NewExitError("missing commandline flag `--numeric-output`", 1)
 		}
 
 		classificationPath := filepath.Clean(c.String("classification"))
 		typeSource := c.String("type-source")
 		schemaPath := filepath.Clean(c.String("schema"))
+		rankingFunction := c.String("ranking-function")
+		restBaseEndpoint := c.String("rest-endpoint")
 		datasetPath := filepath.Clean(c.String("dataset"))
-		outputBucket := c.String("output-bucket")
-		outputKey := c.String("output-key")
+		numericOutputFile := c.String("numeric-output")
 		hasHeader := c.Bool("has-header")
 		includeRaw := c.Bool("include-raw-dataset")
 
-		produceTopic := c.String("produce-topic")
-		consumeTopic := c.String("consume-topic")
-		kafkaURLs := splitAndTrim(c.String("kafka-endpoints"))
-		kafkaUser := c.String("kafka-user")
 		outputFilePath := c.String("output")
-		id := "uncharted_" + uuid.NewV4().String()
 
 		// Check if it is a raw dataset
 		isRaw, err := metadata.IsRawDataset(schemaPath)
@@ -167,95 +144,64 @@ func main() {
 			meta, err = metadata.LoadMetadataFromMergedSchema(
 				schemaPath)
 		}
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// check if there are numeric columns
+		if len(split.GetNumericColumnIndices(meta)) == 0 {
+			log.Infof("Skipping ranking since dataset '%s' has no numeric column", datasetPath)
+			log.Infof("Writing empty importance ranking to file `%s`", outputFilePath)
+			err = ioutil.WriteFile(outputFilePath, []byte("{}"), 0644)
+			if err != nil {
+				log.Errorf("%+v", err)
+				return cli.NewExitError(errors.Cause(err), 2)
+			}
+			return nil
+		}
 
 		// split numeric columns
-		log.Infof("Splitting out numeric columns from %s for ranking", datasetPath)
+		log.Infof("Splitting out numeric columns from %s for ranking and writing to %s", datasetPath, numericOutputFile)
 		output, err := split.GetNumericColumns(
 			datasetPath,
 			meta,
 			hasHeader)
 
-		// get AWS S3 client
-		s3Client, err := s3.NewClient()
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 3)
-		}
-
-		// write split output to AWS S3
-		err = s3.WriteToBucket(s3Client, outputBucket, outputKey, output)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 4)
-		}
-
-		// connect to kafka
-		log.Infof("Connecting to kafka `%s` as user `%s`", strings.Join(kafkaURLs, ","), kafkaUser)
-		kafkaClient, err := kafka.NewClient(kafkaURLs, kafkaUser)
+		// write to file to submit the file
+		err = ioutil.WriteFile(numericOutputFile, output, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
-		// create consumer
-		consumer, err := kafkaClient.NewConsumer(consumeTopic, kafka.LatestOffset)
+		// create the REST client
+		log.Infof("Using REST interface at `%s/%s` ", restBaseEndpoint, rankingFunction)
+		client := rest.NewClient(restBaseEndpoint)
+
+		// create ranker
+		ranker := rest.NewRanker(rankingFunction, client)
+
+		// get the importance from the REST interface
+		log.Infof("Getting importance ranking of file `%s`", numericOutputFile)
+		importance, err := ranker.RankFile(numericOutputFile)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
-		// create producer
-		producer, err := kafkaClient.NewProducer()
+		// marshall result
+		bytes, err := json.MarshalIndent(importance, "", "    ")
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-
-		// dispatch importance task
-		path := "https://s3.amazonaws.com/" + outputBucket + "/" + outputKey
-		log.Infof("Initializing importance ranking for `%s` on topic `%s` with id `%s`", path, produceTopic, id)
-		err = producer.ProduceImportance(produceTopic, 0, &kafka.ImportanceMessage{
-			ID:       id,
-			Path:     path,
-			FileType: "csv",
-		})
+		// write to file
+		log.Infof("Writing importance ranking to file `%s`", outputFilePath)
+		err = ioutil.WriteFile(outputFilePath, bytes, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// consume importance results
-		log.Infof("Consuming importance ranking for `%s` on topic `%s`", path, consumeTopic)
-		for {
-			res, err := consumer.ConsumeImportance()
-			if err != nil {
-				if err == io.EOF {
-					log.Infof("Finished consuming")
-					break
-				}
-				log.Errorf("%v", err)
-				break
-			}
-			if res.ID == id {
-				if res.Status == "Failure" {
-					return cli.NewExitError(fmt.Sprintf("Importance ranking for `%s` failed", path), 2)
-				}
-				log.Infof("Importance for `%s` of id `%s` successful", path, id)
-				// marshall result
-				bytes, err := json.MarshalIndent(res, "", "    ")
-				if err != nil {
-					log.Errorf("%+v", err)
-					return cli.NewExitError(errors.Cause(err), 2)
-				}
-				// write to file
-				log.Infof("Writing importance ranking to file `%s`", outputFilePath)
-				err = ioutil.WriteFile(outputFilePath, bytes, 0644)
-				if err != nil {
-					log.Errorf("%+v", err)
-					return cli.NewExitError(errors.Cause(err), 2)
-				}
-				break
-			}
 		}
 
 		return nil
