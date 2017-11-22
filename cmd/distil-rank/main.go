@@ -149,6 +149,18 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
+		// check if there are numeric columns
+		if len(split.GetNumericColumnIndices(meta)) == 0 {
+			log.Infof("Skipping ranking since dataset '%s' has no numeric column", datasetPath)
+			log.Infof("Writing empty importance ranking to file `%s`", outputFilePath)
+			err = ioutil.WriteFile(outputFilePath, []byte("{}"), 0644)
+			if err != nil {
+				log.Errorf("%+v", err)
+				return cli.NewExitError(errors.Cause(err), 2)
+			}
+			return nil
+		}
+
 		// split numeric columns
 		log.Infof("Splitting out numeric columns from %s for ranking and writing to %s", datasetPath, numericOutputFile)
 		output, err := split.GetNumericColumns(
