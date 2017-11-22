@@ -13,6 +13,11 @@ RANKING_FUNCTION=pca
 NUMERIC_OUTPUT_SUFFIX=_numeric.csv
 DATASET_DATA_DIR=data
 
+docker run -d --rm --name ranking_rest  -p 5000:5000 primitives.azurecr.io/http_features:0.2
+./wait-for-it.sh -t 0 localhost:5000
+echo "Waiting for the service to be available..."
+sleep 10
+
 for DATASET in "${DATASETS[@]}"
 do
     echo "--------------------------------------------------------------------------------"
@@ -30,3 +35,5 @@ do
         --type-source="$TYPE_SOURCE" \
         --include-raw-dataset
 done
+
+docker stop ranking_rest
