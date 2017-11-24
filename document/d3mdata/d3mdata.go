@@ -78,7 +78,7 @@ func (d *D3MData) GetMapping() (string, error) {
 		case "categorical", "ordinal", "address", "city", "state", "country", "email", "phone", "postal_code", "uri":
 			varType = "keyword"
 			break
-		case "dateTime", "datetime":
+		case "dateTime":
 			varType = "date"
 			break
 		case "boolean":
@@ -110,7 +110,7 @@ func (d *D3MData) GetSource() (interface{}, error) {
 		var varValue interface{}
 
 		switch v.Type {
-		case "integer", "index", "dateTime", "datetime":
+		case "integer", "index", "dateTime":
 			varValue, _ = d.Int64(index)
 			break
 		case "float", "latitude", "longitude":
