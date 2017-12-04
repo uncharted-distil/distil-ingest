@@ -327,6 +327,10 @@ func (d *Database) mapType(typ string) string {
 		return "FLOAT8"
 	case "float":
 		return "FLOAT8"
+	case "longitude":
+		return "FLOAT8"
+	case "latitude":
+		return "FLOAT8"
 	default:
 		return "TEXT"
 	}
@@ -351,6 +355,16 @@ func (d *Database) mapVariable(typ, value string) (interface{}, error) {
 			return nil, nil
 		}
 		return strconv.ParseFloat(value, 64)
+	case "longitude":
+		if value == "" {
+			return nil, nil
+		}
+		return strconv.ParseFloat(value, 64)
+	case "latitude":
+		if value == "" {
+			return nil, nil
+		}
+		return strconv.ParseFloat(value, 64)
 	default:
 		return value, nil
 	}
@@ -363,6 +377,10 @@ func (d *Database) defaultValue(typ string) interface{} {
 	case "integer":
 		return float64(0)
 	case "float":
+		return float64(0)
+	case "longitude":
+		return float64(0)
+	case "latitude":
 		return float64(0)
 	default:
 		return "''"
