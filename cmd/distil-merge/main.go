@@ -27,26 +27,17 @@ func main() {
 	app.Name = "distil-merge"
 	app.Version = "0.1.0"
 	app.Usage = "Merge D3M training datasets"
-	app.UsageText = "distil-merge --schema=<filepath> --training-data=<filepath> --training-targets=<filepath> --output=<filepath>"
+	app.UsageText = "distil-merge --schema=<filepath> --data=<filepath> --output-path=<filepath> --output-schema-path=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "schema",
 			Value: "",
 			Usage: "The dataset schema file path",
 		},
-		cli.BoolFlag{
-			Name:  "include-raw-dataset",
-			Usage: "If true, will process raw datasets",
-		},
 		cli.StringFlag{
-			Name:  "training-data",
+			Name:  "data",
 			Value: "",
-			Usage: "The training data file path",
-		},
-		cli.StringFlag{
-			Name:  "training-targets",
-			Value: "",
-			Usage: "The training targets file path",
+			Usage: "The data file path",
 		},
 		cli.StringFlag{
 			Name:  "raw-data",
@@ -73,21 +64,14 @@ func main() {
 			Value: "",
 			Usage: "The merged schema path",
 		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
-		},
 	}
 	app.Action = func(c *cli.Context) error {
 
 		if c.String("schema") == "" {
 			return cli.NewExitError("missing commandline flag `--schema`", 1)
 		}
-		if c.String("training-data") == "" {
-			return cli.NewExitError("missing commandline flag `--training-data`", 1)
-		}
-		if c.String("training-targets") == "" {
-			return cli.NewExitError("missing commandline flag `--training-targets`", 1)
+		if c.String("data") == "" {
+			return cli.NewExitError("missing commandline flag `--data`", 1)
 		}
 		if c.String("output-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-path`", 1)
@@ -96,51 +80,12 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--output-schema-path`", 1)
 		}
 		schemaPath := filepath.Clean(c.String("schema"))
-		trainingDataPath := filepath.Clean(c.String("training-data"))
-		trainingTargetsPath := filepath.Clean(c.String("training-targets"))
+		dataPath := filepath.Clean(c.String("data"))
 		rawDataPath := filepath.Clean(c.String("raw-data"))
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
 		outputPath := filepath.Clean(c.String("output-path"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
-		hasHeader := c.Bool("has-header")
-		includeRaw := c.Bool("include-raw-dataset")
-
-		// check if it is a raw dataset
-		isRaw, err := metadata.IsRawDataset(schemaPath)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 1)
-		}
-		if isRaw && !includeRaw {
-			log.Infof("Not processing dataset because it is a raw dataset")
-			return nil
-		}
-
-		// get indices to join datasets on
-		indices, err := merge.GetColIndices(schemaPath, d3mIndexColName)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 1)
-		}
-
-		log.Infof("Joining %s and %s on column indices %d and %d",
-			trainingDataPath,
-			trainingTargetsPath,
-			indices.LeftColIdx,
-			indices.RightColIdx)
-
-		// merge targets into training data
-		merged, success, failed, err := merge.LeftJoin(
-			trainingDataPath,
-			indices.LeftColIdx,
-			trainingTargetsPath,
-			indices.RightColIdx,
-			hasHeader)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
 
 		// load the metadata from schema
 		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
@@ -150,7 +95,7 @@ func main() {
 		}
 
 		// merge file links in dataset
-		output, err := merge.InjectFileLinks(meta, merged, rawDataPath)
+		output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
@@ -187,13 +132,9 @@ func main() {
 		}
 
 		// log success / failure
-		if failed == 0 {
-			log.Infof("Merged %d lines successfully, written to %s", success, outputPath)
-			if outputBucket != "" {
-				log.Infof("Merged %d lines successfully, written to %s/%s", success, outputBucket, outputKey)
-			}
-		} else {
-			log.Warnf("Merged %d lines, %d lines unmatched, written to %s/%s", success, failed, outputBucket, outputKey)
+		log.Infof("Merged data successfully written to %s", outputPath)
+		if outputBucket != "" {
+			log.Infof("Merged data successfully written to %s/%s", outputBucket, outputKey)
 		}
 
 		return nil

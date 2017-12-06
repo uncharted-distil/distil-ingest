@@ -99,6 +99,16 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 	}, nil
 }
 
+// InjectFileLinksFromFile traverses all file links and injests the relevant data.
+func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawDataPath string) ([]byte, error) {
+	data, err := ioutil.ReadFile(inputFilename)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to read input file for injection")
+	}
+
+	return InjectFileLinks(meta, data, rawDataPath)
+}
+
 // InjectFileLinks traverses all file links and injests the relevant data.
 func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string) ([]byte, error) {
 	// determine if there are any links

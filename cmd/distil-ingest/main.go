@@ -44,10 +44,6 @@ func main() {
 			Value: "",
 			Usage: "The dataset schema file path",
 		},
-		cli.BoolFlag{
-			Name:  "include-raw-dataset",
-			Usage: "If true, will process raw datasets",
-		},
 		cli.StringFlag{
 			Name:  "type-source",
 			Value: "schema",
@@ -190,21 +186,10 @@ func main() {
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
 			DBBatchSize:          c.Int("db-batch-size"),
-			IncludeRaw:           c.Bool("include-raw-dataset"),
-		}
-
-		// Check if it is a raw dataset
-		isRaw, err := metadata.IsRawDataset(config.SchemaPath)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-		if isRaw && !config.IncludeRaw {
-			log.Infof("Not processing dataset because it is a raw dataset")
-			return nil
 		}
 
 		// load the metadata
+		var err error
 		var meta *metadata.Metadata
 		if config.TypeSource == typeSourceClassification {
 			log.Infof("Loading metadata from classification file")

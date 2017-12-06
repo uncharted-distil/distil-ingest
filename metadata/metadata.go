@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -25,14 +24,15 @@ const (
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name           string           `json:"varName"`
-	Type           string           `json:"varType,omitempty"`
+	Name           string           `json:"colName"`
+	Type           string           `json:"colType,omitempty"`
 	FileType       string           `json:"varFileType,omitempty"`
 	FileFormat     string           `json:"varFileFormat,omitempty"`
-	Role           string           `json:"varRole,omitempty"`
+	Role           string           `json:"role,omitempty"`
 	OriginalName   string           `json:"varOriginalName,omitempty"`
 	DisplayName    string           `json:"varDisplayName,omitempty"`
 	Importance     int              `json:"importance,omitempty"`
+	Index          int              `json:"colIndex,omitempty"`
 	SuggestedTypes []*SuggestedType `json:"suggestedTypes,omitempty"`
 }
 
@@ -62,33 +62,18 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(name, typ, role, fileType, fileFormat string) *Variable {
+func NewVariable(index int, name, typ, role, fileType, fileFormat string) *Variable {
 	// normalize name
 	normed := NormalizeVariableName(name)
 	return &Variable{
 		Name:         normed,
+		Index:        index,
 		Type:         typ,
 		Role:         role,
 		OriginalName: normed,
 		FileType:     fileType,
 		FileFormat:   fileFormat,
 	}
-}
-
-// IsRawDataset checks the schema to determine if it is a raw dataset.
-func IsRawDataset(schemaPath string) (bool, error) {
-	// schema file has "rawData": true | false
-	schema, err := gabs.ParseJSONFile(schemaPath)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to parse schema file")
-	}
-
-	isRaw, ok := schema.Path("rawData").Data().(bool)
-	if !ok {
-		return false, errors.Errorf("could not determine if dataset is raw")
-	}
-
-	return isRaw, nil
 }
 
 // LoadMetadataFromOriginalSchema loads metadata from a schema file.
@@ -102,15 +87,11 @@ func LoadMetadataFromOriginalSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadRaw()
-	if err != nil {
-		return nil, err
-	}
 	err = meta.loadID()
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription(schemaPath)
+	err = meta.loadDescription()
 	if err != nil {
 		return nil, err
 	}
@@ -132,15 +113,11 @@ func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadRaw()
-	if err != nil {
-		return nil, err
-	}
 	err = meta.loadID()
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription(schemaPath)
+	err = meta.loadDescription()
 	if err != nil {
 		return nil, err
 	}
@@ -167,15 +144,11 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadRaw()
-	if err != nil {
-		return nil, err
-	}
 	err = meta.loadID()
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription(schemaPath)
+	err = meta.loadDescription()
 	if err != nil {
 		return nil, err
 	}
@@ -307,26 +280,17 @@ func (m *Metadata) LoadDatasetStats(datasetPath string) error {
 	return nil
 }
 
-func (m *Metadata) loadRaw() error {
-	isRaw, ok := m.schema.Path("rawData").Data().(bool)
-	if !ok {
-		m.Raw = false
-	}
-	m.Raw = isRaw
-	return nil
-}
-
 func (m *Metadata) loadID() error {
-	id, ok := m.schema.Path("datasetId").Data().(string)
+	id, ok := m.schema.Path("about.datasetID").Data().(string)
 	if !ok {
-		return errors.Errorf("no `datasetId` key found in schema")
+		return errors.Errorf("no `about.datasetID` key found in schema")
 	}
 	m.ID = id
 	return nil
 }
 
 func (m *Metadata) loadName() error {
-	name, ok := m.schema.Path("name").Data().(string)
+	name, ok := m.schema.Path("about.datasetName").Data().(string)
 	if !ok {
 		return nil //errors.Errorf("no `name` key found in schema")
 	}
@@ -334,45 +298,52 @@ func (m *Metadata) loadName() error {
 	return nil
 }
 
-func (m *Metadata) loadDescription(schemaPath string) error {
+func (m *Metadata) loadDescription() error {
 	// load from property
 	if m.schema.Path("description").Data() != nil {
-		m.Description = m.schema.Path("description").Data().(string)
+		m.Description = m.schema.Path("about.description").Data().(string)
 		return nil
 	}
-	// load from description file
-	descPath := m.schema.Path("descriptionFile").Data().(string)
-	fullDescPath := fmt.Sprintf("%s/%s", filepath.Dir(schemaPath), descPath)
-	contents, err := ioutil.ReadFile(fullDescPath)
-	if err != nil {
-		return errors.Wrap(err, "failed to load description file")
-	}
-	m.Description = string(contents)
 	return nil
 }
 
 func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
-	if v.Path("varName").Data() == nil {
-		return nil, fmt.Errorf("unable to parse variable name")
+	if v.Path("colName").Data() == nil {
+		return nil, fmt.Errorf("unable to parse column name")
 	}
-	varName := v.Path("varName").Data().(string)
+	varName := v.Path("colName").Data().(string)
+
 	varType := ""
-	if v.Path("varType").Data() != nil {
-		varType = v.Path("varType").Data().(string)
+	if v.Path("colType").Data() != nil {
+		varType = v.Path("colType").Data().(string)
 	}
+
+	varIndex := 0
+	if v.Path("colIndex").Data() != nil {
+		varIndex = int(v.Path("colIndex").Data().(float64))
+	}
+
 	varRole := ""
-	if v.Path("varRole").Data() != nil {
-		varRole = v.Path("varRole").Data().(string)
+	if v.Path("role").Data() != nil {
+		// keep the first role only.
+		roles, err := v.Path("role").Children()
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to parse column role")
+		}
+		varRole = roles[0].Data().(string)
 	}
+
 	varFileType := ""
 	if v.Path("varFileType").Data() != nil {
 		varFileType = v.Path("varFileType").Data().(string)
 	}
+
 	varFileFormat := ""
 	if v.Path("varFileFormat").Data() != nil {
 		varFileFormat = v.Path("varFileFormat").Data().(string)
 	}
 	return NewVariable(
+		varIndex,
 		varName,
 		varType,
 		varRole,
@@ -438,15 +409,10 @@ func (m *Metadata) parseSuggestedTypes(name string, index int, labels []*gabs.Co
 }
 
 func (m *Metadata) loadOriginalSchemaVariables() error {
-	trainVariables, err := m.schema.Path("trainData.trainData").Children()
+	schemaVariables, err := m.schema.Path("dataResources.columns").Children()
 	if err != nil {
-		return errors.Wrap(err, "failed to parse training data")
+		return errors.Wrap(err, "failed to parse column data")
 	}
-	targetVariables, err := m.schema.Path("trainData.trainTargets").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse target data")
-	}
-	schemaVariables := m.mergeVariables(trainVariables, targetVariables)
 	for _, v := range schemaVariables {
 		variable, err := m.parseSchemaVariable(v)
 		if err != nil {
@@ -460,12 +426,12 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 func (m *Metadata) loadMergedSchemaVariables() error {
 	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
 	if err != nil {
-		return errors.Wrap(err, "failed to parse training data")
+		return errors.Wrap(err, "failed to parse merged schema")
 	}
 	for _, v := range schemaVariables {
 		variable, err := m.parseSchemaVariable(v)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
 		m.Variables = append(m.Variables, variable)
 	}
@@ -477,6 +443,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to parse merged data")
 	}
+
 	labels, err := m.classification.Path("labels").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse classification labels")
