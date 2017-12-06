@@ -409,10 +409,17 @@ func (m *Metadata) parseSuggestedTypes(name string, index int, labels []*gabs.Co
 }
 
 func (m *Metadata) loadOriginalSchemaVariables() error {
-	schemaVariables, err := m.schema.Path("dataResources.columns").Children()
+	dataResources, err := m.schema.Path("dataResources").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse data resources")
+	}
+
+	// only the first data resource matters for now.
+	schemaVariables, err := dataResources[0].Path("columns").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse column data")
 	}
+
 	for _, v := range schemaVariables {
 		variable, err := m.parseSchemaVariable(v)
 		if err != nil {
