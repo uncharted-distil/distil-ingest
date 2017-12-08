@@ -64,6 +64,10 @@ func main() {
 			Value: "",
 			Usage: "The merged schema path",
 		},
+		cli.BoolFlag{
+			Name:  "has-header",
+			Usage: "Whether or not the CSV file has a header row",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 
@@ -86,6 +90,7 @@ func main() {
 		outputKey := c.String("output-key")
 		outputPath := filepath.Clean(c.String("output-path"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
+		hasHeader := c.Bool("has-header")
 
 		// load the metadata from schema
 		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
@@ -95,7 +100,7 @@ func main() {
 		}
 
 		// merge file links in dataset
-		output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath)
+		output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath, hasHeader)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

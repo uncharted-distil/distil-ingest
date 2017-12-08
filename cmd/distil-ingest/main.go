@@ -192,7 +192,7 @@ func main() {
 		var err error
 		var meta *metadata.Metadata
 		if config.TypeSource == typeSourceClassification {
-			log.Infof("Loading metadata from classification file")
+			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationPath, config.SchemaPath)
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,
 				config.ClassificationPath)

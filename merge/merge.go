@@ -52,7 +52,7 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 	// create map of indices in the dataset
 	indices := make(map[string]int)
 	for index, variable := range meta.Variables {
-		if variable.Role == "index" {
+		if variable.SelectedRole == "index" {
 			indices[variable.Name] = index
 		}
 	}
@@ -100,10 +100,44 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 }
 
 // InjectFileLinksFromFile traverses all file links and injests the relevant data.
-func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawDataPath string) ([]byte, error) {
-	data, err := ioutil.ReadFile(inputFilename)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to read input file for injection")
+func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawDataPath string, hasHeader bool) ([]byte, error) {
+	// need to skip the header row.
+	var data []byte
+	var err error
+	if hasHeader {
+		csvFile, err := os.Open(inputFilename)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to open file")
+		}
+		defer csvFile.Close()
+
+		reader := csv.NewReader(csvFile)
+		output := &bytes.Buffer{}
+		writer := csv.NewWriter(output)
+
+		var count = 0
+		for {
+			line, err := reader.Read()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, errors.Wrap(err, "failed to read line from file")
+			}
+
+			if count > 0 || !hasHeader {
+				writer.Write(line)
+			}
+
+			count++
+		}
+		writer.Flush()
+		data = output.Bytes()
+	} else {
+		data, err = ioutil.ReadFile(inputFilename)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to read input file for injection")
+		}
 	}
 
 	return InjectFileLinks(meta, data, rawDataPath)

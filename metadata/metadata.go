@@ -28,7 +28,8 @@ type Variable struct {
 	Type           string           `json:"colType,omitempty"`
 	FileType       string           `json:"varFileType,omitempty"`
 	FileFormat     string           `json:"varFileFormat,omitempty"`
-	Role           string           `json:"role,omitempty"`
+	SelectedRole   string           `json:"selectedRole,omitempty"`
+	Role           []string         `json:"role,omitempty"`
 	OriginalName   string           `json:"varOriginalName,omitempty"`
 	DisplayName    string           `json:"varDisplayName,omitempty"`
 	Importance     int              `json:"importance,omitempty"`
@@ -62,14 +63,22 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, role, fileType, fileFormat string) *Variable {
+func NewVariable(index int, name, typ, fileType, fileFormat string, role []string) *Variable {
 	// normalize name
 	normed := NormalizeVariableName(name)
+
+	// select the first role by default.
+	selectedRole := ""
+	if len(role) > 0 {
+		selectedRole = role[0]
+	}
+
 	return &Variable{
 		Name:         normed,
 		Index:        index,
 		Type:         typ,
 		Role:         role,
+		SelectedRole: selectedRole,
 		OriginalName: normed,
 		FileType:     fileType,
 		FileFormat:   fileFormat,
@@ -174,7 +183,7 @@ func (m *Metadata) loadMergedSchema(schemaPath string) error {
 		return errors.Wrap(err, "failed to parse merged schema file")
 	}
 	// confirm merged schema
-	if schema.Path("mergedSchema").Data() == nil {
+	if schema.Path("about.mergedSchema").Data() == nil {
 		return fmt.Errorf("schema file provided is not the proper merged schema")
 	}
 	m.schema = schema
@@ -300,7 +309,7 @@ func (m *Metadata) loadName() error {
 
 func (m *Metadata) loadDescription() error {
 	// load from property
-	if m.schema.Path("description").Data() != nil {
+	if m.schema.Path("about.description").Data() != nil {
 		m.Description = m.schema.Path("about.description").Data().(string)
 		return nil
 	}
@@ -323,14 +332,16 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varIndex = int(v.Path("colIndex").Data().(float64))
 	}
 
-	varRole := ""
+	var varRoles []string
 	if v.Path("role").Data() != nil {
-		// keep the first role only.
-		roles, err := v.Path("role").Children()
+		rolesRaw, err := v.Path("role").Children()
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to parse column role")
 		}
-		varRole = roles[0].Data().(string)
+		varRoles = make([]string, len(rolesRaw))
+		for i, r := range rolesRaw {
+			varRoles[i] = r.Data().(string)
+		}
 	}
 
 	varFileType := ""
@@ -346,9 +357,9 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varIndex,
 		varName,
 		varType,
-		varRole,
 		varFileType,
-		varFileFormat), nil
+		varFileFormat,
+		varRoles), nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -511,10 +522,13 @@ func (m *Metadata) mergeVariables(left []*gabs.Container, right []*gabs.Containe
 func (m *Metadata) WriteMergedSchema(path string) error {
 	// create output format
 	output := map[string]interface{}{
-		"datasetId":    m.ID,
-		"description":  m.Description,
-		"rawData":      m.Raw,
-		"mergedSchema": "true",
+		"about": map[string]interface{}{
+			"datasetID":    m.ID,
+			"datasetName":  m.Name,
+			"description":  m.Description,
+			"rawData":      m.Raw,
+			"mergedSchema": "true",
+		},
 		"mergedData": map[string]interface{}{
 			"mergedData": m.Variables,
 		},
