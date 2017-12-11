@@ -19,7 +19,8 @@ type D3MData struct {
 }
 
 func getIDColumn(meta *metadata.Metadata) (int, error) {
-	for index, v := range meta.Variables {
+	// NOTE: Can only handle a single data resource for now.
+	for index, v := range meta.DataResources[0].Variables {
 		if v.Name == "d3mIndex" {
 			return index, nil
 		}
@@ -57,7 +58,7 @@ func (d *D3MData) GetMapping() (string, error) {
 	// create the ES mappings based on the variables in the schema
 	mappings := gabs.New()
 
-	for _, v := range d.meta.Variables {
+	for _, v := range d.meta.DataResources[0].Variables {
 
 		if v.SelectedRole != "attribute" && v.SelectedRole != "target" {
 			continue
@@ -102,7 +103,7 @@ func (d *D3MData) GetMapping() (string, error) {
 func (d *D3MData) GetSource() (interface{}, error) {
 	source := make(map[string]interface{})
 
-	for index, v := range d.meta.Variables {
+	for index, v := range d.meta.DataResources[0].Variables {
 		if v.SelectedRole != "attribute" && v.SelectedRole != "target" {
 			continue
 		}

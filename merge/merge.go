@@ -17,11 +17,12 @@ import (
 // FileLink represents a link between a dataset col and a file.
 type FileLink struct {
 	Name     string
-	IndexCol int
+	IndexVar *metadata.Variable
 	Lookup   map[string][]string
+	Header   []string
 }
 
-func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
+func readFileLink(dataResource *metadata.DataResource, filename string) (*FileLink, error) {
 	// open file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -50,22 +51,10 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 	}
 
 	// create map of indices in the dataset
-	indices := make(map[string]int)
-	for index, variable := range meta.Variables {
+	var indexVar *metadata.Variable
+	for _, variable := range dataResource.Variables {
 		if variable.SelectedRole == "index" {
-			indices[variable.Name] = index
-		}
-	}
-
-	// search file link for index
-	var indexName string
-	var indexCol int
-	for colIndex, colName := range header {
-		_, ok := indices[colName]
-		if ok {
-			indexName = colName
-			indexCol = colIndex
-			break
+			indexVar = variable
 		}
 	}
 
@@ -74,28 +63,22 @@ func readFileLink(meta *metadata.Metadata, filename string) (*FileLink, error) {
 	for _, row := range rows {
 		// copy row, without the index
 		var rowWithoutIndex []string
-		rowWithoutIndex = append(rowWithoutIndex, row[0:indexCol]...)
-		rowWithoutIndex = append(rowWithoutIndex, row[indexCol+1:]...)
-		indexVal := row[indexCol]
+		rowWithoutIndex = append(rowWithoutIndex, row[0:indexVar.Index]...)
+		rowWithoutIndex = append(rowWithoutIndex, row[indexVar.Index+1:]...)
+		indexVal := row[indexVar.Index]
 		lookup[indexVal] = rowWithoutIndex
 	}
 
 	// copy header, without the index
 	var headerWithoutIndex []string
-	headerWithoutIndex = append(headerWithoutIndex, header[0:indexCol]...)
-	headerWithoutIndex = append(headerWithoutIndex, header[indexCol+1:]...)
-
-	// add header variables to metadata
-	for _, name := range headerWithoutIndex {
-		meta.Variables = append(meta.Variables, &metadata.Variable{
-			Name: metadata.NormalizeVariableName(name),
-		})
-	}
+	headerWithoutIndex = append(headerWithoutIndex, header[0:indexVar.Index]...)
+	headerWithoutIndex = append(headerWithoutIndex, header[indexVar.Index+1:]...)
 
 	return &FileLink{
 		Name:     filename,
-		IndexCol: indices[indexName],
+		IndexVar: indexVar,
 		Lookup:   lookup,
+		Header:   headerWithoutIndex,
 	}, nil
 }
 
@@ -146,12 +129,34 @@ func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawD
 // InjectFileLinks traverses all file links and injests the relevant data.
 func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string) ([]byte, error) {
 	// determine if there are any links
-	var linkColumns []int
-	for col, variable := range meta.Variables {
-		if variable.Type == "file" {
-			// flag file link
-			linkColumns = append(linkColumns, col)
+	dataResources := make(map[string]*metadata.DataResource)
+	indexColumns := make(map[string]*metadata.Variable)
+	keyColumns := make(map[string]*metadata.Variable)
+	for _, dr := range meta.DataResources {
+		dataResources[dr.ResID] = dr
+		for _, variable := range dr.Variables {
+			if variable.SelectedRole == "index" {
+				indexColumns[variable.Name] = variable
+			} else if variable.SelectedRole == "key" {
+				keyColumns[variable.Name] = variable
+			}
 		}
+	}
+
+	// for every key column, load the relevant file
+	links := make(map[string]*FileLink)
+	for _, variable := range keyColumns {
+		if variable.RefersTo.Path("resID").Data() == nil {
+			return nil, fmt.Errorf("unable to parse source resource")
+		}
+		resID := variable.RefersTo.Path("resID").Data().(string)
+
+		res := dataResources[resID]
+		l, err := readFileLink(res, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed read file link %s from resource %s", res.ResPath, res.ResPath)
+		}
+		links[variable.Name] = l
 	}
 
 	// create reader
@@ -162,7 +167,6 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 	writer := csv.NewWriter(output)
 
 	count := 0
-	links := make(map[string]*FileLink)
 	for {
 		line, err := reader.Read()
 		if err == io.EOF {
@@ -173,22 +177,11 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 
 		// NOTE: there is no header by this step
 
-		// check if we have loaded the links that exist in the row
-		for _, col := range linkColumns {
-			// check if link already exists
-			filename := line[col]
-			link, ok := links[filename]
-			if !ok {
-				l, err := readFileLink(meta, fmt.Sprintf("%s/%s", rawDataPath, filename))
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed read file link %s from col %d of line %d", filename, col, count)
-				}
-				links[filename] = l
-				link = l
-			}
-
+		// process each link
+		for varName, link := range links {
 			// find link index in line
-			linkIndex := line[link.IndexCol]
+			key := keyColumns[varName]
+			linkIndex := line[key.Index]
 			// look up row in link file based on link index
 			linkedRow := link.Lookup[linkIndex]
 
