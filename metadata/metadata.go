@@ -71,7 +71,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, fileType, fileFormat string, role []string) *Variable {
+func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container) *Variable {
 	// normalize name
 	normed := NormalizeVariableName(name)
 
@@ -90,6 +90,7 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 		OriginalName: normed,
 		FileType:     fileType,
 		FileFormat:   fileFormat,
+		RefersTo:     refersTo,
 	}
 }
 
@@ -363,13 +364,19 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 	if v.Path("varFileFormat").Data() != nil {
 		varFileFormat = v.Path("varFileFormat").Data().(string)
 	}
+
+	var refersTo *gabs.Container
+	if v.Path("refersTo").Data() != nil {
+		refersTo = v.Path("refersTo")
+	}
 	return NewVariable(
 		varIndex,
 		varName,
 		varType,
 		varFileType,
 		varFileFormat,
-		varRoles), nil
+		varRoles,
+		refersTo), nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -510,6 +517,10 @@ func (m *Metadata) loadClassificationVariables() error {
 
 	// All variables now in a single dataset since it is merged
 	m.DataResources = make([]*DataResource, 1)
+	m.DataResources[0] = &DataResource{
+		Variables: make([]*Variable, 0),
+	}
+
 	for index, v := range schemaVariables {
 		variable, err := m.parseSchemaVariable(v)
 		if err != nil {
@@ -557,7 +568,7 @@ func (m *Metadata) mergeVariables(left []*gabs.Container, right []*gabs.Containe
 }
 
 // WriteMergedSchema exports the current meta data as a merged schema file.
-func (m *Metadata) WriteMergedSchema(path string) error {
+func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResource) error {
 	// create output format
 	output := map[string]interface{}{
 		"about": map[string]interface{}{
@@ -568,7 +579,7 @@ func (m *Metadata) WriteMergedSchema(path string) error {
 			"mergedSchema": "true",
 		},
 		"mergedData": map[string]interface{}{
-			"mergedData": m.DataResources[0].Variables,
+			"mergedData": mergedDataResource.Variables,
 		},
 	}
 	bytes, err := json.MarshalIndent(output, "", "    ")

@@ -100,7 +100,7 @@ func main() {
 		}
 
 		// merge file links in dataset
-		output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath, hasHeader)
+		mergedDR, output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath, hasHeader)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
@@ -130,7 +130,7 @@ func main() {
 		}
 
 		// write merged metadata out to disk
-		err = meta.WriteMergedSchema(outputSchemaPath)
+		err = meta.WriteMergedSchema(outputSchemaPath, mergedDR)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 5)
