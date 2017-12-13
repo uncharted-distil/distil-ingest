@@ -81,6 +81,6 @@ func TestIngestMetadata(t *testing.T) {
 	meta, err := LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
 	assert.NoError(t, err)
 
-	err = IngestMetadata(client, "test_index", meta)
+	err = IngestMetadata(client, "test_index", "", meta)
 	assert.NoError(t, err)
 }

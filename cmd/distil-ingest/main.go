@@ -85,6 +85,11 @@ func main() {
 			Usage: "The Elasticsearch index to ingest data into",
 		},
 		cli.StringFlag{
+			Name:  "es-dataset-prefix",
+			Value: "",
+			Usage: "The Elasticsearch prefix to use for dataset names",
+		},
+		cli.StringFlag{
 			Name:  "database",
 			Value: "",
 			Usage: "The postgres database to use",
@@ -169,6 +174,7 @@ func main() {
 		config := &conf.Conf{
 			ESEndpoint:           c.String("es-endpoint"),
 			ESIndex:              c.String("es-data-index"),
+			ESDatasetPrefix:      c.String("es-dataset-prefix"),
 			TypeSource:           c.String("type-source"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
 			SummaryPath:          filepath.Clean(c.String("summary")),
@@ -255,7 +261,7 @@ func main() {
 			}
 
 			// ingest the metadata
-			err = ingestMetadata(metadataIndexName, meta, elasticClient)
+			err = ingestMetadata(metadataIndexName, config.ESDatasetPrefix, meta, elasticClient)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -294,7 +300,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ingestMetadata(metadataIndexName string, meta *metadata.Metadata, elasticClient *elastic.Client) error {
+func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *metadata.Metadata, elasticClient *elastic.Client) error {
 	// Create the metadata index if it doesn't exist
 	err := metadata.CreateMetadataIndex(elasticClient, metadataIndexName, false)
 	if err != nil {
@@ -302,7 +308,7 @@ func ingestMetadata(metadataIndexName string, meta *metadata.Metadata, elasticCl
 	}
 
 	// Ingest the dataset info into the metadata index
-	err = metadata.IngestMetadata(elasticClient, metadataIndexName, meta)
+	err = metadata.IngestMetadata(elasticClient, metadataIndexName, datasetPrefix, meta)
 	if err != nil {
 		return err
 	}

@@ -592,15 +592,15 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 
 // IngestMetadata adds a document consisting of the metadata to the
 // provided index.
-func IngestMetadata(client *elastic.Client, index string, meta *Metadata) error {
+func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, meta *Metadata) error {
 
 	// filter variables for surce object
 	if len(meta.DataResources) > 1 {
 		return errors.New("metadata variables not merged into a single dataset")
 	}
 	source := map[string]interface{}{
-		"name":        meta.Name,
-		"datasetId":   meta.ID,
+		"datasetName": datasetPrefix + meta.Name,
+		"datasetID":   meta.ID,
 		"description": meta.Description,
 		"summary":     meta.Summary,
 		"numRows":     meta.NumRows,
