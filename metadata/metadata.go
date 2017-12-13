@@ -26,12 +26,12 @@ const (
 type Variable struct {
 	Name           string           `json:"colName"`
 	Type           string           `json:"colType,omitempty"`
-	FileType       string           `json:"varFileType,omitempty"`
-	FileFormat     string           `json:"varFileFormat,omitempty"`
+	FileType       string           `json:"colFileType,omitempty"`
+	FileFormat     string           `json:"colFileFormat,omitempty"`
 	SelectedRole   string           `json:"selectedRole,omitempty"`
 	Role           []string         `json:"role,omitempty"`
-	OriginalName   string           `json:"varOriginalName,omitempty"`
-	DisplayName    string           `json:"varDisplayName,omitempty"`
+	OriginalName   string           `json:"colOriginalName,omitempty"`
+	DisplayName    string           `json:"colDisplayName,omitempty"`
 	Importance     int              `json:"importance,omitempty"`
 	Index          int              `json:"colIndex,omitempty"`
 	SuggestedTypes []*SuggestedType `json:"suggestedTypes,omitempty"`
