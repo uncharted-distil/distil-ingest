@@ -87,7 +87,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "es-dataset-prefix",
 			Value: "",
-			Usage: "The Elasticsearch prefix to use for dataset names",
+			Usage: "The Elasticsearch prefix to use for dataset ids",
 		},
 		cli.StringFlag{
 			Name:  "database",
@@ -237,18 +237,6 @@ func main() {
 
 		if config.ESEndpoint != "" {
 			// create elasticsearch client
-			delugeClient, err := delugeElastic.NewClient(
-				delugeElastic.SetURL(config.ESEndpoint),
-				delugeElastic.SetHTTPClient(&http.Client{Timeout: timeout}),
-				delugeElastic.SetMaxRetries(10),
-				delugeElastic.SetSniff(false),
-				delugeElastic.SetGzip(true))
-			if err != nil {
-				log.Error(err)
-				os.Exit(1)
-			}
-
-			// create elasticsearch client
 			elasticClient, err := elastic.NewClient(
 				elastic.SetURL(config.ESEndpoint),
 				elastic.SetHttpClient(&http.Client{Timeout: timeout}),
@@ -265,24 +253,6 @@ func main() {
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
-			}
-
-			// ingest the data
-			err = ingestES(config, delugeClient, meta)
-			if err != nil {
-				log.Error(err)
-				os.Exit(1)
-			}
-
-			// check errors
-			errs := deluge.DocErrs()
-			if len(errs) > 0 {
-				log.Errorf("Failed ingesting %d documents, logging sample size of %d errors:",
-					len(errs),
-					errSampleSize)
-				for _, err := range deluge.SampleDocErrs(errSampleSize) {
-					log.Error(err)
-				}
 			}
 		}
 
