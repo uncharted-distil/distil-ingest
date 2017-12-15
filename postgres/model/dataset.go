@@ -23,8 +23,9 @@ func NewDataset(id, name, description string, meta *metadata.Metadata) *Dataset 
 		Description:     description,
 		variablesLookup: make(map[string]bool),
 	}
+	// NOTE: Can only support data in a single data resource for now.
 	if meta != nil {
-		ds.Variables = meta.Variables
+		ds.Variables = meta.DataResources[0].Variables
 	}
 
 	ds.ResetBatch()

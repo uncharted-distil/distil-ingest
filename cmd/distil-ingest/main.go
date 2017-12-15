@@ -44,10 +44,6 @@ func main() {
 			Value: "",
 			Usage: "The dataset schema file path",
 		},
-		cli.BoolFlag{
-			Name:  "include-raw-dataset",
-			Usage: "If true, will process raw datasets",
-		},
 		cli.StringFlag{
 			Name:  "type-source",
 			Value: "schema",
@@ -87,6 +83,11 @@ func main() {
 			Name:  "es-data-index",
 			Value: "",
 			Usage: "The Elasticsearch index to ingest data into",
+		},
+		cli.StringFlag{
+			Name:  "es-dataset-prefix",
+			Value: "",
+			Usage: "The Elasticsearch prefix to use for dataset ids",
 		},
 		cli.StringFlag{
 			Name:  "database",
@@ -173,6 +174,7 @@ func main() {
 		config := &conf.Conf{
 			ESEndpoint:           c.String("es-endpoint"),
 			ESIndex:              c.String("es-data-index"),
+			ESDatasetPrefix:      c.String("es-dataset-prefix"),
 			TypeSource:           c.String("type-source"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
 			SummaryPath:          filepath.Clean(c.String("summary")),
@@ -190,24 +192,13 @@ func main() {
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
 			DBBatchSize:          c.Int("db-batch-size"),
-			IncludeRaw:           c.Bool("include-raw-dataset"),
-		}
-
-		// Check if it is a raw dataset
-		isRaw, err := metadata.IsRawDataset(config.SchemaPath)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-		if isRaw && !config.IncludeRaw {
-			log.Infof("Not processing dataset because it is a raw dataset")
-			return nil
 		}
 
 		// load the metadata
+		var err error
 		var meta *metadata.Metadata
 		if config.TypeSource == typeSourceClassification {
-			log.Infof("Loading metadata from classification file")
+			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationPath, config.SchemaPath)
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,
 				config.ClassificationPath)
@@ -246,18 +237,6 @@ func main() {
 
 		if config.ESEndpoint != "" {
 			// create elasticsearch client
-			delugeClient, err := delugeElastic.NewClient(
-				delugeElastic.SetURL(config.ESEndpoint),
-				delugeElastic.SetHTTPClient(&http.Client{Timeout: timeout}),
-				delugeElastic.SetMaxRetries(10),
-				delugeElastic.SetSniff(false),
-				delugeElastic.SetGzip(true))
-			if err != nil {
-				log.Error(err)
-				os.Exit(1)
-			}
-
-			// create elasticsearch client
 			elasticClient, err := elastic.NewClient(
 				elastic.SetURL(config.ESEndpoint),
 				elastic.SetHttpClient(&http.Client{Timeout: timeout}),
@@ -270,28 +249,10 @@ func main() {
 			}
 
 			// ingest the metadata
-			err = ingestMetadata(metadataIndexName, meta, elasticClient)
+			err = ingestMetadata(metadataIndexName, config.ESDatasetPrefix, meta, elasticClient)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
-			}
-
-			// ingest the data
-			err = ingestES(config, delugeClient, meta)
-			if err != nil {
-				log.Error(err)
-				os.Exit(1)
-			}
-
-			// check errors
-			errs := deluge.DocErrs()
-			if len(errs) > 0 {
-				log.Errorf("Failed ingesting %d documents, logging sample size of %d errors:",
-					len(errs),
-					errSampleSize)
-				for _, err := range deluge.SampleDocErrs(errSampleSize) {
-					log.Error(err)
-				}
 			}
 		}
 
@@ -309,7 +270,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ingestMetadata(metadataIndexName string, meta *metadata.Metadata, elasticClient *elastic.Client) error {
+func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *metadata.Metadata, elasticClient *elastic.Client) error {
 	// Create the metadata index if it doesn't exist
 	err := metadata.CreateMetadataIndex(elasticClient, metadataIndexName, false)
 	if err != nil {
@@ -317,7 +278,7 @@ func ingestMetadata(metadataIndexName string, meta *metadata.Metadata, elasticCl
 	}
 
 	// Ingest the dataset info into the metadata index
-	err = metadata.IngestMetadata(elasticClient, metadataIndexName, meta)
+	err = metadata.IngestMetadata(elasticClient, metadataIndexName, datasetPrefix, meta)
 	if err != nil {
 		return err
 	}

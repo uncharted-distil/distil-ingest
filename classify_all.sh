@@ -1,10 +1,11 @@
 #!/bin/bash
 
-DATA_DIR=~/data/d3m
-SCHEMA=/data/mergedDataSchema.json
-MERGED_FILE=data/merged.csv
-OUTPUT=/data/classification.json
-DATASETS=(r_26 r_27 r_32 r_60 o_185 o_196 o_313 o_38 o_4550)
+DATA_DIR=~/data/d3m_new
+SCHEMA=tables/mergedDataSchema.json
+MERGED_FILE=tables/merged.csv
+OUTPUT=/tables/classification.json
+DATASET_FOLDER_SUFFIX=_dataset
+DATASETS=(26_radon_seed 32_wikiqa 60_jester 185_baseball 196_autoMpg 313_spectrometer 38_sick 4550_MiceProtein)
 REST_ENDPOINT=HTTP://localhost:5000
 CLASSIFICATION_FUNCTION=fileUpload
 
@@ -20,12 +21,11 @@ do
     echo " Classifying $DATASET dataset"
     echo "--------------------------------------------------------------------------------"
     go run cmd/distil-classify/main.go \
-        --schema="$DATA_DIR/$DATASET/$SCHEMA" \
+        --schema="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$SCHEMA" \
         --rest-endpoint="$REST_ENDPOINT" \
         --classification-function="$CLASSIFICATION_FUNCTION" \
-        --dataset="$DATA_DIR/$DATASET/$MERGED_FILE" \
-        --output="$DATA_DIR/$DATASET/$OUTPUT" \
-        --include-raw-dataset
+        --dataset="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$MERGED_FILE" \
+        --output="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$OUTPUT"
 done
 
 # stop classification REST API container

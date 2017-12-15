@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/rest"
 )
 
@@ -42,10 +40,6 @@ func main() {
 			Name:  "schema",
 			Value: "",
 			Usage: "The dataset schema file path",
-		},
-		cli.BoolFlag{
-			Name:  "include-raw-dataset",
-			Usage: "If true, will process raw datasets",
 		},
 		cli.StringFlag{
 			Name:  "rest-endpoint",
@@ -87,23 +81,10 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
 
-		schemaPath := filepath.Clean(c.String("schema"))
 		classificationFunction := c.String("classification-function")
 		restBaseEndpoint := c.String("rest-endpoint")
 		path := c.String("dataset")
 		outputFilePath := c.String("output")
-		includeRaw := c.Bool("include-raw-dataset")
-
-		// Check if it is a raw dataset
-		isRaw, err := metadata.IsRawDataset(schemaPath)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 1)
-		}
-		if isRaw && !includeRaw {
-			log.Infof("Not processing dataset because it is a raw dataset")
-			return nil
-		}
 
 		// initialize REST client
 		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)

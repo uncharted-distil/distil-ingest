@@ -22,8 +22,10 @@ func isNumeric(typ string) bool {
 
 // GetNumericColumnIndices returns a slice with the columsn for numeric types.
 func GetNumericColumnIndices(meta *metadata.Metadata) []int {
+	// NOTE: Assume that a merged schema is being processed
+	// so all variables in a single data resource.
 	var numericCols []int
-	for index, variable := range meta.Variables {
+	for index, variable := range meta.DataResources[0].Variables {
 		if isNumeric(variable.Type) {
 			numericCols = append(numericCols, index)
 		}
