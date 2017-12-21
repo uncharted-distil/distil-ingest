@@ -30,15 +30,28 @@ func NewRanker(functionName string, client *Client) *Ranker {
 // RankFile ranks the importance of the variables in a file.
 // Ranking can only be done on NUMERIC types.
 func (r *Ranker) RankFile(filename string) (*ImportanceResult, error) {
-	result, err := r.client.PostFile(r.functionName, filename)
+	result, err := r.client.PostFile(r.functionName, filename, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to rank file")
 	}
 
-	importanceData := make([]interface{}, 0)
-	err = json.Unmarshal(result, &importanceData)
+	return r.parseResult(filename, result)
+}
+
+// RankFileForTarget ranks the importance of the variables for a given target in a file.
+func (r *Ranker) RankFileForTarget(filename string, targetName string) (*ImportanceResult, error) {
+	result, err := r.client.PostFile(r.functionName, filename, map[string]string{"target": targetName})
 	if err != nil {
-		fmt.Printf("RANKED: %v", string(result))
+		return nil, errors.Wrap(err, "Unable to rank file")
+	}
+
+	return r.parseResult(filename, result)
+}
+
+func (r *Ranker) parseResult(filename string, data []byte) (*ImportanceResult, error) {
+	importanceData := make([]interface{}, 0)
+	err := json.Unmarshal(data, &importanceData)
+	if err != nil {
 		return nil, errors.Wrap(err, "Unable to unmarshal importance response")
 	}
 

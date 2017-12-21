@@ -25,12 +25,25 @@ func NewClient(baseEndpoint string) *Client {
 }
 
 // PostFile submits a file in a POST request using a multipart form.
-func (c *Client) PostFile(function string, filename string) ([]byte, error) {
+func (c *Client) PostFile(function string, filename string, params map[string]string) ([]byte, error) {
 	url := fmt.Sprintf("%s/%s", c.baseEndpoint, function)
 
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
+	// add the parameters
+	for name, value := range params {
+		writer, err := w.CreateFormField(name)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add parameter field")
+		}
+		_, err = writer.Write([]byte(value))
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add parameter value")
+		}
+	}
+
+	// add the file
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to read file")
