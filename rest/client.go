@@ -31,18 +31,6 @@ func (c *Client) PostFile(function string, filename string, params map[string]st
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
-	// add the parameters
-	for name, value := range params {
-		writer, err := w.CreateFormField(name)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add parameter field")
-		}
-		_, err = writer.Write([]byte(value))
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to add parameter value")
-		}
-	}
-
 	// add the file
 	f, err := os.Open(filename)
 	if err != nil {
@@ -56,6 +44,14 @@ func (c *Client) PostFile(function string, filename string, params map[string]st
 	}
 	if _, err = io.Copy(fw, f); err != nil {
 		return nil, errors.Wrap(err, "Unable to copy file")
+	}
+
+	// add the parameters
+	for name, value := range params {
+		err := w.WriteField(name, value)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add parameter field")
+		}
 	}
 	w.Close()
 
