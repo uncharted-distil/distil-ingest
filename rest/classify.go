@@ -31,7 +31,7 @@ func NewClassifier(functionName string, client *Client) *Classifier {
 // ClassifyFile classifies the data types found in a file that follows the
 // usual schema structure.
 func (c *Classifier) ClassifyFile(filename string) (*ClassificationResult, error) {
-	result, err := c.client.PostFile(c.functionName, filename)
+	result, err := c.client.PostFile(c.functionName, filename, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to classify file")
 	}
