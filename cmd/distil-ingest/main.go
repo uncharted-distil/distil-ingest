@@ -187,6 +187,7 @@ func main() {
 			BulkByteSize:         c.Int64("batch-size"),
 			ScanBufferSize:       c.Int("scan-size"),
 			ClearExisting:        c.Bool("clear-existing"),
+			MetadataOnly:         c.Bool("metadata-only"),
 			Database:             c.String("database"),
 			DBTable:              c.String("db-table"),
 			DBUser:               c.String("db-user"),
@@ -235,7 +236,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		if config.ESEndpoint != "" {
+		if config.ESEndpoint != "" && !config.MetadataOnly {
 			// create elasticsearch client
 			elasticClient, err := elastic.NewClient(
 				elastic.SetURL(config.ESEndpoint),
@@ -331,6 +332,17 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 		return err
 	}
 
+	err = pg.CreatePipelineMetadataTables()
+	if err != nil {
+		return err
+	}
+	log.Infof("Done creating pipeline metadata tables")
+
+	if config.MetadataOnly {
+		log.Info("Only loading metadata")
+		return nil
+	}
+
 	// Drop the current table if requested.
 	if config.ClearExisting {
 		err = pg.DropTable(config.DBTable)
@@ -362,12 +374,6 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 		return err
 	}
 	log.Infof("Done creating result table")
-
-	err = pg.CreatePipelineMetadataTables()
-	if err != nil {
-		return err
-	}
-	log.Infof("Done creating pipeline metadata tables")
 
 	// Load the data.
 	reader, err := os.Open(config.DatasetPath)
