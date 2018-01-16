@@ -128,6 +128,10 @@ func main() {
 			Name:  "clear-existing",
 			Usage: "Clear index before ingest",
 		},
+		cli.BoolFlag{
+			Name:  "metadata-only",
+			Usage: "Create the basic Postgres tables",
+		},
 		cli.IntFlag{
 			Name:  "num-workers",
 			Value: 8,
