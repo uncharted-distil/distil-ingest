@@ -244,7 +244,7 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 
 		// iterate over the fields
 		for hIndex, field := range dr.Variables {
-			header[hIndex] = field.Name
+			header[hIndex] = strings.Replace(field.Name, "_", "", -1)
 		}
 
 		headers[index] = header
