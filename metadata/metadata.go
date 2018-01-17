@@ -235,9 +235,9 @@ func writeSummaryFile(summaryFile string, summary string) error {
 }
 
 // GenerateHeaders generates csv headers for the data resources.
-func (m *Metadata) GenerateHeaders() ([]string, error) {
+func (m *Metadata) GenerateHeaders() ([][]string, error) {
 	// each data resource needs a separate header
-	headers := make([]string, len(m.DataResources))
+	headers := make([][]string, len(m.DataResources))
 
 	for index, dr := range m.DataResources {
 		header := make([]string, len(dr.Variables))
@@ -247,7 +247,7 @@ func (m *Metadata) GenerateHeaders() ([]string, error) {
 			header[hIndex] = field.Name
 		}
 
-		headers[index] = strings.Join(header, ",")
+		headers[index] = header
 	}
 
 	return headers, nil
