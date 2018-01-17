@@ -36,5 +36,6 @@ type Conf struct {
 	DBBatchSize int
 
 	// control flags
-	IncludeRaw bool
+	IncludeRaw   bool
+	MetadataOnly bool
 }

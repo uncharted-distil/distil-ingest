@@ -234,6 +234,25 @@ func writeSummaryFile(summaryFile string, summary string) error {
 	return ioutil.WriteFile(summaryFile, []byte(summary), 0644)
 }
 
+// GenerateHeaders generates csv headers for the data resources.
+func (m *Metadata) GenerateHeaders() ([][]string, error) {
+	// each data resource needs a separate header
+	headers := make([][]string, len(m.DataResources))
+
+	for index, dr := range m.DataResources {
+		header := make([]string, len(dr.Variables))
+
+		// iterate over the fields
+		for hIndex, field := range dr.Variables {
+			header[hIndex] = strings.Replace(field.Name, "_", "", -1)
+		}
+
+		headers[index] = header
+	}
+
+	return headers, nil
+}
+
 // LoadSummary loads a description summary
 func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 	// use cache if available
