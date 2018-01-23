@@ -7,13 +7,14 @@ CLASSIFICATION=/tables/classification.json
 OUTPUT=tables/importance.json
 DATASETS=(26_radon_seed 32_wikiqa 60_jester 185_baseball 196_autoMpg 313_spectrometer 38_sick 4550_MiceProtein)
 TYPE_SOURCE=classification
+ROW_LIMIT=1000
 HAS_HEADER=1
 REST_ENDPOINT=HTTP://localhost:5000
 RANKING_FUNCTION=pca
 NUMERIC_OUTPUT_SUFFIX=_numeric.csv
 DATASET_FOLDER_SUFFIX=_dataset
 
-docker run -d --rm --name ranking_rest  -p 5000:5000 primitives.azurecr.io/http_features:0.2
+docker run -d --rm --name ranking_rest  -p 5000:5000 primitives.azurecr.io/http_features:0.4
 ./wait-for-it.sh -t 0 localhost:5000
 echo "Waiting for the service to be available..."
 sleep 10
@@ -28,9 +29,10 @@ do
         --dataset="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$MERGED" \
         --rest-endpoint="$REST_ENDPOINT" \
         --ranking-function="$RANKING_FUNCTION" \
-        --numeric-output="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$DATASET$NUMERIC_OUTPUT_SUFFIX" \
+        --ranking-output="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$DATASET$NUMERIC_OUTPUT_SUFFIX" \
         --classification="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$CLASSIFICATION" \
         --has-header=$HAS_HEADER \
+        --row-limit=$ROW_LIMIT \
         --output="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$OUTPUT" \
         --type-source="$TYPE_SOURCE"
 done
