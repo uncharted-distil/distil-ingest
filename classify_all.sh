@@ -10,7 +10,7 @@ REST_ENDPOINT=HTTP://localhost:5000
 CLASSIFICATION_FUNCTION=fileUpload
 
 # start classification REST API container
-docker run -d --rm --name classification_rest -p 5000:5000 primitives.azurecr.io/data.world_container:v1.0
+docker run -d --rm --name classification_rest -p 5000:5000 primitives.azurecr.io/simon:1.0.0
 ./wait-for-it.sh -t 0 localhost:5000
 echo "Waiting for the service to be available..."
 sleep 10

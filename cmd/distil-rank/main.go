@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,7 +17,6 @@ import (
 
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/rest"
-	"github.com/unchartedsoftware/distil-ingest/split"
 )
 
 func splitAndTrim(arg string) []string {
@@ -79,9 +81,14 @@ func main() {
 			Usage: "The ranking output file path",
 		},
 		cli.StringFlag{
-			Name:  "numeric-output",
+			Name:  "ranking-output",
 			Value: "",
-			Usage: "The numeric output file path to use for numeric variables to rank",
+			Usage: "The numeric output file path to use for for the file to rank",
+		},
+		cli.IntFlag{
+			Name:  "row-limit",
+			Value: 1000,
+			Usage: "The number of rows to send to the ranking system",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
@@ -101,8 +108,8 @@ func main() {
 		if c.String("ranking-function") == "" {
 			return cli.NewExitError("missing commandline flag `--ranking-function`", 1)
 		}
-		if c.String("numeric-output") == "" {
-			return cli.NewExitError("missing commandline flag `--numeric-output`", 1)
+		if c.String("ranking-output") == "" {
+			return cli.NewExitError("missing commandline flag `--ranking-output`", 1)
 		}
 
 		classificationPath := filepath.Clean(c.String("classification"))
@@ -111,7 +118,8 @@ func main() {
 		rankingFunction := c.String("ranking-function")
 		restBaseEndpoint := c.String("rest-endpoint")
 		datasetPath := filepath.Clean(c.String("dataset"))
-		numericOutputFile := c.String("numeric-output")
+		rankingOutputFile := c.String("ranking-output")
+		rowLimit := c.Int("row-limit")
 		hasHeader := c.Bool("has-header")
 
 		outputFilePath := c.String("output")
@@ -135,27 +143,21 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
-		// check if there are numeric columns
-		if len(split.GetNumericColumnIndices(meta)) == 0 {
-			log.Infof("Skipping ranking since dataset '%s' has no numeric column", datasetPath)
-			log.Infof("Writing empty importance ranking to file `%s`", outputFilePath)
-			err = ioutil.WriteFile(outputFilePath, []byte("{}"), 0644)
-			if err != nil {
-				log.Errorf("%+v", err)
-				return cli.NewExitError(errors.Cause(err), 2)
-			}
-			return nil
+		// get header for the merged data
+		headers, err := meta.GenerateHeaders()
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
-		// split numeric columns
-		log.Infof("Splitting out numeric columns from %s for ranking and writing to %s", datasetPath, numericOutputFile)
-		output, err := split.GetNumericColumns(
-			datasetPath,
-			meta,
-			hasHeader)
+		// merged data only has 1 header
+		header := headers[0]
+
+		// add the header to the raw data
+		data, err := getMergedData(header, datasetPath, hasHeader, rowLimit)
 
 		// write to file to submit the file
-		err = ioutil.WriteFile(numericOutputFile, output, 0644)
+		err = ioutil.WriteFile(rankingOutputFile, data, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
@@ -169,8 +171,8 @@ func main() {
 		ranker := rest.NewRanker(rankingFunction, client)
 
 		// get the importance from the REST interface
-		log.Infof("Getting importance ranking of file `%s`", numericOutputFile)
-		importance, err := ranker.RankFile(numericOutputFile)
+		log.Infof("Getting importance ranking of file `%s`", rankingOutputFile)
+		importance, err := ranker.RankFile(rankingOutputFile)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
@@ -194,4 +196,50 @@ func main() {
 	}
 	// run app
 	app.Run(os.Args)
+}
+
+func getMergedData(header []string, datasetPath string, hasHeader bool, rowLimit int) ([]byte, error) {
+	// Copy source to destination.
+	file, err := os.Open(datasetPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open source file")
+	}
+
+	reader := csv.NewReader(file)
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
+	if header != nil && len(header) > 0 {
+		err := writer.Write(header)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to write header to file")
+		}
+	}
+
+	count := 0
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, errors.Wrap(err, "failed to read line from file")
+		}
+		if (count > 0 || !hasHeader) && count < rowLimit {
+			err := writer.Write(line)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to write line to file")
+			}
+		}
+		count++
+	}
+	// flush writer
+	writer.Flush()
+
+	// close left
+	err = file.Close()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to close input file")
+	}
+	return output.Bytes(), nil
 }
