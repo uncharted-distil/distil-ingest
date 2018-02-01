@@ -5,6 +5,7 @@ SCHEMA=/datasetDoc.json
 OUTPUT_SCHEMA=tables/mergedDataSchema.json
 DATA_PATH=/tables/learningData.csv
 OUTPUT_PATH=tables/merged.csv
+OUTPUT_PATH_HEADER=tables/merged_header.csv
 DATASET_FOLDER_SUFFIX=_dataset
 DATASETS=(26_radon_seed 32_wikiqa 60_jester 185_baseball 196_autoMpg 313_spectrometer 38_sick 4550_MiceProtein)
 HAS_HEADER=1
@@ -19,6 +20,7 @@ do
         --data="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$DATA_PATH" \
         --raw-data="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/" \
         --output-path="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$OUTPUT_PATH" \
+        --output-path-header="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$OUTPUT_PATH_HEADER" \
         --output-schema-path="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$OUTPUT_SCHEMA" \
         --has-header=$HAS_HEADER
 done
