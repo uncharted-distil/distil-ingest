@@ -18,6 +18,7 @@ type Conf struct {
 	ClassificationPath string
 	ImportancePath     string
 	SummaryPath        string
+	SummaryMachinePath string
 	SchemaPath         string
 	DatasetPath        string
 
