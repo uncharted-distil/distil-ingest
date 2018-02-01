@@ -367,7 +367,11 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 
 	// Drop the current table if requested.
 	if config.ClearExisting {
-		err = pg.DropTable(config.DBTable)
+		err = pg.DropView(config.DBTable)
+		if err != nil {
+			log.Warn(err)
+		}
+		err = pg.DropTable(fmt.Sprintf("%s_base", config.DBTable))
 		if err != nil {
 			log.Warn(err)
 		}
