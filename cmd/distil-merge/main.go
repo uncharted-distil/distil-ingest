@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -60,6 +63,11 @@ func main() {
 			Usage: "The merged output path",
 		},
 		cli.StringFlag{
+			Name:  "output-path-header",
+			Value: "",
+			Usage: "The merged with header output path",
+		},
+		cli.StringFlag{
 			Name:  "output-schema-path",
 			Value: "",
 			Usage: "The merged schema path",
@@ -89,6 +97,7 @@ func main() {
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
 		outputPath := filepath.Clean(c.String("output-path"))
+		outputPathHeader := filepath.Clean(c.String("output-path-header"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
 		hasHeader := c.Bool("has-header")
 
@@ -142,8 +151,77 @@ func main() {
 			log.Infof("Merged data successfully written to %s/%s", outputBucket, outputKey)
 		}
 
+		// get header for the merged data
+		headers, err := meta.GenerateHeaders()
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// merged data only has 1 header
+		header := headers[0]
+
+		// add the header to the raw data
+		data, err := getMergedData(header, outputPath, hasHeader)
+
+		// write to file to submit the file
+		err = ioutil.WriteFile(outputPathHeader, data, 0644)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// log success / failure
+		log.Infof("Merged data with header successfully written to %s", outputPathHeader)
+
 		return nil
 	}
 	// run app
 	app.Run(os.Args)
+}
+
+func getMergedData(header []string, datasetPath string, hasHeader bool) ([]byte, error) {
+	// Copy source to destination.
+	file, err := os.Open(datasetPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to open source file")
+	}
+
+	reader := csv.NewReader(file)
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
+	if header != nil && len(header) > 0 {
+		err := writer.Write(header)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to write header to file")
+		}
+	}
+
+	count := 0
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, errors.Wrap(err, "failed to read line from file")
+		}
+		if count > 0 || !hasHeader {
+			err := writer.Write(line)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to write line to file")
+			}
+		}
+		count++
+	}
+	// flush writer
+	writer.Flush()
+
+	// close left
+	err = file.Close()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to close input file")
+	}
+	return output.Bytes(), nil
 }

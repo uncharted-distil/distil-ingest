@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/olivere/elastic.v5"
 
+	"github.com/unchartedsoftware/distil-ingest/rest"
 	"github.com/unchartedsoftware/distil-ingest/smmry"
 )
 
@@ -57,6 +58,7 @@ type Metadata struct {
 	Name           string
 	Description    string
 	Summary        string
+	SummaryMachine string
 	Raw            bool
 	DataResources  []*DataResource
 	schema         *gabs.Container
@@ -272,6 +274,24 @@ func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 	m.Summary = summary
 	// cache summary file
 	writeSummaryFile(summaryFile, m.Summary)
+	return nil
+}
+
+// LoadSummaryMachine loads a machine-learned summary.
+func (m *Metadata) LoadSummaryMachine(summaryFile string) error {
+	b, err := ioutil.ReadFile(summaryFile)
+	if err != nil {
+		return errors.Wrap(err, "unable to read machine-learned summary")
+	}
+
+	summary := &rest.SummaryResult{}
+	err = json.Unmarshal(b, summary)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse machine-learned summary")
+	}
+
+	m.SummaryMachine = summary.Summary
+
 	return nil
 }
 
@@ -620,13 +640,14 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	adjustedID := datasetPrefix + meta.ID
 
 	source := map[string]interface{}{
-		"datasetName": meta.Name,
-		"datasetID":   adjustedID,
-		"description": meta.Description,
-		"summary":     meta.Summary,
-		"numRows":     meta.NumRows,
-		"numBytes":    meta.NumBytes,
-		"variables":   meta.DataResources[0].Variables,
+		"datasetName":    meta.Name,
+		"datasetID":      adjustedID,
+		"description":    meta.Description,
+		"summary":        meta.Summary,
+		"summaryMachine": meta.SummaryMachine,
+		"numRows":        meta.NumRows,
+		"numBytes":       meta.NumBytes,
+		"variables":      meta.DataResources[0].Variables,
 	}
 
 	bytes, err := json.Marshal(source)
@@ -708,6 +729,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 						"type": "text"
 					},
 					"summary": {
+						"type": "text"
+					},
+					"summaryMachine": {
 						"type": "text"
 					},
 					"numRows": {

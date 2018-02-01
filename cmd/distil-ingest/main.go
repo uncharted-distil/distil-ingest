@@ -65,6 +65,11 @@ func main() {
 			Usage: "The summary output path",
 		},
 		cli.StringFlag{
+			Name:  "summary-machine",
+			Value: "",
+			Usage: "The machine learned summary output path",
+		},
+		cli.StringFlag{
 			Name:  "importance",
 			Value: "",
 			Usage: "The importance source path",
@@ -171,6 +176,9 @@ func main() {
 		if c.String("summary") == "" {
 			return cli.NewExitError("missing commandline flag `--summary`", 1)
 		}
+		if c.String("summary-machine") == "" {
+			return cli.NewExitError("missing commandline flag `--summary-machine`", 1)
+		}
 		if c.String("importance") == "" {
 			return cli.NewExitError("missing commandline flag `--importance`", 1)
 		}
@@ -182,6 +190,7 @@ func main() {
 			TypeSource:           c.String("type-source"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
 			SummaryPath:          filepath.Clean(c.String("summary")),
+			SummaryMachinePath:   filepath.Clean(c.String("summary-machine")),
 			ImportancePath:       filepath.Clean(c.String("importance")),
 			SchemaPath:           filepath.Clean(c.String("schema")),
 			DatasetPath:          filepath.Clean(c.String("dataset")),
@@ -231,6 +240,15 @@ func main() {
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
+		}
+
+		// load summary
+		err = meta.LoadSummaryMachine(config.SummaryMachinePath)
+		if err != nil {
+			log.Error(err)
+			// NOTE: For now ignore the error as the service may not
+			// be able to provide a summary.
+			//os.Exit(1)
 		}
 
 		// load stats
@@ -349,7 +367,11 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 
 	// Drop the current table if requested.
 	if config.ClearExisting {
-		err = pg.DropTable(config.DBTable)
+		err = pg.DropView(config.DBTable)
+		if err != nil {
+			log.Warn(err)
+		}
+		err = pg.DropTable(fmt.Sprintf("%s_base", config.DBTable))
 		if err != nil {
 			log.Warn(err)
 		}

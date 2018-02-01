@@ -270,6 +270,16 @@ func (d *Database) DropTable(tableName string) error {
 	return err
 }
 
+// DropView drops the specified view from the database.
+func (d *Database) DropView(viewName string) error {
+	log.Infof("Dropping view %s", viewName)
+	drop := fmt.Sprintf("DROP VIEW %s;", viewName)
+	_, err := d.DB.Exec(drop)
+	log.Infof("Dropped view %s", viewName)
+
+	return err
+}
+
 // InitializeTable generates and runs a table create statement based on the schema.
 func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	d.Tables[tableName] = ds
