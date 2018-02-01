@@ -2,7 +2,7 @@
 
 DATA_DIR=~/data/d3m_new
 DATA_FILE=tables/merged_header.csv
-OUTPUT=/tables/summary.json
+OUTPUT=/tables/summary-machine.json
 DATASET_FOLDER_SUFFIX=_dataset
 DATASETS=(26_radon_seed 32_wikiqa 60_jester 185_baseball 196_autoMpg 313_spectrometer 38_sick 4550_MiceProtein)
 REST_ENDPOINT=HTTP://10.108.4.42:5001
