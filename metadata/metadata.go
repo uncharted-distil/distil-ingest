@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/olivere/elastic.v5"
 
+	"github.com/unchartedsoftware/distil-ingest/rest"
 	"github.com/unchartedsoftware/distil-ingest/smmry"
 )
 
@@ -283,7 +284,13 @@ func (m *Metadata) LoadSummaryMachine(summaryFile string) error {
 		return errors.Wrap(err, "unable to read machine-learned summary")
 	}
 
-	m.SummaryMachine = string(b)
+	summary := &rest.SummaryResult{}
+	err = json.Unmarshal(b, summary)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse machine-learned summary")
+	}
+
+	m.SummaryMachine = summary.Summary
 
 	return nil
 }
