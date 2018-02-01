@@ -246,7 +246,9 @@ func main() {
 		err = meta.LoadSummaryMachine(config.SummaryMachinePath)
 		if err != nil {
 			log.Error(err)
-			os.Exit(1)
+			// NOTE: For now ignore the error as the service may not
+			// be able to provide a summary.
+			//os.Exit(1)
 		}
 
 		// load stats
