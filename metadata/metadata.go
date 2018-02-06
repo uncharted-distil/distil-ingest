@@ -255,7 +255,7 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 	return headers, nil
 }
 
-// LoadSummary loads a description summary
+// LoadSummaryFromDescription loads a summary from the description.
 func (m *Metadata) LoadSummaryFromDescription(summaryFile string) error {
 	// request summary
 	summary, err := smmry.GetSummaryFromDescription(m.Description)
