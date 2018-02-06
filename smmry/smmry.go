@@ -74,3 +74,8 @@ func GetSummary(str string) (string, error) {
 	}
 	return summary, nil
 }
+
+// GetSummaryFromDescription builds the summary from the description.
+func GetSummaryFromDescription(description string) (string, error) {
+	return getSummaryFallback(description), nil
+}

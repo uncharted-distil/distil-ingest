@@ -256,6 +256,20 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 }
 
 // LoadSummary loads a description summary
+func (m *Metadata) LoadSummaryFromDescription(summaryFile string, useCache bool) error {
+	// request summary
+	summary, err := smmry.GetSummaryFromDescription(m.Description)
+	if err != nil {
+		return err
+	}
+	// set summary
+	m.Summary = summary
+	// cache summary file
+	writeSummaryFile(summaryFile, m.Summary)
+	return nil
+}
+
+// LoadSummary loads a description summary
 func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 	// use cache if available
 	if useCache {
