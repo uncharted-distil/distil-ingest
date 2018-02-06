@@ -153,7 +153,7 @@ func (d *Database) CreatePipelineMetadataTables() error {
 func (d *Database) executeInserts(tableName string) error {
 	ds := d.Tables[tableName]
 
-	insertStatement := fmt.Sprintf("INSERT INTO %s_base VALUES %s;", tableName, strings.Join(ds.GetBatch(), ", "))
+	insertStatement := fmt.Sprintf("INSERT INTO %s.%s.%s_base VALUES %s;", "distil", "public", tableName, strings.Join(ds.GetBatch(), ", "))
 
 	_, err := d.DB.Exec(insertStatement, ds.GetBatchArgs()...)
 
@@ -301,7 +301,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 		varsView = varsView[:len(varsView)-1]
 	}
 	createStatementTable = fmt.Sprintf(createStatementTable, tableName, varsTable)
-	log.Infof("Creating table %s", tableName)
+	log.Infof("Creating table %s_base", tableName)
 
 	// Create the table.
 	_, err := d.DB.Exec(createStatementTable)

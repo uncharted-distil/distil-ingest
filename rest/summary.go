@@ -30,7 +30,7 @@ func NewSummarizer(functionName string, client *Client) *Summarizer {
 func (s *Summarizer) SummarizeFile(filename string) (*SummaryResult, error) {
 	result, err := s.client.PostFile(s.functionName, filename, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to classify file")
+		return nil, errors.Wrap(err, "Unable to summarize file")
 	}
 
 	// Structure of response is a string describing the dataset
