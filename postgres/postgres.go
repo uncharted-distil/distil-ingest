@@ -153,7 +153,7 @@ func (d *Database) CreatePipelineMetadataTables() error {
 func (d *Database) executeInserts(tableName string) error {
 	ds := d.Tables[tableName]
 
-	insertStatement := fmt.Sprintf("INSERT INTO %s.%s_base VALUES %s;", "distil", tableName, strings.Join(ds.GetBatch(), ", "))
+	insertStatement := fmt.Sprintf("INSERT INTO %s.%.%s_base VALUES %s;", "distil", "public", tableName, strings.Join(ds.GetBatch(), ", "))
 
 	_, err := d.DB.Exec(insertStatement, ds.GetBatchArgs()...)
 
