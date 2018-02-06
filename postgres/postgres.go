@@ -301,7 +301,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 		varsView = varsView[:len(varsView)-1]
 	}
 	createStatementTable = fmt.Sprintf(createStatementTable, tableName, varsTable)
-	log.Infof("Creating table %s", tableName)
+	log.Infof("Creating table %s_base", tableName)
 
 	// Create the table.
 	_, err := d.DB.Exec(createStatementTable)
