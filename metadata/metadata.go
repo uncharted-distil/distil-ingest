@@ -256,7 +256,7 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 }
 
 // LoadSummary loads a description summary
-func (m *Metadata) LoadSummaryFromDescription(summaryFile string, useCache bool) error {
+func (m *Metadata) LoadSummaryFromDescription(summaryFile string) error {
 	// request summary
 	summary, err := smmry.GetSummaryFromDescription(m.Description)
 	if err != nil {
@@ -279,16 +279,7 @@ func (m *Metadata) LoadSummary(summaryFile string, useCache bool) error {
 			return nil
 		}
 	}
-	// request summary
-	summary, err := smmry.GetSummary(m.Description)
-	if err != nil {
-		return err
-	}
-	// set summary
-	m.Summary = summary
-	// cache summary file
-	writeSummaryFile(summaryFile, m.Summary)
-	return nil
+	return m.LoadSummaryFromDescription(summaryFile)
 }
 
 // LoadSummaryMachine loads a machine-learned summary.
