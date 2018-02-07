@@ -219,10 +219,10 @@ func (d *Database) DeleteDataset(name string) {
 	resultName := fmt.Sprintf("%s%s", name, resultTableSuffix)
 	variableName := fmt.Sprintf("%s%s", name, variableTableSuffix)
 
+	d.DropView(name)
 	d.DropTable(baseName)
 	d.DropTable(resultName)
 	d.DropTable(variableName)
-	d.DropView(name)
 }
 
 // IngestRow parses the raw csv data and stores it to the table specified.
