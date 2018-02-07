@@ -673,6 +673,31 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	return nil
 }
 
+func (m *Metadata) DatasetMatches(variables []string) bool {
+	// Assume metadata is for a merged schema, so only has 1 data resource.
+
+	// Lengths need to be the same.
+	if len(variables) != len(m.DataResources[0].Variables) {
+		return false
+	}
+
+	// Build the variable lookup for matching.
+	newVariable := make(map[string]bool)
+	for _, v := range variables {
+		newVariable[v] = true
+	}
+
+	// Make sure every existing variable is present.
+	for _, v := range m.DataResources[0].Variables {
+		if !newVariable[v.Name] {
+			return false
+		}
+	}
+
+	// Same amount of varibles, and all the names match.
+	return true
+}
+
 // CreateMetadataIndex creates a new ElasticSearch index with our target
 // mappings. An ngram analyze is defined and applied to the variable names to
 // allow for substring searching.
