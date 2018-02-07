@@ -73,6 +73,9 @@ const (
 			metric		varchar(40),
 			score		double precision
 		);`
+
+	resultTableSuffix   = "_result"
+	variableTableSuffix = "_variable"
 )
 
 var (
@@ -162,7 +165,7 @@ func (d *Database) executeInserts(tableName string) error {
 
 // CreateResultTable creates an empty table for the pipeline results.
 func (d *Database) CreateResultTable(tableName string) error {
-	resultTableName := fmt.Sprintf("%s_result", tableName)
+	resultTableName := fmt.Sprintf("%s%s", tableName, resultTableSuffix)
 
 	// Make sure the table is clear. If the table did not previously exist,
 	// an error is returned. May as well ignore it since a serious problem
@@ -182,7 +185,7 @@ func (d *Database) CreateResultTable(tableName string) error {
 
 // StoreMetadata stores the variable information to the specified table.
 func (d *Database) StoreMetadata(tableName string) error {
-	variableTableName := fmt.Sprintf("%s_variable", tableName)
+	variableTableName := fmt.Sprintf("%s%s", tableName, variableTableSuffix)
 
 	// Make sure the table is clear. If the table did not previously exist,
 	// an error is returned. May as well ignore it since a serious problem
@@ -208,6 +211,18 @@ func (d *Database) StoreMetadata(tableName string) error {
 	}
 
 	return nil
+}
+
+// DeleteDataset deletes all tables & views for a dataset.
+func (d *Database) DeleteDataset(name string) {
+	baseName := fmt.Sprintf("%s_base", name)
+	resultName := fmt.Sprintf("%s%s", name, resultTableSuffix)
+	variableName := fmt.Sprintf("%s%s", name, variableTableSuffix)
+
+	d.DropTable(baseName)
+	d.DropTable(resultName)
+	d.DropTable(variableName)
+	d.DropView(name)
 }
 
 // IngestRow parses the raw csv data and stores it to the table specified.
