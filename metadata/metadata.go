@@ -20,8 +20,18 @@ import (
 )
 
 const (
-	defaultVarType = "text"
+	defaultVarType = "unknown"
 )
+
+var (
+	typeProbabilityThreshold = 0.8
+)
+
+// SetTypeProbabilityThreshold below which a suggested type is not used as
+// variable type
+func SetTypeProbabilityThreshold(threshold float64) {
+	typeProbabilityThreshold = threshold
+}
 
 // Variable represents a single variable description.
 type Variable struct {
@@ -577,7 +587,7 @@ func (m *Metadata) loadClassificationVariables() error {
 		}
 		variable.SuggestedTypes = suggestedTypes
 		// set type to that with highest probability
-		if len(suggestedTypes) > 0 {
+		if len(suggestedTypes) > 0 && suggestedTypes[0].Probability >= typeProbabilityThreshold {
 			variable.Type = suggestedTypes[0].Type
 		} else {
 			variable.Type = defaultVarType
@@ -673,6 +683,7 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	return nil
 }
 
+// DatasetMatches determines if the metadata variables match.
 func (m *Metadata) DatasetMatches(variables []string) bool {
 	// Assume metadata is for a merged schema, so only has 1 data resource.
 
