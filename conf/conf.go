@@ -26,8 +26,9 @@ type Conf struct {
 	NumWorkers int
 	// num es connections
 	NumActiveConnections int
-	// error threshold
-	ErrThreshold float64
+	// thresholds
+	ErrThreshold         float64
+	ProbabilityThreshold float64
 
 	// postgres config
 	Database    string
