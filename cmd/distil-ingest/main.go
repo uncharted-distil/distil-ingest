@@ -152,6 +152,11 @@ func main() {
 			Value: 0.01,
 			Usage: "The percentage threshold of unsuccessful documents which when passed will end ingestion",
 		},
+		cli.Float64Flag{
+			Name:  "probability-threshold",
+			Value: 0.8,
+			Usage: "The threshold below which a classification result will be ignored and the type will default to unknown",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 
@@ -195,6 +200,7 @@ func main() {
 			SchemaPath:           filepath.Clean(c.String("schema")),
 			DatasetPath:          filepath.Clean(c.String("dataset")),
 			ErrThreshold:         c.Float64("error-threshold"),
+			ProbabilityThreshold: c.Float64("probability-threshold"),
 			NumActiveConnections: c.Int("num-active-connections"),
 			NumWorkers:           c.Int("num-workers"),
 			BulkByteSize:         c.Int64("batch-size"),
@@ -207,6 +213,8 @@ func main() {
 			DBPassword:           c.String("db-password"),
 			DBBatchSize:          c.Int("db-batch-size"),
 		}
+
+		metadata.SetTypeProbabilityThreshold(config.ProbabilityThreshold)
 
 		// load the metadata
 		var err error
