@@ -21,6 +21,8 @@ import (
 
 const (
 	defaultVarType = "unknown"
+	resTypeImage   = "image"
+	resTypeTable   = "table"
 )
 
 var (
@@ -51,9 +53,11 @@ type Variable struct {
 
 // DataResource represents a set of variables found in a data asset.
 type DataResource struct {
-	ResID     string `json:"resID"`
-	ResPath   string `json:"resPath"`
-	Variables []*Variable
+	ResID        string `json:"resID"`
+	ResType      string `json:"resType"`
+	ResPath      string `json:"resPath"`
+	IsCollection bool   `json:"isCollection"`
+	Variables    []*Variable
 }
 
 // SuggestedType represents a classified variable type.
@@ -499,34 +503,27 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 	// Parse the variables for every schema
 	m.DataResources = make([]*DataResource, len(dataResources))
 	for i, sv := range dataResources {
-		schemaVariables, err := sv.Path("columns").Children()
+		if sv.Path("resType").Data() == nil {
+			return fmt.Errorf("unable to parse resource type")
+		}
+		resType := sv.Path("resType").Data().(string)
+
+		var dr *DataResource
+		switch resType {
+		case resTypeImage:
+			dr, err = m.loadOriginalSchemaResourceImage(sv)
+			break
+		case resTypeTable:
+			dr, err = m.loadOriginalSchemaResourceTable(sv)
+			break
+		default:
+			return errors.Errorf("Unrecognized resource type '%s'", resType)
+		}
 		if err != nil {
-			return errors.Wrap(err, "failed to parse column data")
+			return errors.Wrapf(err, "Unable to parse data resource of type '%s'", resType)
 		}
 
-		if sv.Path("resID").Data() == nil {
-			return fmt.Errorf("unable to parse resource id")
-		}
-		resID := sv.Path("resID").Data().(string)
-
-		if sv.Path("resPath").Data() == nil {
-			return fmt.Errorf("unable to parse resource path")
-		}
-		resPath := sv.Path("resPath").Data().(string)
-
-		m.DataResources[i] = &DataResource{
-			ResID:     resID,
-			ResPath:   resPath,
-			Variables: make([]*Variable, 0),
-		}
-
-		for _, v := range schemaVariables {
-			variable, err := m.parseSchemaVariable(v)
-			if err != nil {
-				return err
-			}
-			m.DataResources[i].Variables = append(m.DataResources[i].Variables, variable)
-		}
+		m.DataResources[i] = dr
 	}
 	return nil
 }
