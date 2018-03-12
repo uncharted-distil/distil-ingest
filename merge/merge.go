@@ -175,8 +175,6 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 
 			mergedDataResource.Variables = append(mergedDataResource.Variables, l.Variables...)
 		}
-	} else {
-		mergedDataResource.Variables = meta.DataResources[0].Variables
 	}
 
 	// create reader
