@@ -163,6 +163,10 @@ func main() {
 
 		// add the header to the raw data
 		data, err := getMergedData(header, outputPath, hasHeader)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 
 		// write to file to submit the file
 		err = ioutil.WriteFile(outputPathHeader, data, 0644)
