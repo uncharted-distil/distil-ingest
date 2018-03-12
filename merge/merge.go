@@ -149,10 +149,11 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 			variable := dr.Variables[i]
 			if variable.SelectedRole == "index" {
 				indexColumns[variable.Name] = variable
+				if variable.Name == d3mIndexName {
+					mergedDataResource.Variables = dr.Variables
+				}
 			} else if variable.SelectedRole == "key" && variable.RefersTo != nil {
 				keyColumns = append(keyColumns, variable)
-			} else if variable.Name == d3mIndexName {
-				mergedDataResource.Variables = dr.Variables
 			}
 		}
 	}
