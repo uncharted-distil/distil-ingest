@@ -64,6 +64,7 @@ const (
 			request_id			varchar(200),
 			feature_name		varchar(40),
 			filter_type			varchar(40),
+			filter_mode			varchar(40),
 			filter_min			double precision,
 			filter_max			double precision,
 			filter_categories	varchar(200)
