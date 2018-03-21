@@ -22,6 +22,7 @@ import (
 const (
 	defaultVarType = "unknown"
 	resTypeImage   = "image"
+	resTypeAudio   = "audio"
 	resTypeTable   = "table"
 )
 
@@ -512,6 +513,9 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 		switch resType {
 		case resTypeImage:
 			dr, err = m.loadOriginalSchemaResourceImage(sv)
+			break
+		case resTypeAudio:
+			dr, err = m.loadOriginalSchemaResourceAudio(sv)
 			break
 		case resTypeTable:
 			dr, err = m.loadOriginalSchemaResourceTable(sv)
