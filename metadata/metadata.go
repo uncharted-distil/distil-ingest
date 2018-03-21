@@ -21,7 +21,7 @@ import (
 
 const (
 	defaultVarType = "text"
-	variableNameSizeLimit = 100
+	variableNameSizeLimit = 60
 )
 
 // Variable represents a single variable description.
@@ -73,7 +73,10 @@ func NormalizeVariableName(name string) string {
 	if len(name) > variableNameSizeLimit {
 		name = name[:variableNameSizeLimit]
 	}
-	return strings.Replace(name, ".", "_", -1)
+	name = strings.Replace(name, ".", "_", -1)
+	name = strings.Replace(name, " ", "_", -1)
+
+	return name
 }
 
 // NewVariable creates a new variable.
