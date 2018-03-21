@@ -21,6 +21,7 @@ import (
 
 const (
 	defaultVarType = "text"
+	variableNameSizeLimit = 100
 )
 
 // Variable represents a single variable description.
@@ -69,6 +70,9 @@ type Metadata struct {
 
 // NormalizeVariableName normalizes a variable name.
 func NormalizeVariableName(name string) string {
+	if len(name) > variableNameSizeLimit {
+		name = name[:variableNameSizeLimit]
+	}
 	return strings.Replace(name, ".", "_", -1)
 }
 
