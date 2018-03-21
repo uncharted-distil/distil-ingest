@@ -21,7 +21,7 @@ import (
 
 const (
 	defaultVarType        = "unknown"
-	variableNameSizeLimit = 100
+	variableNameSizeLimit = 60
 )
 
 var (
@@ -83,7 +83,10 @@ func NormalizeVariableName(name string) string {
 	if len(name) > variableNameSizeLimit {
 		name = name[:variableNameSizeLimit]
 	}
-	return strings.Replace(name, ".", "_", -1)
+	name = strings.Replace(name, ".", "_", -1)
+	name = strings.Replace(name, " ", "_", -1)
+
+	return name
 }
 
 // NewVariable creates a new variable.
