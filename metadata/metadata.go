@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	defaultVarType = "unknown"
+	defaultVarType        = "unknown"
+	variableNameSizeLimit = 50
 )
 
 var (
@@ -79,7 +80,13 @@ type Metadata struct {
 
 // NormalizeVariableName normalizes a variable name.
 func NormalizeVariableName(name string) string {
-	return strings.Replace(name, ".", "_", -1)
+	if len(name) > variableNameSizeLimit {
+		name = name[:variableNameSizeLimit]
+	}
+	name = strings.Replace(name, ".", "_", -1)
+	name = strings.Replace(name, " ", "_", -1)
+
+	return name
 }
 
 // NewVariable creates a new variable.
