@@ -21,7 +21,7 @@ import (
 
 const (
 	defaultVarType        = "unknown"
-	variableNameSizeLimit = 60
+	variableNameSizeLimit = 50
 )
 
 var (
