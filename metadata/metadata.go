@@ -21,7 +21,7 @@ import (
 
 const (
 	defaultVarType = "text"
-	variableNameSizeLimit = 60
+	variableNameSizeLimit = 50
 )
 
 // Variable represents a single variable description.
