@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -20,8 +21,12 @@ import (
 )
 
 const (
-	defaultVarType = "text"
+	defaultVarType        = "text"
 	variableNameSizeLimit = 50
+)
+
+var (
+	nameRegex, _ = regexp.Compile("[^a-zA-Z0-9]")
 )
 
 // Variable represents a single variable description.
@@ -70,13 +75,12 @@ type Metadata struct {
 
 // NormalizeVariableName normalizes a variable name.
 func NormalizeVariableName(name string) string {
-	if len(name) > variableNameSizeLimit {
-		name = name[:variableNameSizeLimit]
+	nameNormalized := nameRegex.ReplaceAllString(name, "_")
+	if len(nameNormalized) > variableNameSizeLimit {
+		name = nameNormalized[:variableNameSizeLimit]
 	}
-	name = strings.Replace(name, ".", "_", -1)
-	name = strings.Replace(name, " ", "_", -1)
 
-	return name
+	return nameNormalized
 }
 
 // NewVariable creates a new variable.
@@ -97,6 +101,7 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 		Role:         role,
 		SelectedRole: selectedRole,
 		OriginalName: normed,
+		DisplayName:  name,
 		FileType:     fileType,
 		FileFormat:   fileFormat,
 		RefersTo:     refersTo,
