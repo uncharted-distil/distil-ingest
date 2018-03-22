@@ -77,14 +77,14 @@ type Metadata struct {
 func NormalizeVariableName(name string) string {
 	nameNormalized := nameRegex.ReplaceAllString(name, "_")
 	if len(nameNormalized) > variableNameSizeLimit {
-		name = nameNormalized[:variableNameSizeLimit]
+		nameNormalized = nameNormalized[:variableNameSizeLimit]
 	}
 
 	return nameNormalized
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container) *Variable {
+func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable) *Variable {
 	// normalize name
 	normed := NormalizeVariableName(name)
 
@@ -383,7 +383,7 @@ func (m *Metadata) loadDescription() error {
 	return nil
 }
 
-func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
+func (m *Metadata) parseSchemaVariable(v *gabs.Container, existingVariables []*Variable) (*Variable, error) {
 	if v.Path("colName").Data() == nil {
 		return nil, fmt.Errorf("unable to parse column name")
 	}
@@ -432,7 +432,8 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varFileType,
 		varFileFormat,
 		varRoles,
-		refersTo), nil
+		refersTo,
+		existingVariables), nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -523,7 +524,7 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 		}
 
 		for _, v := range schemaVariables {
-			variable, err := m.parseSchemaVariable(v)
+			variable, err := m.parseSchemaVariable(v, m.DataResources[i].Variables)
 			if err != nil {
 				return err
 			}
@@ -546,7 +547,7 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
@@ -578,7 +579,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables)
 		if err != nil {
 			return err
 		}
