@@ -88,6 +88,17 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 	// normalize name
 	normed := NormalizeVariableName(name)
 
+	// normed name needs to be unique
+	count := 0
+	for _, v := range existingVariables {
+		if v.Name == normed {
+			count = count + 1
+		}
+	}
+	if count > 0 {
+		normed = fmt.Sprintf("%s_%d", normed, count)
+	}
+
 	// select the first role by default.
 	selectedRole := ""
 	if len(role) > 0 {
