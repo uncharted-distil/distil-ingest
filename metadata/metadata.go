@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	nameRegex, _ = regexp.Compile("[^a-zA-Z0-9]")
+	nameRegex = regexp.MustCompile("[^a-zA-Z0-9]")
 )
 
 // Variable represents a single variable description.
