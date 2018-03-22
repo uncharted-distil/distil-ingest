@@ -88,7 +88,7 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 	normed := name
 	if normalizeName {
 		// normalize name
-		normed := NormalizeVariableName(name)
+		normed = NormalizeVariableName(name)
 
 		// normed name needs to be unique
 		count := 0
