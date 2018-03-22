@@ -84,19 +84,22 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable) *Variable {
-	// normalize name
-	normed := NormalizeVariableName(name)
+func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
+	normed := name
+	if normalizeName {
+		// normalize name
+		normed := NormalizeVariableName(name)
 
-	// normed name needs to be unique
-	count := 0
-	for _, v := range existingVariables {
-		if v.Name == normed {
-			count = count + 1
+		// normed name needs to be unique
+		count := 0
+		for _, v := range existingVariables {
+			if v.Name == normed {
+				count = count + 1
+			}
 		}
-	}
-	if count > 0 {
-		normed = fmt.Sprintf("%s_%d", normed, count)
+		if count > 0 {
+			normed = fmt.Sprintf("%s_%d", normed, count)
+		}
 	}
 
 	// select the first role by default.
@@ -394,7 +397,7 @@ func (m *Metadata) loadDescription() error {
 	return nil
 }
 
-func (m *Metadata) parseSchemaVariable(v *gabs.Container, existingVariables []*Variable) (*Variable, error) {
+func (m *Metadata) parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, normalizeName bool) (*Variable, error) {
 	if v.Path("colName").Data() == nil {
 		return nil, fmt.Errorf("unable to parse column name")
 	}
@@ -444,7 +447,8 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container, existingVariables []*V
 		varFileFormat,
 		varRoles,
 		refersTo,
-		existingVariables), nil
+		existingVariables,
+		normalizeName), nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -535,7 +539,7 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 		}
 
 		for _, v := range schemaVariables {
-			variable, err := m.parseSchemaVariable(v, m.DataResources[i].Variables)
+			variable, err := m.parseSchemaVariable(v, m.DataResources[i].Variables, false)
 			if err != nil {
 				return err
 			}
@@ -558,7 +562,7 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables)
+		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
@@ -590,7 +594,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables)
+		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return err
 		}
