@@ -21,9 +21,10 @@ import (
 
 const (
 	defaultVarType = "unknown"
-	resTypeImage   = "image"
 	resTypeAudio   = "audio"
+	resTypeImage   = "image"
 	resTypeTable   = "table"
+	resTypeText    = "text"
 )
 
 var (
@@ -386,7 +387,7 @@ func (m *Metadata) loadDescription() error {
 	return nil
 }
 
-func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
+func parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 	if v.Path("colName").Data() == nil {
 		return nil, fmt.Errorf("unable to parse column name")
 	}
@@ -509,20 +510,21 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 		}
 		resType := sv.Path("resType").Data().(string)
 
-		var dr *DataResource
+		var parser DataResourceParser
 		switch resType {
 		case resTypeImage:
-			dr, err = m.loadOriginalSchemaResourceImage(sv)
-			break
 		case resTypeAudio:
-			dr, err = m.loadOriginalSchemaResourceAudio(sv)
+		case resTypeText:
+			parser = NewMedia(resType)
 			break
 		case resTypeTable:
-			dr, err = m.loadOriginalSchemaResourceTable(sv)
+			parser = &Table{}
 			break
 		default:
 			return errors.Errorf("Unrecognized resource type '%s'", resType)
 		}
+
+		dr, err := parser.Parse(sv)
 		if err != nil {
 			return errors.Wrapf(err, "Unable to parse data resource of type '%s'", resType)
 		}
@@ -545,7 +547,7 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := parseSchemaVariable(v)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
@@ -577,7 +579,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := parseSchemaVariable(v)
 		if err != nil {
 			return err
 		}

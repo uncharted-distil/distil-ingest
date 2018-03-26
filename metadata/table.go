@@ -7,7 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (m *Metadata) loadOriginalSchemaResourceTable(res *gabs.Container) (*DataResource, error) {
+// Table is a data respurce that is contained within one or many tabular files.
+type Table struct {
+}
+
+// Parse extracts the data resource from the data schema document.
+func (r *Table) Parse(res *gabs.Container) (*DataResource, error) {
 	schemaVariables, err := res.Path("columns").Children()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse column data")
@@ -32,7 +37,7 @@ func (m *Metadata) loadOriginalSchemaResourceTable(res *gabs.Container) (*DataRe
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := parseSchemaVariable(v)
 		if err != nil {
 			return nil, err
 		}
