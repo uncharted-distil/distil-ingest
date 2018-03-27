@@ -25,6 +25,7 @@ const (
 	resTypeImage   = "image"
 	resTypeTable   = "table"
 	resTypeText    = "text"
+	resTypeTime    = "timeseries"
 )
 
 var (
@@ -515,6 +516,7 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 		case resTypeImage:
 		case resTypeAudio:
 		case resTypeText:
+		case resTypeTime:
 			parser = NewMedia(resType)
 			break
 		case resTypeTable:
