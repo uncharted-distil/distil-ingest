@@ -17,14 +17,14 @@ import (
 
 const (
 	metadataTableCreationSQL = `CREATE TABLE %s (
-			name	varchar(40)	NOT NULL,
+			name	varchar(100)	NOT NULL,
 			role	varchar(20),
 			type	varchar(20)
 		);`
 	resultTableCreationSQL = `CREATE TABLE %s (
 			result_id	varchar(1000)	NOT NULL,
 			index		BIGINT,
-			target		varchar(40),
+			target		varchar(100),
 			value		varchar(200)
 		);`
 
@@ -57,13 +57,14 @@ const (
 		);`
 	requestFeatureTableCreationSQL = `CREATE TABLE %s (
 			request_id		varchar(200),
-			feature_name	varchar(40),
+			feature_name	varchar(100),
 			feature_type	varchar(20)
 		);`
 	requestFilterTableCreationSQL = `CREATE TABLE %s (
 			request_id			varchar(200),
-			feature_name		varchar(40),
+			feature_name		varchar(100),
 			filter_type			varchar(40),
+			filter_mode			varchar(40),
 			filter_min			double precision,
 			filter_max			double precision,
 			filter_categories	varchar(200)
