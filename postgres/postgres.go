@@ -28,40 +28,33 @@ const (
 			value		varchar(200)
 		);`
 
-	sessionTableName        = "session"
-	requestTableName        = "request"
-	resultMetadataTableName = "result"
-	resultScoreTableName    = "result_score"
-	requestFeatureTableName = "request_feature"
-	requestFilterTableName  = "request_filter"
+	modelTableName          = "model"
+	pipelineTableName       = "pipeline"
+	pipelineResultTableName = "pipeline_result"
+	pipelineScoreTableName  = "pipeline_score"
+	modelFeatureTableName   = "model_feature"
+	modelFilterTableName    = "model_filter"
 
-	sessionTableCreationSQL = `CREATE TABLE %s (
-			session_id	varchar(200)
-		);`
-	requestTableCreationSQL = `CREATE TABLE %s (
-			session_id			varchar(200),
-			request_id			varchar(200),
+	modelTableCreationSQL = `CREATE TABLE %s (
+			model_id			varchar(200),
 			dataset				varchar(200),
 			progress			varchar(40),
 			created_time		timestamp,
 			last_updated_time	timestamp
 		);`
-	resultMetadataTableCreationSQL = `CREATE TABLE %s (
-			request_id		varchar(200),
+	pipelineTableCreationSQL = `CREATE TABLE %s (
+			model_id		varchar(200),
 			pipeline_id		varchar(200),
-			result_uuid		varchar(200),
-			result_uri		varchar(200),
 			progress		varchar(40),
-			output_type		varchar(200),
 			created_time	timestamp
 		);`
-	requestFeatureTableCreationSQL = `CREATE TABLE %s (
-			request_id		varchar(200),
+	modelFeatureTableCreationSQL = `CREATE TABLE %s (
+			model_id		varchar(200),
 			feature_name	varchar(100),
 			feature_type	varchar(20)
 		);`
-	requestFilterTableCreationSQL = `CREATE TABLE %s (
-			request_id			varchar(200),
+	modelFilterTableCreationSQL = `CREATE TABLE %s (
+			model_id			varchar(200),
 			feature_name		varchar(100),
 			filter_type			varchar(40),
 			filter_mode			varchar(40),
@@ -69,10 +62,17 @@ const (
 			filter_max			double precision,
 			filter_categories	varchar(200)
 		);`
-	resultScoreTableCreationSQL = `CREATE TABLE %s (
+	pipelineScoreTableCreationSQL = `CREATE TABLE %s (
 			pipeline_id	varchar(200),
 			metric		varchar(40),
 			score		double precision
+		);`
+	pipelineResultTableCreationSQL = `CREATE TABLE %s (
+			pipeline_id		varchar(200),
+			result_uuid		varchar(200),
+			result_uri		varchar(200),
+			progress		varchar(40),
+			created_time	timestamp
 		);`
 
 	resultTableSuffix   = "_result"
@@ -115,38 +115,39 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 func (d *Database) CreatePipelineMetadataTables() error {
 	// Create the pipeline tables.
 	log.Infof("Creating pipeline metadata tables.")
-	d.DropTable(sessionTableName)
-	_, err := d.DB.Exec(fmt.Sprintf(sessionTableCreationSQL, sessionTableName))
+
+	d.DropTable(modelTableName)
+	_, err := d.DB.Exec(fmt.Sprintf(modelTableCreationSQL, modelTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(requestTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(requestTableCreationSQL, requestTableName))
+	d.DropTable(modelFeatureTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(modelFeatureTableCreationSQL, modelFeatureTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(resultMetadataTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(resultMetadataTableCreationSQL, resultMetadataTableName))
+	d.DropTable(modelFilterTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(modelFilterTableCreationSQL, modelFilterTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(requestFeatureTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(requestFeatureTableCreationSQL, requestFeatureTableName))
+	d.DropTable(pipelineTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(pipelineTableCreationSQL, pipelineTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(requestFilterTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(requestFilterTableCreationSQL, requestFilterTableName))
+	d.DropTable(pipelineResultTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(pipelineResultTableCreationSQL, pipelineResultTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(resultScoreTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(resultScoreTableCreationSQL, resultScoreTableName))
+	d.DropTable(pipelineScoreTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(pipelineScoreTableCreationSQL, pipelineScoreTableName))
 	if err != nil {
 		return err
 	}

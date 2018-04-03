@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -26,6 +27,7 @@ const (
 
 var (
 	typeProbabilityThreshold = 0.8
+	nameRegex                = regexp.MustCompile("[^a-zA-Z0-9]")
 )
 
 // SetTypeProbabilityThreshold below which a suggested type is not used as
@@ -80,19 +82,32 @@ type Metadata struct {
 
 // NormalizeVariableName normalizes a variable name.
 func NormalizeVariableName(name string) string {
-	if len(name) > variableNameSizeLimit {
-		name = name[:variableNameSizeLimit]
+	nameNormalized := nameRegex.ReplaceAllString(name, "_")
+	if len(nameNormalized) > variableNameSizeLimit {
+		nameNormalized = nameNormalized[:variableNameSizeLimit]
 	}
-	name = strings.Replace(name, ".", "_", -1)
-	name = strings.Replace(name, " ", "_", -1)
 
-	return name
+	return nameNormalized
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container) *Variable {
-	// normalize name
-	normed := NormalizeVariableName(name)
+func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
+	normed := name
+	if normalizeName {
+		// normalize name
+		normed = NormalizeVariableName(name)
+
+		// normed name needs to be unique
+		count := 0
+		for _, v := range existingVariables {
+			if v.Name == normed {
+				count = count + 1
+			}
+		}
+		if count > 0 {
+			normed = fmt.Sprintf("%s_%d", normed, count)
+		}
+	}
 
 	// select the first role by default.
 	selectedRole := ""
@@ -107,6 +122,7 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 		Role:         role,
 		SelectedRole: selectedRole,
 		OriginalName: normed,
+		DisplayName:  name,
 		FileType:     fileType,
 		FileFormat:   fileFormat,
 		RefersTo:     refersTo,
@@ -388,7 +404,7 @@ func (m *Metadata) loadDescription() error {
 	return nil
 }
 
-func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
+func (m *Metadata) parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, normalizeName bool) (*Variable, error) {
 	if v.Path("colName").Data() == nil {
 		return nil, fmt.Errorf("unable to parse column name")
 	}
@@ -437,7 +453,9 @@ func (m *Metadata) parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varFileType,
 		varFileFormat,
 		varRoles,
-		refersTo), nil
+		refersTo,
+		existingVariables,
+		normalizeName), nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -528,7 +546,7 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 		}
 
 		for _, v := range schemaVariables {
-			variable, err := m.parseSchemaVariable(v)
+			variable, err := m.parseSchemaVariable(v, m.DataResources[i].Variables, false)
 			if err != nil {
 				return err
 			}
@@ -551,7 +569,7 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
@@ -583,7 +601,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v)
+		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return err
 		}
