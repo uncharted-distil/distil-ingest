@@ -36,6 +36,8 @@ type Conf struct {
 	DBUser      string
 	DBPassword  string
 	DBBatchSize int
+	DBHost      string
+	DBPort      int
 
 	// control flags
 	IncludeRaw   bool

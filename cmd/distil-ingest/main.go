@@ -100,6 +100,16 @@ func main() {
 			Usage: "The postgres database to use",
 		},
 		cli.StringFlag{
+			Name: "db-host",
+			Value: "localhost",
+			Usage: "The postgres database hostname - defaults to localhost"
+		},
+		cli.IntFlag{
+			Name: "db-port",
+			Value: 5432,
+			Usage: "The postgres database port - defaults to 5432"
+		},
+		cli.StringFlag{
 			Name:  "db-table",
 			Value: "",
 			Usage: "The database table to ingest into.",
@@ -212,6 +222,8 @@ func main() {
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
 			DBBatchSize:          c.Int("db-batch-size"),
+			DBHost: c.String("db-host"),
+			DBPort: c.Int("db-port"),
 		}
 
 		metadata.SetTypeProbabilityThreshold(config.ProbabilityThreshold)
