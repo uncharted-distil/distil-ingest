@@ -28,33 +28,33 @@ const (
 			value		varchar(200)
 		);`
 
-	modelTableName          = "model"
+	requestTableName        = "request"
 	pipelineTableName       = "pipeline"
 	pipelineResultTableName = "pipeline_result"
 	pipelineScoreTableName  = "pipeline_score"
-	modelFeatureTableName   = "model_feature"
-	modelFilterTableName    = "model_filter"
+	requestFeatureTableName = "request_feature"
+	requestFilterTableName  = "request_filter"
 
-	modelTableCreationSQL = `CREATE TABLE %s (
-			model_id			varchar(200),
+	requestTableCreationSQL = `CREATE TABLE %s (
+			request_id			varchar(200),
 			dataset				varchar(200),
 			progress			varchar(40),
 			created_time		timestamp,
 			last_updated_time	timestamp
 		);`
 	pipelineTableCreationSQL = `CREATE TABLE %s (
-			model_id		varchar(200),
+			request_id		varchar(200),
 			pipeline_id		varchar(200),
 			progress		varchar(40),
 			created_time	timestamp
 		);`
-	modelFeatureTableCreationSQL = `CREATE TABLE %s (
-			model_id		varchar(200),
+	requestFeatureTableCreationSQL = `CREATE TABLE %s (
+			request_id		varchar(200),
 			feature_name	varchar(100),
 			feature_type	varchar(20)
 		);`
-	modelFilterTableCreationSQL = `CREATE TABLE %s (
-			model_id			varchar(200),
+	requestFilterTableCreationSQL = `CREATE TABLE %s (
+			request_id			varchar(200),
 			feature_name		varchar(100),
 			filter_type			varchar(40),
 			filter_mode			varchar(40),
@@ -116,20 +116,20 @@ func (d *Database) CreatePipelineMetadataTables() error {
 	// Create the pipeline tables.
 	log.Infof("Creating pipeline metadata tables.")
 
-	d.DropTable(modelTableName)
-	_, err := d.DB.Exec(fmt.Sprintf(modelTableCreationSQL, modelTableName))
+	d.DropTable(requestTableName)
+	_, err := d.DB.Exec(fmt.Sprintf(requestTableCreationSQL, requestTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(modelFeatureTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(modelFeatureTableCreationSQL, modelFeatureTableName))
+	d.DropTable(requestFeatureTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(requestFeatureTableCreationSQL, requestFeatureTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(modelFilterTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(modelFilterTableCreationSQL, modelFilterTableName))
+	d.DropTable(requestFilterTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(requestFilterTableCreationSQL, requestFilterTableName))
 	if err != nil {
 		return err
 	}
