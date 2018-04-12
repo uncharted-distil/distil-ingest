@@ -14,6 +14,10 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 )
 
+const (
+	d3mIndexName = "d3mIndex"
+)
+
 // FileLink represents a link between a dataset col and a file.
 type FileLink struct {
 	Name      string
@@ -145,9 +149,11 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 			variable := dr.Variables[i]
 			if variable.SelectedRole == "index" {
 				indexColumns[variable.Name] = variable
+				if variable.Name == d3mIndexName {
+					mergedDataResource.Variables = dr.Variables
+				}
 			} else if variable.SelectedRole == "key" && variable.RefersTo != nil {
 				keyColumns = append(keyColumns, variable)
-				mergedDataResource.Variables = dr.Variables
 			}
 		}
 	}
@@ -170,8 +176,6 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 
 			mergedDataResource.Variables = append(mergedDataResource.Variables, l.Variables...)
 		}
-	} else {
-		mergedDataResource.Variables = meta.DataResources[0].Variables
 	}
 
 	// create reader
@@ -223,7 +227,7 @@ func parseD3MIndex(schema *gabs.Container, path string) (int, error) {
 	}
 	for index, value := range trainingArray {
 		varDesc := value.Data().(map[string]interface{})
-		if varDesc["varName"].(string) == "d3mIndex" {
+		if varDesc["varName"].(string) == d3mIndexName {
 			return index, nil
 		}
 	}
