@@ -37,7 +37,7 @@ func (r *Table) Parse(res *gabs.Container) (*DataResource, error) {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := parseSchemaVariable(v)
+		variable, err := parseSchemaVariable(v, dr.Variables, false)
 		if err != nil {
 			return nil, err
 		}

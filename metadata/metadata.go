@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -31,6 +32,7 @@ const (
 
 var (
 	typeProbabilityThreshold = 0.8
+	nameRegex                = regexp.MustCompile("[^a-zA-Z0-9]")
 )
 
 // SetTypeProbabilityThreshold below which a suggested type is not used as
@@ -87,19 +89,32 @@ type Metadata struct {
 
 // NormalizeVariableName normalizes a variable name.
 func NormalizeVariableName(name string) string {
-	if len(name) > variableNameSizeLimit {
-		name = name[:variableNameSizeLimit]
+	nameNormalized := nameRegex.ReplaceAllString(name, "_")
+	if len(nameNormalized) > variableNameSizeLimit {
+		nameNormalized = nameNormalized[:variableNameSizeLimit]
 	}
-	name = strings.Replace(name, ".", "_", -1)
-	name = strings.Replace(name, " ", "_", -1)
 
-	return name
+	return nameNormalized
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container) *Variable {
-	// normalize name
-	normed := NormalizeVariableName(name)
+func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
+	normed := name
+	if normalizeName {
+		// normalize name
+		normed = NormalizeVariableName(name)
+
+		// normed name needs to be unique
+		count := 0
+		for _, v := range existingVariables {
+			if v.Name == normed {
+				count = count + 1
+			}
+		}
+		if count > 0 {
+			normed = fmt.Sprintf("%s_%d", normed, count)
+		}
+	}
 
 	// select the first role by default.
 	selectedRole := ""
@@ -114,6 +129,7 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 		Role:         role,
 		SelectedRole: selectedRole,
 		OriginalName: normed,
+		DisplayName:  name,
 		FileType:     fileType,
 		FileFormat:   fileFormat,
 		RefersTo:     refersTo,
@@ -395,7 +411,7 @@ func (m *Metadata) loadDescription() error {
 	return nil
 }
 
-func parseSchemaVariable(v *gabs.Container) (*Variable, error) {
+func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, normalizeName bool) (*Variable, error) {
 	if v.Path("colName").Data() == nil {
 		return nil, fmt.Errorf("unable to parse column name")
 	}
@@ -444,7 +460,9 @@ func parseSchemaVariable(v *gabs.Container) (*Variable, error) {
 		varFileType,
 		varFileFormat,
 		varRoles,
-		refersTo), nil
+		refersTo,
+		existingVariables,
+		normalizeName), nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -556,7 +574,7 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := parseSchemaVariable(v)
+		variable, err := parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
@@ -588,7 +606,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := parseSchemaVariable(v)
+		variable, err := parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return err
 		}
@@ -748,83 +766,104 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 
 	// create body
 	body := `{
-		"settings": {
-			"analysis": {
-				"filter": {
-					"ngram_filter": {
-						"type": "ngram",
-						"min_gram": 4,
-						"max_gram": 20
-					}
-				},
-				"analyzer": {
-					"ngram_analyzer": {
-						"type": "custom",
-						"tokenizer": "standard",
-						"filter": [
-							"lowercase",
-							"ngram_filter"
-						]
-					}
-				}
-			}
-		},
-		"mappings": {
-			"metadata": {
-				"properties": {
-					"datasetId": {
-						"type": "text"
-					},
-					"name": {
-						"type": "text"
-					},
-					"description": {
-						"type": "text"
-					},
-					"summary": {
-						"type": "text"
-					},
-					"summaryMachine": {
-						"type": "text"
-					},
-					"numRows": {
-						"type": "long"
-					},
-					"numBytes": {
-						"type": "long"
-					},
-					"variables": {
-						"properties": {
-							"varDescription": {
-								"type": "text"
-							},
-							"varName": {
-								"type": "text",
-								"analyzer": "ngram_analyzer",
-								"include_in_all": true,
-								"term_vector": "yes"
-							},
-							"varRole": {
-								"type": "text"
-							},
-							"varType": {
-								"type": "text"
-							},
-							"varOriginalName": {
-								"type": "text"
-							},
-							"varDisplayName": {
-								"type": "text"
-							},
-							"importance": {
-								"type": "integer"
-							}
-						}
-					}
-				}
-			}
-		}
-	}`
+        "settings": {
+            "analysis": {
+                "filter": {
+                    "ngram_filter": {
+                        "type": "ngram",
+                        "min_gram": 4,
+                        "max_gram": 20
+                    },
+                    "search_filter": {
+                        "type": "edge_ngram",
+                        "min_gram": 1,
+                        "max_gram": 20
+                    }
+                },
+                "analyzer": {
+                    "ngram_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": [
+                            "lowercase",
+                            "ngram_filter"
+                        ]
+                    },
+                    "search_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": [
+                            "lowercase",
+                            "search_filter"
+                        ]
+                    }
+                }
+            }
+        },
+        "mappings": {
+            "metadata": {
+                "properties": {
+                    "datasetId": {
+                        "type": "text"
+                    },
+                    "datasetName": {
+                        "type": "text",
+                        "analyzer": "search_analyzer",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "description": {
+                        "type": "text",
+                        "analyzer": "search_analyzer"
+                    },
+                    "summary": {
+                        "type": "text"
+                    },
+                    "summaryMachine": {
+                        "type": "text"
+                    },
+                    "numRows": {
+                        "type": "long"
+                    },
+                    "numBytes": {
+                        "type": "long"
+                    },
+                    "variables": {
+                        "properties": {
+                            "varDescription": {
+                                "type": "text"
+                            },
+                            "varName": {
+                                "type": "text",
+                                "analyzer": "search_analyzer",
+                                "include_in_all": true,
+                                "term_vector": "yes"
+                            },
+                            "varRole": {
+                                "type": "text"
+                            },
+                            "varType": {
+                                "type": "text"
+                            },
+                            "varOriginalName": {
+                                "type": "text"
+                            },
+                            "varDisplayName": {
+                                "type": "text"
+                            },
+                            "importance": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }`
 
 	// create index
 	created, err := client.CreateIndex(index).BodyString(body).Do(context.Background())
