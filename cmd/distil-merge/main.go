@@ -79,24 +79,29 @@ func main() {
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.String("schema") == "" {
-			return cli.NewExitError("missing commandline flag `--schema`", 1)
-		}
 		if c.String("data") == "" {
 			return cli.NewExitError("missing commandline flag `--data`", 1)
 		}
 		if c.String("output-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-path`", 1)
 		}
+
+		outputPath := filepath.Clean(c.String("output-path"))
+		dataPath := filepath.Clean(c.String("data"))
+
+		// If no schema provided, assume it is a raw data file.
+		if c.String("schema") == "" {
+			log.Infof("Schema file not specified so assuming raw dataset being merged")
+			return mergeRawData(dataPath, outputPath)
+		}
+
 		if c.String("output-schema-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-schema-path`", 1)
 		}
 		schemaPath := filepath.Clean(c.String("schema"))
-		dataPath := filepath.Clean(c.String("data"))
 		rawDataPath := filepath.Clean(c.String("raw-data"))
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
-		outputPath := filepath.Clean(c.String("output-path"))
 		outputPathHeader := filepath.Clean(c.String("output-path-header"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
 		hasHeader := c.Bool("has-header")
@@ -228,4 +233,27 @@ func getMergedData(header []string, datasetPath string, hasHeader bool) ([]byte,
 		return nil, errors.Wrap(err, "failed to close input file")
 	}
 	return output.Bytes(), nil
+}
+
+func mergeRawData(dataPath string, outputPath string) error {
+	in, err := os.Open(dataPath)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	if _, err = io.Copy(out, in); err != nil {
+		return err
+	}
+	err = out.Sync()
+	return err
 }

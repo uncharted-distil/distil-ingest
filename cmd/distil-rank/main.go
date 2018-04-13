@@ -93,9 +93,6 @@ func main() {
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.String("schema") == "" {
-			return cli.NewExitError("missing commandline flag `--schema`", 1)
-		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
@@ -128,6 +125,10 @@ func main() {
 
 		// load the metadata
 		var meta *metadata.Metadata
+		if schemaPath == "" {
+			log.Infof("Loading metadata from raw file")
+			meta, err = metadata.LoadMetadataFromRawFile(classificationPath, datasetPath)
+		}
 		if typeSource == "classification" {
 			log.Infof("Loading metadata from classification file")
 			meta, err = metadata.LoadMetadataFromClassification(

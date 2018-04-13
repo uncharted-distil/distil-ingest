@@ -3,11 +3,13 @@ package metadata
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -186,6 +188,82 @@ func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
 		return nil, err
 	}
 	return meta, nil
+}
+
+// LoadMetadataFromRawFile loads metadata from a raw file
+// and a classification file.
+func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*Metadata, error) {
+	meta := &Metadata{
+		ID:   filepath.Base(datasetPath),
+		Name: filepath.Base(datasetPath),
+	}
+	err := meta.loadClassification(classificationPath)
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadRawVariables(datasetPath, classificationPath)
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+func (m *Metadata) loadRawVariables(datasetPath string, classificationPath string) error {
+	// read header from the raw datafile.
+	csvFile, err := os.Open(datasetPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to open raw data file")
+	}
+	defer csvFile.Close()
+
+	reader := csv.NewReader(csvFile)
+	fields, err := reader.Read()
+	if err != nil {
+		return errors.Wrap(err, "failed to read header line")
+	}
+
+	labels, err := m.classification.Path("labels").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse classification labels")
+	}
+
+	probabilities, err := m.classification.Path("label_probabilities").Children()
+	if err != nil {
+		return errors.Wrap(err, "Unable to parse classification probabilities")
+	}
+
+	// All variables now in a single dataset since it is merged
+	m.DataResources = make([]*DataResource, 1)
+	m.DataResources[0] = &DataResource{
+		Variables: make([]*Variable, 0),
+	}
+
+	for index, v := range fields {
+		variable := NewVariable(
+			index,
+			v,
+			"",
+			"",
+			"",
+			nil,
+			nil,
+			m.DataResources[0].Variables,
+			false)
+		// get suggested types
+		suggestedTypes, err := m.parseSuggestedTypes(variable.Name, index, labels, probabilities)
+		if err != nil {
+			return err
+		}
+		variable.SuggestedTypes = suggestedTypes
+		// set type to that with highest probability
+		if len(suggestedTypes) > 0 && suggestedTypes[0].Probability >= typeProbabilityThreshold {
+			variable.Type = suggestedTypes[0].Type
+		} else {
+			variable.Type = defaultVarType
+		}
+		m.DataResources[0].Variables = append(m.DataResources[0].Variables, variable)
+	}
+	return nil
 }
 
 // LoadMetadataFromClassification loads metadata from a merged schema and
