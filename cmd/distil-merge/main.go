@@ -91,8 +91,16 @@ func main() {
 
 		// If no schema provided, assume it is a raw data file.
 		if c.String("schema") == "" {
-			log.Infof("Schema file not specified so assuming raw dataset being merged")
-			return mergeRawData(dataPath, outputPath)
+			log.Infof("Schema file not specified so assuming raw dataset being merged, copying from %s to %s", dataPath, outputPath)
+			err := mergeRawData(dataPath, outputPath)
+			if err != nil {
+				log.Errorf("%+v", err)
+				return cli.NewExitError(errors.Cause(err), 1)
+			}
+
+			log.Infof("Successfully merged raw dataset")
+
+			return nil
 		}
 
 		if c.String("output-schema-path") == "" {
@@ -236,24 +244,42 @@ func getMergedData(header []string, datasetPath string, hasHeader bool) ([]byte,
 }
 
 func mergeRawData(dataPath string, outputPath string) error {
-	in, err := os.Open(dataPath)
+	// Copy source to destination.
+	file, err := os.Open(dataPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to open data file")
 	}
-	defer in.Close()
-	out, err := os.Create(outputPath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		cerr := out.Close()
-		if err == nil {
-			err = cerr
+
+	reader := csv.NewReader(file)
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return errors.Wrap(err, "failed to read line from file")
 		}
-	}()
-	if _, err = io.Copy(out, in); err != nil {
-		return err
+		// write the csv line back out
+		err = writer.Write(line)
+		if err != nil {
+			return errors.Wrap(err, "failed to write line to file")
+		}
 	}
-	err = out.Sync()
-	return err
+	// flush writer
+	writer.Flush()
+
+	err = ioutil.WriteFile(outputPath, output.Bytes(), 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to close output file")
+	}
+
+	// close left
+	err = file.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close input file")
+	}
+	return nil
 }

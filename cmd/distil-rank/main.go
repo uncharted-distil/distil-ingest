@@ -125,11 +125,10 @@ func main() {
 
 		// load the metadata
 		var meta *metadata.Metadata
-		if schemaPath == "" {
+		if schemaPath == "" || schemaPath == "." {
 			log.Infof("Loading metadata from raw file")
-			meta, err = metadata.LoadMetadataFromRawFile(classificationPath, datasetPath)
-		}
-		if typeSource == "classification" {
+			meta, err = metadata.LoadMetadataFromRawFile(datasetPath, classificationPath)
+		} else if typeSource == "classification" {
 			log.Infof("Loading metadata from classification file")
 			meta, err = metadata.LoadMetadataFromClassification(
 				schemaPath,
