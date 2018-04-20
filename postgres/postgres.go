@@ -97,6 +97,7 @@ type Database struct {
 // NewDatabase creates a new database instance.
 func NewDatabase(config *conf.Conf) (*Database, error) {
 	db := pg.Connect(&pg.Options{
+		Addr:     fmt.Sprintf("%s:%d", config.DBHost, config.DBPort),
 		User:     config.DBUser,
 		Password: config.DBPassword,
 		Database: config.Database,

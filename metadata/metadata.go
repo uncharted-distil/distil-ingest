@@ -3,11 +3,13 @@ package metadata
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -22,7 +24,22 @@ import (
 
 const (
 	defaultVarType        = "unknown"
+	resTypeAudio          = "audio"
+	resTypeImage          = "image"
+	resTypeTable          = "table"
+	resTypeText           = "text"
+	resTypeTime           = "timeseries"
 	variableNameSizeLimit = 50
+	datasetSuffix         = "_dataset"
+
+	// SchemaSourceClassification was loaded via classification
+	SchemaSourceClassification = "classification"
+	// SchemaSourceMerged was loaded via merged output
+	SchemaSourceMerged = "merged"
+	// SchemaSourceOriginal was loaded via original schema
+	SchemaSourceOriginal = "original"
+	// SchemaSourceRaw was loaded via raw data file
+	SchemaSourceRaw = "raw"
 )
 
 var (
@@ -54,9 +71,11 @@ type Variable struct {
 
 // DataResource represents a set of variables found in a data asset.
 type DataResource struct {
-	ResID     string `json:"resID"`
-	ResPath   string `json:"resPath"`
-	Variables []*Variable
+	ResID        string `json:"resID"`
+	ResType      string `json:"resType"`
+	ResPath      string `json:"resPath"`
+	IsCollection bool   `json:"isCollection"`
+	Variables    []*Variable
 }
 
 // SuggestedType represents a classified variable type.
@@ -78,6 +97,7 @@ type Metadata struct {
 	classification *gabs.Container
 	NumRows        int64
 	NumBytes       int64
+	SchemaSource   string
 }
 
 // NormalizeVariableName normalizes a variable name.
@@ -131,7 +151,9 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 
 // LoadMetadataFromOriginalSchema loads metadata from a schema file.
 func LoadMetadataFromOriginalSchema(schemaPath string) (*Metadata, error) {
-	meta := &Metadata{}
+	meta := &Metadata{
+		SchemaSource: SchemaSourceOriginal,
+	}
 	err := meta.loadSchema(schemaPath)
 	if err != nil {
 		return nil, err
@@ -157,7 +179,9 @@ func LoadMetadataFromOriginalSchema(schemaPath string) (*Metadata, error) {
 
 // LoadMetadataFromMergedSchema loads metadata from a merged schema file.
 func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
-	meta := &Metadata{}
+	meta := &Metadata{
+		SchemaSource: SchemaSourceMerged,
+	}
 	err := meta.loadMergedSchema(schemaPath)
 	if err != nil {
 		return nil, err
@@ -181,10 +205,91 @@ func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
 	return meta, nil
 }
 
+// LoadMetadataFromRawFile loads metadata from a raw file
+// and a classification file.
+func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*Metadata, error) {
+	directory := filepath.Dir(datasetPath)
+	directory = filepath.Base(directory)
+	meta := &Metadata{
+		ID:           directory,
+		Name:         directory,
+		SchemaSource: SchemaSourceRaw,
+	}
+	err := meta.loadClassification(classificationPath)
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadRawVariables(datasetPath, classificationPath)
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+func (m *Metadata) loadRawVariables(datasetPath string, classificationPath string) error {
+	// read header from the raw datafile.
+	csvFile, err := os.Open(datasetPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to open raw data file")
+	}
+	defer csvFile.Close()
+
+	reader := csv.NewReader(csvFile)
+	fields, err := reader.Read()
+	if err != nil {
+		return errors.Wrap(err, "failed to read header line")
+	}
+
+	labels, err := m.classification.Path("labels").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse classification labels")
+	}
+
+	probabilities, err := m.classification.Path("label_probabilities").Children()
+	if err != nil {
+		return errors.Wrap(err, "Unable to parse classification probabilities")
+	}
+
+	// All variables now in a single dataset since it is merged
+	m.DataResources = make([]*DataResource, 1)
+	m.DataResources[0] = &DataResource{
+		Variables: make([]*Variable, 0),
+	}
+
+	for index, v := range fields {
+		variable := NewVariable(
+			index,
+			v,
+			"",
+			"",
+			"",
+			nil,
+			nil,
+			m.DataResources[0].Variables,
+			false)
+		// get suggested types
+		suggestedTypes, err := m.parseSuggestedTypes(variable.Name, index, labels, probabilities)
+		if err != nil {
+			return err
+		}
+		variable.SuggestedTypes = suggestedTypes
+		// set type to that with highest probability
+		if len(suggestedTypes) > 0 && suggestedTypes[0].Probability >= typeProbabilityThreshold {
+			variable.Type = suggestedTypes[0].Type
+		} else {
+			variable.Type = defaultVarType
+		}
+		m.DataResources[0].Variables = append(m.DataResources[0].Variables, variable)
+	}
+	return nil
+}
+
 // LoadMetadataFromClassification loads metadata from a merged schema and
 // classification file.
 func LoadMetadataFromClassification(schemaPath string, classificationPath string) (*Metadata, error) {
-	meta := &Metadata{}
+	meta := &Metadata{
+		SchemaSource: SchemaSourceClassification,
+	}
 	err := meta.loadMergedSchema(schemaPath)
 	if err != nil {
 		return nil, err
@@ -404,7 +509,7 @@ func (m *Metadata) loadDescription() error {
 	return nil
 }
 
-func (m *Metadata) parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, normalizeName bool) (*Variable, error) {
+func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, normalizeName bool) (*Variable, error) {
 	if v.Path("colName").Data() == nil {
 		return nil, fmt.Errorf("unable to parse column name")
 	}
@@ -524,34 +629,32 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 	// Parse the variables for every schema
 	m.DataResources = make([]*DataResource, len(dataResources))
 	for i, sv := range dataResources {
-		schemaVariables, err := sv.Path("columns").Children()
+		if sv.Path("resType").Data() == nil {
+			return fmt.Errorf("unable to parse resource type")
+		}
+		resType := sv.Path("resType").Data().(string)
+
+		var parser DataResourceParser
+		switch resType {
+		case resTypeImage:
+		case resTypeAudio:
+		case resTypeText:
+		case resTypeTime:
+			parser = NewMedia(resType)
+			break
+		case resTypeTable:
+			parser = &Table{}
+			break
+		default:
+			return errors.Errorf("Unrecognized resource type '%s'", resType)
+		}
+
+		dr, err := parser.Parse(sv)
 		if err != nil {
-			return errors.Wrap(err, "failed to parse column data")
+			return errors.Wrapf(err, "Unable to parse data resource of type '%s'", resType)
 		}
 
-		if sv.Path("resID").Data() == nil {
-			return fmt.Errorf("unable to parse resource id")
-		}
-		resID := sv.Path("resID").Data().(string)
-
-		if sv.Path("resPath").Data() == nil {
-			return fmt.Errorf("unable to parse resource path")
-		}
-		resPath := sv.Path("resPath").Data().(string)
-
-		m.DataResources[i] = &DataResource{
-			ResID:     resID,
-			ResPath:   resPath,
-			Variables: make([]*Variable, 0),
-		}
-
-		for _, v := range schemaVariables {
-			variable, err := m.parseSchemaVariable(v, m.DataResources[i].Variables, false)
-			if err != nil {
-				return err
-			}
-			m.DataResources[i].Variables = append(m.DataResources[i].Variables, variable)
-		}
+		m.DataResources[i] = dr
 	}
 	return nil
 }
@@ -569,7 +672,7 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 	}
 
 	for _, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables, true)
+		variable, err := parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse merged schema variable")
 		}
@@ -601,7 +704,7 @@ func (m *Metadata) loadClassificationVariables() error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := m.parseSchemaVariable(v, m.DataResources[0].Variables, true)
+		variable, err := parseSchemaVariable(v, m.DataResources[0].Variables, true)
 		if err != nil {
 			return err
 		}
@@ -672,12 +775,14 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 // IngestMetadata adds a document consisting of the metadata to the
 // provided index.
 func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, meta *Metadata) error {
-
 	// filter variables for surce object
 	if len(meta.DataResources) > 1 {
 		return errors.New("metadata variables not merged into a single dataset")
 	}
 	adjustedID := datasetPrefix + meta.ID
+	if !strings.HasSuffix(meta.ID, datasetSuffix) {
+		adjustedID = fmt.Sprintf("%s%s", adjustedID, datasetSuffix)
+	}
 
 	source := map[string]interface{}{
 		"datasetName":    meta.Name,
@@ -761,83 +866,104 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 
 	// create body
 	body := `{
-		"settings": {
-			"analysis": {
-				"filter": {
-					"ngram_filter": {
-						"type": "ngram",
-						"min_gram": 4,
-						"max_gram": 20
-					}
-				},
-				"analyzer": {
-					"ngram_analyzer": {
-						"type": "custom",
-						"tokenizer": "standard",
-						"filter": [
-							"lowercase",
-							"ngram_filter"
-						]
-					}
-				}
-			}
-		},
-		"mappings": {
-			"metadata": {
-				"properties": {
-					"datasetId": {
-						"type": "text"
-					},
-					"name": {
-						"type": "text"
-					},
-					"description": {
-						"type": "text"
-					},
-					"summary": {
-						"type": "text"
-					},
-					"summaryMachine": {
-						"type": "text"
-					},
-					"numRows": {
-						"type": "long"
-					},
-					"numBytes": {
-						"type": "long"
-					},
-					"variables": {
-						"properties": {
-							"varDescription": {
-								"type": "text"
-							},
-							"varName": {
-								"type": "text",
-								"analyzer": "ngram_analyzer",
-								"include_in_all": true,
-								"term_vector": "yes"
-							},
-							"varRole": {
-								"type": "text"
-							},
-							"varType": {
-								"type": "text"
-							},
-							"varOriginalName": {
-								"type": "text"
-							},
-							"varDisplayName": {
-								"type": "text"
-							},
-							"importance": {
-								"type": "integer"
-							}
-						}
-					}
-				}
-			}
-		}
-	}`
+        "settings": {
+            "analysis": {
+                "filter": {
+                    "ngram_filter": {
+                        "type": "ngram",
+                        "min_gram": 4,
+                        "max_gram": 20
+                    },
+                    "search_filter": {
+                        "type": "edge_ngram",
+                        "min_gram": 1,
+                        "max_gram": 20
+                    }
+                },
+                "analyzer": {
+                    "ngram_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": [
+                            "lowercase",
+                            "ngram_filter"
+                        ]
+                    },
+                    "search_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": [
+                            "lowercase",
+                            "search_filter"
+                        ]
+                    }
+                }
+            }
+        },
+        "mappings": {
+            "metadata": {
+                "properties": {
+                    "datasetId": {
+                        "type": "text"
+                    },
+                    "datasetName": {
+                        "type": "text",
+                        "analyzer": "search_analyzer",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "description": {
+                        "type": "text",
+                        "analyzer": "search_analyzer"
+                    },
+                    "summary": {
+                        "type": "text"
+                    },
+                    "summaryMachine": {
+                        "type": "text"
+                    },
+                    "numRows": {
+                        "type": "long"
+                    },
+                    "numBytes": {
+                        "type": "long"
+                    },
+                    "variables": {
+                        "properties": {
+                            "varDescription": {
+                                "type": "text"
+                            },
+                            "varName": {
+                                "type": "text",
+                                "analyzer": "search_analyzer",
+                                "include_in_all": true,
+                                "term_vector": "yes"
+                            },
+                            "varRole": {
+                                "type": "text"
+                            },
+                            "varType": {
+                                "type": "text"
+                            },
+                            "varOriginalName": {
+                                "type": "text"
+                            },
+                            "varDisplayName": {
+                                "type": "text"
+                            },
+                            "importance": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }`
 
 	// create index
 	created, err := client.CreateIndex(index).BodyString(body).Do(context.Background())

@@ -21,7 +21,6 @@ do
     echo " Classifying $DATASET dataset"
     echo "--------------------------------------------------------------------------------"
     go run cmd/distil-classify/main.go \
-        --schema="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$SCHEMA" \
         --rest-endpoint="$REST_ENDPOINT" \
         --classification-function="$CLASSIFICATION_FUNCTION" \
         --dataset="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$MERGED_FILE" \

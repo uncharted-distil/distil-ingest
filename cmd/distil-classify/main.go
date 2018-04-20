@@ -37,11 +37,6 @@ func main() {
 	app.UsageText = "distil-classify --rest-endpoint=<url> --classification-function=<function> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "schema",
-			Value: "",
-			Usage: "The dataset schema file path",
-		},
-		cli.StringFlag{
 			Name:  "rest-endpoint",
 			Value: "",
 			Usage: "The REST endpoint url",
@@ -73,9 +68,6 @@ func main() {
 		}
 		if c.String("classification-function") == "" {
 			return cli.NewExitError("missing commandline flag `--classification-function`", 1)
-		}
-		if c.String("schema") == "" {
-			return cli.NewExitError("missing commandline flag `--schema`", 1)
 		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)

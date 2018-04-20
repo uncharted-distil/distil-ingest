@@ -100,6 +100,16 @@ func main() {
 			Usage: "The postgres database to use",
 		},
 		cli.StringFlag{
+			Name:  "db-host",
+			Value: "localhost",
+			Usage: "The postgres database hostname - defaults to localhost",
+		},
+		cli.IntFlag{
+			Name:  "db-port",
+			Value: 5432,
+			Usage: "The postgres database port - defaults to 5432",
+		},
+		cli.StringFlag{
 			Name:  "db-table",
 			Value: "",
 			Usage: "The database table to ingest into.",
@@ -169,9 +179,6 @@ func main() {
 		if c.String("es-data-index") == "" && c.String("db-table") == "" {
 			return cli.NewExitError("missing commandline flag `--es-data-index` or `--db-table`", 1)
 		}
-		if c.String("schema") == "" {
-			return cli.NewExitError("missing commandline flag `--schema`", 1)
-		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
@@ -212,6 +219,8 @@ func main() {
 			DBUser:               c.String("db-user"),
 			DBPassword:           c.String("db-password"),
 			DBBatchSize:          c.Int("db-batch-size"),
+			DBHost:               c.String("db-host"),
+			DBPort:               c.Int("db-port"),
 		}
 
 		metadata.SetTypeProbabilityThreshold(config.ProbabilityThreshold)
@@ -219,7 +228,10 @@ func main() {
 		// load the metadata
 		var err error
 		var meta *metadata.Metadata
-		if config.TypeSource == typeSourceClassification {
+		if config.SchemaPath == "" || config.SchemaPath == "." {
+			log.Infof("Loading metadata from classification file (%s) and raw file (%s)", config.ClassificationPath, config.DatasetPath)
+			meta, err = metadata.LoadMetadataFromRawFile(config.DatasetPath, config.ClassificationPath)
+		} else if config.TypeSource == typeSourceClassification {
 			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationPath, config.SchemaPath)
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,
@@ -412,12 +424,17 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	// Load the data.
 	reader, err := os.Open(config.DatasetPath)
 	scanner := bufio.NewScanner(reader)
+	count := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		err = pg.IngestRow(config.DBTable, line)
-		if err != nil {
-			log.Warn(fmt.Sprintf("%v", err))
+		// Raw schema source will have header row.
+		if count > 0 || meta.SchemaSource != metadata.SchemaSourceRaw {
+			err = pg.IngestRow(config.DBTable, line)
+			if err != nil {
+				log.Warn(fmt.Sprintf("%v", err))
+			}
 		}
+		count = count + 1
 	}
 
 	err = pg.InsertRemainingRows()
