@@ -79,24 +79,37 @@ func main() {
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.String("schema") == "" {
-			return cli.NewExitError("missing commandline flag `--schema`", 1)
-		}
 		if c.String("data") == "" {
 			return cli.NewExitError("missing commandline flag `--data`", 1)
 		}
 		if c.String("output-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-path`", 1)
 		}
+
+		outputPath := filepath.Clean(c.String("output-path"))
+		dataPath := filepath.Clean(c.String("data"))
+
+		// If no schema provided, assume it is a raw data file.
+		if c.String("schema") == "" {
+			log.Infof("Schema file not specified so assuming raw dataset being merged, copying from %s to %s", dataPath, outputPath)
+			err := mergeRawData(dataPath, outputPath)
+			if err != nil {
+				log.Errorf("%+v", err)
+				return cli.NewExitError(errors.Cause(err), 1)
+			}
+
+			log.Infof("Successfully merged raw dataset")
+
+			return nil
+		}
+
 		if c.String("output-schema-path") == "" {
 			return cli.NewExitError("missing commandline flag `--output-schema-path`", 1)
 		}
 		schemaPath := filepath.Clean(c.String("schema"))
-		dataPath := filepath.Clean(c.String("data"))
 		rawDataPath := filepath.Clean(c.String("raw-data"))
 		outputBucket := c.String("output-bucket")
 		outputKey := c.String("output-key")
-		outputPath := filepath.Clean(c.String("output-path"))
 		outputPathHeader := filepath.Clean(c.String("output-path-header"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
 		hasHeader := c.Bool("has-header")
@@ -228,4 +241,45 @@ func getMergedData(header []string, datasetPath string, hasHeader bool) ([]byte,
 		return nil, errors.Wrap(err, "failed to close input file")
 	}
 	return output.Bytes(), nil
+}
+
+func mergeRawData(dataPath string, outputPath string) error {
+	// Copy source to destination.
+	file, err := os.Open(dataPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to open data file")
+	}
+
+	reader := csv.NewReader(file)
+
+	// output writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return errors.Wrap(err, "failed to read line from file")
+		}
+		// write the csv line back out
+		err = writer.Write(line)
+		if err != nil {
+			return errors.Wrap(err, "failed to write line to file")
+		}
+	}
+	// flush writer
+	writer.Flush()
+
+	err = ioutil.WriteFile(outputPath, output.Bytes(), 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to close output file")
+	}
+
+	// close left
+	err = file.Close()
+	if err != nil {
+		return errors.Wrap(err, "failed to close input file")
+	}
+	return nil
 }
