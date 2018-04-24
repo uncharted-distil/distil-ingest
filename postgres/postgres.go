@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,7 @@ const (
 	pipelineScoreTableName  = "pipeline_score"
 	requestFeatureTableName = "request_feature"
 	requestFilterTableName  = "request_filter"
+	wordStemTableName       = "word_stem"
 
 	requestTableCreationSQL = `CREATE TABLE %s (
 			request_id			varchar(200),
@@ -74,6 +76,10 @@ const (
 			progress		varchar(40),
 			created_time	timestamp
 		);`
+	wordStemsTableCreationSQL = `CREATE TABLE %s (
+			word		varchar(200) PRIMARY KEY,
+			stem		varchar(200)
+		);`
 
 	resultTableSuffix   = "_result"
 	variableTableSuffix = "_variable"
@@ -85,6 +91,7 @@ var (
 		"integer": true,
 		"float":   true,
 	}
+	wordRegex = regexp.MustCompile("[^a-zA-Z]")
 )
 
 // Database is a struct representing a full logical database.
@@ -92,6 +99,12 @@ type Database struct {
 	DB        *pg.DB
 	Tables    map[string]*model.Dataset
 	BatchSize int
+}
+
+// WordStem contains the pairing of a word and its stemmed version.
+type WordStem struct {
+	Word string
+	Stem string
 }
 
 // NewDatabase creates a new database instance.
@@ -149,6 +162,12 @@ func (d *Database) CreatePipelineMetadataTables() error {
 
 	d.DropTable(pipelineScoreTableName)
 	_, err = d.DB.Exec(fmt.Sprintf(pipelineScoreTableCreationSQL, pipelineScoreTableName))
+	if err != nil {
+		return err
+	}
+
+	d.DropTable(wordStemTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(wordStemsTableCreationSQL, wordStemTableName))
 	if err != nil {
 		return err
 	}
@@ -271,6 +290,31 @@ func (d *Database) InsertRemainingRows() error {
 			err := d.executeInserts(tableName)
 			if err != nil {
 				return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+			}
+		}
+	}
+
+	return nil
+}
+
+// AddWordStems builds the word stemming lookup in the database.
+func (d *Database) AddWordStems(data string) error {
+	// process every field (assume csv).
+	doc := &document.CSV{}
+	doc.SetData(data)
+
+	for i := 0; i < len(doc.Cols); i++ {
+		// split the field into tokens.
+		fields := strings.Fields(doc.Cols[i])
+		for _, f := range fields {
+			fieldValue := wordRegex.ReplaceAllString(f, "")
+
+			// query for the stemmed version of each word.
+			word := &WordStem{}
+			query := fmt.Sprintf("INSERT INTO %s VALUES (?, unnest(tsvector_to_array(to_tsvector(?)))) ON CONFLICT (word) DO NOTHING;", wordStemTableName)
+			_, err := d.DB.Query(word, query, pg.In(fieldValue), pg.In(fieldValue))
+			if err != nil {
+				return err
 			}
 		}
 	}
