@@ -77,8 +77,8 @@ const (
 			created_time	timestamp
 		);`
 	wordStemsTableCreationSQL = `CREATE TABLE %s (
-			word		varchar(200) PRIMARY KEY,
-			stem		varchar(200)
+			stem		varchar(200) PRIMARY KEY,
+			word		varchar(200)
 		);`
 
 	resultTableSuffix   = "_result"
@@ -121,6 +121,8 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 		Tables:    make(map[string]*model.Dataset),
 		BatchSize: config.DBBatchSize,
 	}
+
+	database.Tables[wordStemTableName] = model.NewDataset(wordStemTableName, wordStemTableName, "", nil)
 
 	return database, nil
 }
@@ -166,11 +168,10 @@ func (d *Database) CreatePipelineMetadataTables() error {
 		return err
 	}
 
-	d.DropTable(wordStemTableName)
+	// do not drop the word stem table as we want it to include all words.
 	_, err = d.DB.Exec(fmt.Sprintf(wordStemsTableCreationSQL, wordStemTableName))
-	if err != nil {
-		return err
-	}
+	// ignore the error in the word stem creation.
+	// Almost certainly due to the table already existing.
 
 	return nil
 }
@@ -181,6 +182,14 @@ func (d *Database) executeInserts(tableName string) error {
 	insertStatement := fmt.Sprintf("INSERT INTO %s.%s.%s_base VALUES %s;", "distil", "public", tableName, strings.Join(ds.GetBatch(), ", "))
 
 	_, err := d.DB.Exec(insertStatement, ds.GetBatchArgs()...)
+
+	return err
+}
+
+func (d *Database) executeInsertsComplete(tableName string) error {
+	ds := d.Tables[tableName]
+
+	_, err := d.DB.Exec(strings.Join(ds.GetBatch(), " "), ds.GetBatchArgs()...)
 
 	return err
 }
@@ -287,9 +296,16 @@ func (d *Database) IngestRow(tableName string, data string) error {
 func (d *Database) InsertRemainingRows() error {
 	for tableName, ds := range d.Tables {
 		if ds.GetBatchSize() > 0 {
-			err := d.executeInserts(tableName)
-			if err != nil {
-				return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+			if tableName != wordStemTableName {
+				err := d.executeInserts(tableName)
+				if err != nil {
+					return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+				}
+			} else {
+				err := d.executeInsertsComplete(tableName)
+				if err != nil {
+					return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+				}
 			}
 		}
 	}
@@ -299,6 +315,8 @@ func (d *Database) InsertRemainingRows() error {
 
 // AddWordStems builds the word stemming lookup in the database.
 func (d *Database) AddWordStems(data string) error {
+	ds := d.Tables[wordStemTableName]
+
 	// process every field (assume csv).
 	doc := &document.CSV{}
 	doc.SetData(data)
@@ -308,13 +326,20 @@ func (d *Database) AddWordStems(data string) error {
 		fields := strings.Fields(doc.Cols[i])
 		for _, f := range fields {
 			fieldValue := wordRegex.ReplaceAllString(f, "")
+			if fieldValue == "" {
+				continue
+			}
 
 			// query for the stemmed version of each word.
-			word := &WordStem{}
-			query := fmt.Sprintf("INSERT INTO %s VALUES (?, unnest(tsvector_to_array(to_tsvector(?)))) ON CONFLICT (word) DO NOTHING;", wordStemTableName)
-			_, err := d.DB.Query(word, query, pg.In(fieldValue), pg.In(fieldValue))
-			if err != nil {
-				return err
+			query := fmt.Sprintf("INSERT INTO %s VALUES (unnest(tsvector_to_array(to_tsvector(?))), ?) ON CONFLICT (stem) DO NOTHING;", wordStemTableName)
+			ds.AddInsert(query, []interface{}{fieldValue, fieldValue})
+			if ds.GetBatchSize() >= d.BatchSize {
+				err := d.executeInsertsComplete(wordStemTableName)
+				if err != nil {
+					return errors.Wrap(err, "unable to insert to table "+wordStemTableName)
+				}
+
+				ds.ResetBatch()
 			}
 		}
 	}
