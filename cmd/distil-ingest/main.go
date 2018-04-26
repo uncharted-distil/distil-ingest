@@ -429,6 +429,11 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 		line := scanner.Text()
 		// Raw schema source will have header row.
 		if count > 0 || meta.SchemaSource != metadata.SchemaSourceRaw {
+			err = pg.AddWordStems(line)
+			if err != nil {
+				log.Warn(fmt.Sprintf("%v", err))
+			}
+
 			err = pg.IngestRow(config.DBTable, line)
 			if err != nil {
 				log.Warn(fmt.Sprintf("%v", err))

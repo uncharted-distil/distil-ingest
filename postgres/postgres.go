@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,7 @@ const (
 	pipelineScoreTableName  = "pipeline_score"
 	requestFeatureTableName = "request_feature"
 	requestFilterTableName  = "request_filter"
+	wordStemTableName       = "word_stem"
 
 	requestTableCreationSQL = `CREATE TABLE %s (
 			request_id			varchar(200),
@@ -74,6 +76,10 @@ const (
 			progress		varchar(40),
 			created_time	timestamp
 		);`
+	wordStemsTableCreationSQL = `CREATE TABLE %s (
+			stem		varchar(200) PRIMARY KEY,
+			word		varchar(200)
+		);`
 
 	resultTableSuffix   = "_result"
 	variableTableSuffix = "_variable"
@@ -85,6 +91,7 @@ var (
 		"integer": true,
 		"float":   true,
 	}
+	wordRegex = regexp.MustCompile("[^a-zA-Z]")
 )
 
 // Database is a struct representing a full logical database.
@@ -92,6 +99,12 @@ type Database struct {
 	DB        *pg.DB
 	Tables    map[string]*model.Dataset
 	BatchSize int
+}
+
+// WordStem contains the pairing of a word and its stemmed version.
+type WordStem struct {
+	Word string
+	Stem string
 }
 
 // NewDatabase creates a new database instance.
@@ -108,6 +121,8 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 		Tables:    make(map[string]*model.Dataset),
 		BatchSize: config.DBBatchSize,
 	}
+
+	database.Tables[wordStemTableName] = model.NewDataset(wordStemTableName, wordStemTableName, "", nil)
 
 	return database, nil
 }
@@ -153,6 +168,11 @@ func (d *Database) CreatePipelineMetadataTables() error {
 		return err
 	}
 
+	// do not drop the word stem table as we want it to include all words.
+	_, err = d.DB.Exec(fmt.Sprintf(wordStemsTableCreationSQL, wordStemTableName))
+	// ignore the error in the word stem creation.
+	// Almost certainly due to the table already existing.
+
 	return nil
 }
 
@@ -162,6 +182,14 @@ func (d *Database) executeInserts(tableName string) error {
 	insertStatement := fmt.Sprintf("INSERT INTO %s.%s.%s_base VALUES %s;", "distil", "public", tableName, strings.Join(ds.GetBatch(), ", "))
 
 	_, err := d.DB.Exec(insertStatement, ds.GetBatchArgs()...)
+
+	return err
+}
+
+func (d *Database) executeInsertsComplete(tableName string) error {
+	ds := d.Tables[tableName]
+
+	_, err := d.DB.Exec(strings.Join(ds.GetBatch(), " "), ds.GetBatchArgs()...)
 
 	return err
 }
@@ -268,9 +296,50 @@ func (d *Database) IngestRow(tableName string, data string) error {
 func (d *Database) InsertRemainingRows() error {
 	for tableName, ds := range d.Tables {
 		if ds.GetBatchSize() > 0 {
-			err := d.executeInserts(tableName)
-			if err != nil {
-				return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+			if tableName != wordStemTableName {
+				err := d.executeInserts(tableName)
+				if err != nil {
+					return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+				}
+			} else {
+				err := d.executeInsertsComplete(tableName)
+				if err != nil {
+					return errors.Wrap(err, "unable to insert remaining rows for table "+tableName)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// AddWordStems builds the word stemming lookup in the database.
+func (d *Database) AddWordStems(data string) error {
+	ds := d.Tables[wordStemTableName]
+
+	// process every field (assume csv).
+	doc := &document.CSV{}
+	doc.SetData(data)
+
+	for i := 0; i < len(doc.Cols); i++ {
+		// split the field into tokens.
+		fields := strings.Fields(doc.Cols[i])
+		for _, f := range fields {
+			fieldValue := wordRegex.ReplaceAllString(f, "")
+			if fieldValue == "" {
+				continue
+			}
+
+			// query for the stemmed version of each word.
+			query := fmt.Sprintf("INSERT INTO %s VALUES (unnest(tsvector_to_array(to_tsvector(?))), ?) ON CONFLICT (stem) DO NOTHING;", wordStemTableName)
+			ds.AddInsert(query, []interface{}{fieldValue, strings.ToLower(fieldValue)})
+			if ds.GetBatchSize() >= d.BatchSize {
+				err := d.executeInsertsComplete(wordStemTableName)
+				if err != nil {
+					return errors.Wrap(err, "unable to insert to table "+wordStemTableName)
+				}
+
+				ds.ResetBatch()
 			}
 		}
 	}
