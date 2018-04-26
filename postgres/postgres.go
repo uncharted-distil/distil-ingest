@@ -332,7 +332,7 @@ func (d *Database) AddWordStems(data string) error {
 
 			// query for the stemmed version of each word.
 			query := fmt.Sprintf("INSERT INTO %s VALUES (unnest(tsvector_to_array(to_tsvector(?))), ?) ON CONFLICT (stem) DO NOTHING;", wordStemTableName)
-			ds.AddInsert(query, []interface{}{fieldValue, fieldValue})
+			ds.AddInsert(query, []interface{}{fieldValue, strings.ToLower(fieldValue)})
 			if ds.GetBatchSize() >= d.BatchSize {
 				err := d.executeInsertsComplete(wordStemTableName)
 				if err != nil {
