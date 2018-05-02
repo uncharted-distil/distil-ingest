@@ -374,11 +374,11 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 		return err
 	}
 
-	err = pg.CreatePipelineMetadataTables()
+	err = pg.CreateSolutionMetadataTables()
 	if err != nil {
 		return err
 	}
-	log.Infof("Done creating pipeline metadata tables")
+	log.Infof("Done creating solution metadata tables")
 
 	if config.MetadataOnly {
 		log.Info("Only loading metadata")

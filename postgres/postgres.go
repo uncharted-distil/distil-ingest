@@ -30,9 +30,9 @@ const (
 		);`
 
 	requestTableName        = "request"
-	pipelineTableName       = "pipeline"
-	pipelineResultTableName = "pipeline_result"
-	pipelineScoreTableName  = "pipeline_score"
+	solutionTableName       = "solution"
+	solutionResultTableName = "solution_result"
+	solutionScoreTableName  = "solution_score"
 	requestFeatureTableName = "request_feature"
 	requestFilterTableName  = "request_filter"
 	wordStemTableName       = "word_stem"
@@ -44,9 +44,9 @@ const (
 			created_time		timestamp,
 			last_updated_time	timestamp
 		);`
-	pipelineTableCreationSQL = `CREATE TABLE %s (
+	solutionTableCreationSQL = `CREATE TABLE %s (
 			request_id		varchar(200),
-			pipeline_id		varchar(200),
+			solution_id		varchar(200),
 			progress		varchar(40),
 			created_time	timestamp
 		);`
@@ -64,13 +64,13 @@ const (
 			filter_max			double precision,
 			filter_categories	varchar(200)
 		);`
-	pipelineScoreTableCreationSQL = `CREATE TABLE %s (
-			pipeline_id	varchar(200),
+	solutionScoreTableCreationSQL = `CREATE TABLE %s (
+			solution_id	varchar(200),
 			metric		varchar(40),
 			score		double precision
 		);`
-	pipelineResultTableCreationSQL = `CREATE TABLE %s (
-			pipeline_id		varchar(200),
+	solutionResultTableCreationSQL = `CREATE TABLE %s (
+			solution_id		varchar(200),
 			result_uuid		varchar(200),
 			result_uri		varchar(200),
 			progress		varchar(40),
@@ -127,10 +127,10 @@ func NewDatabase(config *conf.Conf) (*Database, error) {
 	return database, nil
 }
 
-// CreatePipelineMetadataTables creates an empty table for the pipeline results.
-func (d *Database) CreatePipelineMetadataTables() error {
-	// Create the pipeline tables.
-	log.Infof("Creating pipeline metadata tables.")
+// CreateSolutionMetadataTables creates an empty table for the solution results.
+func (d *Database) CreateSolutionMetadataTables() error {
+	// Create the solution tables.
+	log.Infof("Creating solution metadata tables.")
 
 	d.DropTable(requestTableName)
 	_, err := d.DB.Exec(fmt.Sprintf(requestTableCreationSQL, requestTableName))
@@ -150,20 +150,20 @@ func (d *Database) CreatePipelineMetadataTables() error {
 		return err
 	}
 
-	d.DropTable(pipelineTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(pipelineTableCreationSQL, pipelineTableName))
+	d.DropTable(solutionTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(solutionTableCreationSQL, solutionTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(pipelineResultTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(pipelineResultTableCreationSQL, pipelineResultTableName))
+	d.DropTable(solutionResultTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(solutionResultTableCreationSQL, solutionResultTableName))
 	if err != nil {
 		return err
 	}
 
-	d.DropTable(pipelineScoreTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(pipelineScoreTableCreationSQL, pipelineScoreTableName))
+	d.DropTable(solutionScoreTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(solutionScoreTableCreationSQL, solutionScoreTableName))
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (d *Database) executeInsertsComplete(tableName string) error {
 	return err
 }
 
-// CreateResultTable creates an empty table for the pipeline results.
+// CreateResultTable creates an empty table for the solution results.
 func (d *Database) CreateResultTable(tableName string) error {
 	resultTableName := fmt.Sprintf("%s%s", tableName, resultTableSuffix)
 
