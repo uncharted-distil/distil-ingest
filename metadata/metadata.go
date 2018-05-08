@@ -636,10 +636,7 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 
 		var parser DataResourceParser
 		switch resType {
-		case resTypeImage:
-		case resTypeAudio:
-		case resTypeText:
-		case resTypeTime:
+		case resTypeAudio, resTypeImage, resTypeText, resTypeTime:
 			parser = NewMedia(resType)
 			break
 		case resTypeTable:
