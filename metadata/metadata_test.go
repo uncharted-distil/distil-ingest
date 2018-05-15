@@ -5,8 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"io/ioutil"
-
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/olivere/elastic.v5"
@@ -14,51 +12,55 @@ import (
 
 func TestMetadataFromSchema(t *testing.T) {
 
-	meta, err := LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
-	assert.NoError(t, err)
-
-	description, err := ioutil.ReadFile("./testdata/dataDescription.txt")
+	meta, err := LoadMetadataFromOriginalSchema("./testdata/datasetDoc.json")
 	assert.NoError(t, err)
 
 	assert.Equal(t, meta.Name, "test dataset")
 	assert.Equal(t, meta.ID, "test_dataset")
-	assert.Equal(t, meta.Description, string(description))
-	assert.Equal(t, len(meta.DataResources[0].Variables), 4)
+	assert.Equal(t, meta.Description, "YOU ARE STANDING AT THE END OF A ROAD BEFORE A SMALL BRICK BUILDING.")
+	assert.Equal(t, len(meta.DataResources[0].Variables), 3)
 	assert.Equal(t, meta.DataResources[0].Variables[0].Name, "bravo")
-	assert.Equal(t, meta.DataResources[0].Variables[0].Role, "index")
+	assert.Equal(t, meta.DataResources[0].Variables[0].Role, []string{"index"})
 	assert.Equal(t, meta.DataResources[0].Variables[0].Type, "integer")
+	assert.Equal(t, meta.DataResources[0].Variables[0].OriginalType, "integer")
 	assert.Equal(t, meta.DataResources[0].Variables[1].Name, "alpha")
-	assert.Equal(t, meta.DataResources[0].Variables[1].Role, "attribute")
+	assert.Equal(t, meta.DataResources[0].Variables[1].Role, []string{"attribute"})
 	assert.Equal(t, meta.DataResources[0].Variables[1].Type, "text")
-	assert.Equal(t, meta.DataResources[0].Variables[2].Name, "victor")
-	assert.Equal(t, meta.DataResources[0].Variables[2].Role, "index")
+	assert.Equal(t, meta.DataResources[0].Variables[1].OriginalType, "text")
+	assert.Equal(t, meta.DataResources[0].Variables[2].Name, "whiskey")
+	assert.Equal(t, meta.DataResources[0].Variables[2].Role, []string{"suggestedTarget"})
 	assert.Equal(t, meta.DataResources[0].Variables[2].Type, "integer")
-	assert.Equal(t, meta.DataResources[0].Variables[3].Name, "whiskey")
-	assert.Equal(t, meta.DataResources[0].Variables[3].Role, "target")
-	assert.Equal(t, meta.DataResources[0].Variables[3].Type, "integer")
+	assert.Equal(t, meta.DataResources[0].Variables[2].OriginalType, "integer")
 }
 
 func TestIngestMetadata(t *testing.T) {
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		testString, err := ioutil.ReadFile("./testdata/dataDescription.txt")
-		assert.NoError(t, err)
-
 		reqBody, err := gabs.ParseJSONBuffer(r.Body)
-		println(reqBody.String())
 		assert.NoError(t, err)
-		assert.Equal(t, reqBody.Path("name").Data().(string), "test dataset")
-		assert.Equal(t, reqBody.Path("datasetId").Data().(string), "test_dataset")
-		assert.Equal(t, reqBody.Path("description").Data().(string), string(testString))
+		assert.Equal(t, reqBody.Path("datasetName").Data().(string), "test dataset")
+		assert.Equal(t, reqBody.Path("datasetID").Data().(string), "test_dataset")
+		assert.Equal(t, reqBody.Path("description").Data().(string), string("YOU ARE STANDING AT THE END OF A ROAD BEFORE A SMALL BRICK BUILDING."))
 
 		variables, err := reqBody.Path("variables").Children()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(variables))
-		assert.Equal(t, "alpha", variables[0].Path("varName").Data().(string))
-		assert.Equal(t, "attribute", variables[0].Path("varRole").Data().(string))
-		assert.Equal(t, "text", variables[0].Path("varType").Data().(string))
-		assert.Equal(t, "whiskey", variables[1].Path("varName").Data().(string))
-		assert.Equal(t, "target", variables[1].Path("varRole").Data().(string))
-		assert.Equal(t, "integer", variables[1].Path("varType").Data().(string))
+		assert.Equal(t, 3, len(variables))
+		assert.Equal(t, "bravo", variables[0].Path("colName").Data().(string))
+		roles := variables[0].Path("role").Data().([]interface{})
+		assert.Equal(t, "index", roles[0].(string))
+		assert.Equal(t, "integer", variables[0].Path("colType").Data().(string))
+		assert.Equal(t, "integer", variables[0].Path("colOriginalType").Data().(string))
+
+		assert.Equal(t, "alpha", variables[1].Path("colName").Data().(string))
+		roles = variables[1].Path("role").Data().([]interface{})
+		assert.Equal(t, "attribute", roles[0].(string))
+		assert.Equal(t, "text", variables[1].Path("colType").Data().(string))
+		assert.Equal(t, "text", variables[1].Path("colOriginalType").Data().(string))
+
+		assert.Equal(t, "whiskey", variables[2].Path("colName").Data().(string))
+		roles = variables[2].Path("role").Data().([]interface{})
+		assert.Equal(t, "suggestedTarget", roles[0].(string))
+		assert.Equal(t, "integer", variables[2].Path("colType").Data().(string))
+		assert.Equal(t, "integer", variables[2].Path("colOriginalType").Data().(string))
 
 		_, err = w.Write([]byte(`{
 				"_index":"test_index",
@@ -78,7 +80,7 @@ func TestIngestMetadata(t *testing.T) {
 	client, err := elastic.NewSimpleClient(elastic.SetURL(testServer.URL))
 	assert.NoError(t, err)
 
-	meta, err := LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
+	meta, err := LoadMetadataFromOriginalSchema("./testdata/datasetDoc.json")
 	assert.NoError(t, err)
 
 	err = IngestMetadata(client, "test_index", "", meta)
