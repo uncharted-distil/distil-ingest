@@ -1,0 +1,80 @@
+{
+    "about": {
+        "datasetName": "test dataset",
+        "datasetID": "test_dataset",
+        "description": "YOU ARE STANDING AT THE END OF A ROAD BEFORE A SMALL BRICK BUILDING."
+    },
+    "dataResources": [{
+        "resID": "0",
+        "resPath": ".",
+        "resType": "table",
+        "resFormat": [
+            "text/csv"
+        ],
+        "isCollection": "false",
+        "columns": [{
+            "colIndex": 0,
+            "colName": "d3mIndex",
+            "colType": "integer",
+            "role": [
+                "index"
+            ]
+        },
+        {
+            "colIndex": 1,
+            "colName": "Alpha",
+            "colType": "categorical",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 2,
+            "colName": "Bravo",
+            "colType": "float",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 3,
+            "colName": "Charlie",
+            "colType": "integer",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 4,
+            "colName": "Delta",
+            "colType": "ordinal",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 5,
+            "colName": "Echo",
+            "colType": "dateTime",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 6,
+            "colName": "Foxtrot",
+            "colType": "text",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 7,
+            "colName": "Whiskey",
+            "colType": "categorical",
+            "role": [
+                "suggestedTarget"
+            ]
+        }]
+    }]
+}

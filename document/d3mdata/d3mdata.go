@@ -60,7 +60,7 @@ func (d *D3MData) GetMapping() (string, error) {
 
 	for _, v := range d.meta.DataResources[0].Variables {
 
-		if v.SelectedRole != "attribute" && v.SelectedRole != "target" {
+		if v.SelectedRole != "attribute" && v.SelectedRole != "suggestedTarget" {
 			continue
 		}
 
@@ -104,7 +104,7 @@ func (d *D3MData) GetSource() (interface{}, error) {
 	source := make(map[string]interface{})
 
 	for index, v := range d.meta.DataResources[0].Variables {
-		if v.SelectedRole != "attribute" && v.SelectedRole != "target" {
+		if v.SelectedRole != "attribute" && v.SelectedRole != "suggestedTarget" {
 			continue
 		}
 

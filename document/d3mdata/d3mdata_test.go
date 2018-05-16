@@ -11,7 +11,7 @@ import (
 
 func TestGetSource(t *testing.T) {
 
-	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
+	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/datasetDoc.json")
 	assert.NoError(t, err)
 
 	// Create a document using the test json schema
@@ -21,7 +21,7 @@ func TestGetSource(t *testing.T) {
 	doc, err := docCreate()
 	assert.NoError(t, err)
 
-	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1,target_1"
+	data := "0,cat_1,99.0,66,ord_1,234324,some text value,target_1"
 	doc.SetData(data)
 
 	// Fetch the doc source
@@ -50,19 +50,13 @@ func TestGetSource(t *testing.T) {
 	assert.Equal(t, "some text value", result.Path("Foxtrot.value").Data().(string))
 	assert.Equal(t, "text", result.Path("Foxtrot.schemaType").Data().(string))
 
-	assert.Equal(t, "podunk indiana", result.Path("Golf.value").Data().(string))
-	assert.Equal(t, "location", result.Path("Golf.schemaType").Data().(string))
-
-	assert.Equal(t, "un_1", result.Path("Hotel.value").Data().(string))
-	assert.Equal(t, "unknown", result.Path("Hotel.schemaType").Data().(string))
-
 	assert.Equal(t, "target_1", result.Path("Whiskey.value").Data().(string))
 	assert.Equal(t, "categorical", result.Path("Whiskey.schemaType").Data().(string))
 }
 
 func TestGetMapping(t *testing.T) {
 
-	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
+	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/datasetDoc.json")
 	assert.NoError(t, err)
 
 	// Create a document using the test json schema
@@ -89,17 +83,13 @@ func TestGetMapping(t *testing.T) {
 	assert.Equal(t, "keyword", mapping.Path("datum.properties.Echo.properties.schemaType.type").Data().(string))
 	assert.Equal(t, "text", mapping.Path("datum.properties.Foxtrot.properties.value.type").Data().(string))
 	assert.Equal(t, "keyword", mapping.Path("datum.properties.Foxtrot.properties.schemaType.type").Data().(string))
-	assert.Equal(t, "keyword", mapping.Path("datum.properties.Golf.properties.value.type").Data().(string))
-	assert.Equal(t, "keyword", mapping.Path("datum.properties.Golf.properties.schemaType.type").Data().(string))
-	assert.Equal(t, "keyword", mapping.Path("datum.properties.Hotel.properties.value.type").Data().(string))
-	assert.Equal(t, "keyword", mapping.Path("datum.properties.Hotel.properties.schemaType.type").Data().(string))
 	assert.Equal(t, "keyword", mapping.Path("datum.properties.Whiskey.properties.value.type").Data().(string))
 	assert.Equal(t, "keyword", mapping.Path("datum.properties.Whiskey.properties.schemaType.type").Data().(string))
 }
 
 func TestID(t *testing.T) {
 
-	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/dataSchema.json")
+	meta, err := metadata.LoadMetadataFromOriginalSchema("./testdata/datasetDoc.json")
 	assert.NoError(t, err)
 
 	// Create a document using the test json schema
@@ -109,7 +99,7 @@ func TestID(t *testing.T) {
 	doc, err := docCreate()
 	assert.NoError(t, err)
 
-	data := "0,cat_1,99.0,66,ord_1,234324,some text value,podunk indiana,un_1"
+	data := "0,cat_1,99.0,66,ord_1,234324,some text value"
 	doc.SetData(data)
 
 	// Fetch id
