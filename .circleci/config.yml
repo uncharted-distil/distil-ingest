@@ -11,7 +11,7 @@ jobs:
       - checkout
       - run:
           name: build app binary
-          command: /bin/sh -c "glide install;go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
+          command: /bin/sh -c "dep install;go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
 
 
 
