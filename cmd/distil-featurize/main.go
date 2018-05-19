@@ -1,0 +1,113 @@
+package main
+
+import (
+	"os"
+	"runtime"
+	"strings"
+
+	"github.com/pkg/errors"
+	"github.com/unchartedsoftware/plog"
+	"github.com/urfave/cli"
+
+	"github.com/unchartedsoftware/distil-ingest/feature"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-ingest/rest"
+)
+
+func splitAndTrim(arg string) []string {
+	var res []string
+	if arg == "" {
+		return res
+	}
+	split := strings.Split(arg, ",")
+	for _, str := range split {
+		res = append(res, strings.TrimSpace(str))
+	}
+	return res
+}
+
+func main() {
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	app := cli.NewApp()
+	app.Name = "distil-featurize"
+	app.Version = "0.1.0"
+	app.Usage = "Featurize D3M merged datasets"
+	app.UsageText = "distil-featurize --rest-endpoint=<url> --featurize-function=<function> --dataset=<filepath> --output=<filepath>"
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "rest-endpoint",
+			Value: "",
+			Usage: "The REST endpoint url",
+		},
+		cli.StringFlag{
+			Name:  "featurize-function",
+			Value: "",
+			Usage: "The featurize function to use",
+		},
+		cli.StringFlag{
+			Name:  "dataset",
+			Value: "",
+			Usage: "The dataset source path",
+		},
+		cli.StringFlag{
+			Name:  "filetype",
+			Value: "csv",
+			Usage: "The dataset file type",
+		},
+		cli.StringFlag{
+			Name:  "output",
+			Value: "",
+			Usage: "The featurize output file path",
+		},
+		cli.BoolFlag{
+			Name:  "has-header",
+			Usage: "Whether or not the CSV file has a header row",
+		},
+	}
+	app.Action = func(c *cli.Context) error {
+		if c.String("rest-endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
+		}
+		if c.String("featurize-function") == "" {
+			return cli.NewExitError("missing commandline flag `--featurize-function`", 1)
+		}
+		if c.String("dataset") == "" {
+			return cli.NewExitError("missing commandline flag `--dataset`", 1)
+		}
+
+		featurizeFunction := c.String("featurize-function")
+		restBaseEndpoint := c.String("rest-endpoint")
+		path := c.String("dataset")
+		outputFilePath := c.String("output")
+		hasHeader := c.Bool("has-header")
+
+		// initialize REST client
+		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
+		client := rest.NewClient(restBaseEndpoint)
+
+		// create featurizer
+		featurizer := rest.NewFeaturizer(featurizeFunction, client)
+
+		// load metadata from original schema
+		meta, err := metadata.LoadMetadataFromOriginalSchema(path)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// featurize data
+		err = feature.FeaturizeDataset(meta, featurizer, outputFilePath, hasHeader)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		log.Infof("Featurized data written to %s", outputFilePath)
+
+		return nil
+	}
+	// run app
+	app.Run(os.Args)
+}

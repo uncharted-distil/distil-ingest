@@ -32,6 +32,8 @@ const (
 	variableNameSizeLimit = 50
 	datasetSuffix         = "_dataset"
 
+	// D3MIndexName is the variable name for the d3m index column
+	D3MIndexName = "d3mIndex"
 	// SchemaSourceClassification was loaded via classification
 	SchemaSourceClassification = "classification"
 	// SchemaSourceMerged was loaded via merged output
@@ -224,6 +226,11 @@ func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*Me
 		return nil, err
 	}
 	return meta, nil
+}
+
+// CanBeFeaturized determines if a data resource can be featurized.
+func (dr *DataResource) CanBeFeaturized() bool {
+	return dr.ResType == resTypeImage
 }
 
 func (m *Metadata) loadRawVariables(datasetPath string, classificationPath string) error {
@@ -565,7 +572,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
 	// set the d3m index to int regardless of what gets returned
-	if name == "d3mIndex" {
+	if name == D3MIndexName {
 		return "index"
 	}
 	// map types
@@ -762,6 +769,16 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 		},
 	}
 	bytes, err := json.MarshalIndent(output, "", "    ")
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal merged schema file output")
+	}
+	// write copy to disk
+	return ioutil.WriteFile(path, bytes, 0644)
+}
+
+// WriteSchema exports the current meta data as a schema file.
+func (m *Metadata) WriteSchema(path string) error {
+	bytes, err := json.MarshalIndent(m, "", "    ")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal merged schema file output")
 	}
