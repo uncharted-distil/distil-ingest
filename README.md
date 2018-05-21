@@ -66,3 +66,8 @@ The repository contains CLIs used to parse, and ingest 3M OpenML datasets (those
 
 - You are accessing an Elasticsearch instance that requires a VPN and it is not on.
 - The Elasticsearch instance is temporarily down.
+
+#### "dep: command not found":
+
+- **Cause**: `$GOPATH/bin` has not been added to your `$PATH`.
+- **Solution**: Add `export PATH=$PATH:$GOPATH/bin` to your `.bash_profile` or `.bashrc`.

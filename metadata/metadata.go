@@ -59,6 +59,7 @@ func SetTypeProbabilityThreshold(threshold float64) {
 type Variable struct {
 	Name           string           `json:"colName"`
 	Type           string           `json:"colType,omitempty"`
+	OriginalType   string           `json:"colOriginalType,omitempty"`
 	FileType       string           `json:"colFileType,omitempty"`
 	FileFormat     string           `json:"colFileFormat,omitempty"`
 	SelectedRole   string           `json:"selectedRole,omitempty"`
@@ -113,7 +114,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -141,6 +142,7 @@ func NewVariable(index int, name, typ, fileType, fileFormat string, role []strin
 		Name:         normed,
 		Index:        index,
 		Type:         typ,
+		OriginalType: originalType,
 		Role:         role,
 		SelectedRole: selectedRole,
 		OriginalName: normed,
@@ -267,6 +269,7 @@ func (m *Metadata) loadRawVariables(datasetPath string, classificationPath strin
 		variable := NewVariable(
 			index,
 			v,
+			"",
 			"",
 			"",
 			"",
@@ -561,6 +564,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 	return NewVariable(
 		varIndex,
 		varName,
+		varType,
 		varType,
 		varFileType,
 		varFileFormat,
@@ -961,6 +965,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                                 "type": "text"
                             },
                             "varType": {
+                                "type": "text"
+                            },
+                            "varOriginalType": {
                                 "type": "text"
                             },
                             "varOriginalName": {

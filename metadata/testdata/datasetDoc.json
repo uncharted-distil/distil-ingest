@@ -1,0 +1,40 @@
+{
+    "about": {
+        "datasetName": "test dataset",
+        "datasetID": "test_dataset",
+        "description": "YOU ARE STANDING AT THE END OF A ROAD BEFORE A SMALL BRICK BUILDING."
+    },
+    "dataResources": [{
+        "resID": "0",
+        "resPath": ".",
+        "resType": "table",
+        "resFormat": [
+            "text/csv"
+        ],
+        "isCollection": "false",
+        "columns": [{
+            "colIndex": 0,
+            "colName": "bravo",
+            "colType": "integer",
+            "role": [
+                "index"
+            ]
+        },
+        {
+            "colIndex": 1,
+            "colName": "alpha",
+            "colType": "text",
+            "role": [
+                "attribute"
+            ]
+        },
+        {
+            "colIndex": 2,
+            "colName": "whiskey",
+            "colType": "integer",
+            "role": [
+                "suggestedTarget"
+            ]
+        }]
+    }]
+}
