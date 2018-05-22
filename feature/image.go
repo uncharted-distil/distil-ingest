@@ -108,6 +108,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	// output the data
+	log.Infof("Writing data to output")
 	for index := range colsToFeaturize {
 		writer := writers[index]
 		pathToWrite := path.Join(outputPath, "features.csv")
@@ -119,6 +120,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	// output the schema
+	log.Infof("Writing schema to output")
 	err = meta.WriteSchema(path.Join(outputPath, "datasetDoc.json"))
 
 	return err
