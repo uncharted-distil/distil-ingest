@@ -33,7 +33,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "distil-featurize"
 	app.Version = "0.1.0"
-	app.Usage = "Featurize D3M merged datasets"
+	app.Usage = "Featurize D3M datasets"
 	app.UsageText = "distil-featurize --rest-endpoint=<url> --featurize-function=<function> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -50,6 +50,11 @@ func main() {
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
+		},
+		cli.StringFlag{
+			Name:  "schema",
+			Value: "",
+			Usage: "The schema source path",
 		},
 		cli.StringFlag{
 			Name:  "filetype",
@@ -79,7 +84,8 @@ func main() {
 
 		featurizeFunction := c.String("featurize-function")
 		restBaseEndpoint := c.String("rest-endpoint")
-		path := c.String("dataset")
+		datasetPath := c.String("dataset")
+		schemaPath := c.String("schema")
 		outputFilePath := c.String("output")
 		hasHeader := c.Bool("has-header")
 
@@ -91,14 +97,14 @@ func main() {
 		featurizer := rest.NewFeaturizer(featurizeFunction, client)
 
 		// load metadata from original schema
-		meta, err := metadata.LoadMetadataFromOriginalSchema(path)
+		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
 		// featurize data
-		err = feature.FeaturizeDataset(meta, featurizer, outputFilePath, hasHeader)
+		err = feature.FeaturizeDataset(meta, featurizer, datasetPath, outputFilePath, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
+	"github.com/unchartedsoftware/plog"
 
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/rest"
@@ -44,15 +45,18 @@ func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResour
 // FeaturizeDataset reads adds features based on referenced data resources
 // in the metadata. The features are added as a reference resource in
 // the metadata and written to the output path.
-func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, outputPath string, hasHeader bool) error {
+func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, outputPath string, hasHeader bool) error {
 	// find the main data resource
 	mainDR := getMainDataResource(meta)
 
 	// featurize image columns
+	log.Infof("adding features to schema")
 	d3mIndexFieldIndex, colsToFeaturize := addFeaturesToSchema(meta, mainDR)
 
 	// read the data to process every row
-	csvFile, err := os.Open(mainDR.ResPath)
+	log.Infof("opening data from source")
+	dataPath := path.Join(sourcePath, mainDR.ResPath)
+	csvFile, err := os.Open(dataPath)
 	if err != nil {
 		return errors.Wrap(err, "failed to open data file")
 	}
@@ -76,6 +80,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		}
 	}
 
+	log.Infof("reading data from source")
 	count := 0
 	for {
 		line, err := reader.Read()
@@ -88,6 +93,9 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 			// featurize the row as necessary
 			for index := range colsToFeaturize {
 				feature, err := featurizeImage(line[index], imageFeaturizer)
+				if err != nil {
+					return errors.Wrap(err, "error getting image feature output")
+				}
 
 				// write the index,feature output
 				err = writers[index].Write([]string{line[d3mIndexFieldIndex], feature})
@@ -100,9 +108,9 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	// output the data
-	for index, featureDR := range colsToFeaturize {
+	for index := range colsToFeaturize {
 		writer := writers[index]
-		pathToWrite := path.Join(outputPath, featureDR.ResPath, "features.csv")
+		pathToWrite := path.Join(outputPath, "features.csv")
 		writer.Flush()
 		err = ioutil.WriteFile(pathToWrite, outputData[index].Bytes(), 0644)
 		if err != nil {
