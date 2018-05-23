@@ -32,7 +32,7 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 	}
 	result, err := f.client.PostRequest(f.functionName, params)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to summarize file")
+		return nil, errors.Wrap(err, "Unable to featurize file")
 	}
 
 	// response is a json of objects and text found in the image

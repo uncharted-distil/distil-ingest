@@ -91,8 +91,9 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		}
 		if count > 0 || !hasHeader {
 			// featurize the row as necessary
-			for index := range colsToFeaturize {
-				imagePath := path.Join(mediaPath, line[index])
+			for index, colDR := range colsToFeaturize {
+				imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.ResPath, line[index]))
+				log.Infof("Featurizing %s", imagePath)
 				feature, err := featurizeImage(imagePath, imageFeaturizer)
 				if err != nil {
 					return errors.Wrap(err, "error getting image feature output")
@@ -121,8 +122,10 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	// output the schema
-	log.Infof("Writing schema to output")
-	err = meta.WriteSchema(path.Join(outputPath, "datasetDoc.json"))
+	if len(colsToFeaturize) > 0 {
+		log.Infof("Writing schema to output")
+		err = meta.WriteSchema(path.Join(outputPath, "datasetDoc.json"))
+	}
 
 	return err
 }

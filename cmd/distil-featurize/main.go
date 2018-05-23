@@ -99,6 +99,17 @@ func main() {
 		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
 		client := rest.NewClient(restBaseEndpoint)
 
+		// create feature folder
+		if dirExists(outputFilePath) {
+			// delete existing data to overwrite with latest
+			os.RemoveAll(outputFilePath)
+			log.Infof("Deleted data at %s", outputFilePath)
+		}
+		if err := os.MkdirAll(outputFilePath, 0777); err != nil && !os.IsExist(err) {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
 		// create featurizer
 		featurizer := rest.NewFeaturizer(featurizeFunction, client)
 
@@ -122,4 +133,11 @@ func main() {
 	}
 	// run app
 	app.Run(os.Args)
+}
+
+func dirExists(path string) bool {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
