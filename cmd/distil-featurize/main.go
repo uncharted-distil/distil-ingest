@@ -66,6 +66,11 @@ func main() {
 			Value: "",
 			Usage: "The featurize output file path",
 		},
+		cli.StringFlag{
+			Name:  "media-path",
+			Value: "",
+			Usage: "The path to the folder containing the media subfolder that is accessible for featurization",
+		},
 		cli.BoolFlag{
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
@@ -85,6 +90,7 @@ func main() {
 		featurizeFunction := c.String("featurize-function")
 		restBaseEndpoint := c.String("rest-endpoint")
 		datasetPath := c.String("dataset")
+		mediaPath := c.String("media-path")
 		schemaPath := c.String("schema")
 		outputFilePath := c.String("output")
 		hasHeader := c.Bool("has-header")
@@ -104,7 +110,7 @@ func main() {
 		}
 
 		// featurize data
-		err = feature.FeaturizeDataset(meta, featurizer, datasetPath, outputFilePath, hasHeader)
+		err = feature.FeaturizeDataset(meta, featurizer, datasetPath, mediaPath, outputFilePath, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

@@ -19,6 +19,7 @@ do
         --rest-endpoint="$REST_ENDPOINT" \
         --featurize-function="$FEATURIZE_FUNCTION" \
         --dataset="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX" \
+        --media-path="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX" \
         --schema="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$SCHEMA" \
         --output="$DATA_DIR/${DATASET}/${DATASET}$DATASET_FOLDER_SUFFIX/$OUTPUT_PATH" \
         --has-header=$HAS_HEADER

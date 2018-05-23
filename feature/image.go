@@ -45,7 +45,7 @@ func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResour
 // FeaturizeDataset reads adds features based on referenced data resources
 // in the metadata. The features are added as a reference resource in
 // the metadata and written to the output path.
-func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, outputPath string, hasHeader bool) error {
+func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputPath string, hasHeader bool) error {
 	// find the main data resource
 	mainDR := getMainDataResource(meta)
 
@@ -92,7 +92,8 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		if count > 0 || !hasHeader {
 			// featurize the row as necessary
 			for index := range colsToFeaturize {
-				feature, err := featurizeImage(line[index], imageFeaturizer)
+				imagePath := path.Join(mediaPath, line[index])
+				feature, err := featurizeImage(imagePath, imageFeaturizer)
 				if err != nil {
 					return errors.Wrap(err, "error getting image feature output")
 				}
