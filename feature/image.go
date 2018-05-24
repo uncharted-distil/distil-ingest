@@ -10,7 +10,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/plog"
 
@@ -66,9 +65,22 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	// initialize csv writers
 	writers := make(map[int]*csv.Writer)
 	outputData := make(map[int]*bytes.Buffer)
-	for index := range colsToFeaturize {
+	for index, colDR := range colsToFeaturize {
 		output := &bytes.Buffer{}
-		writers[index] = csv.NewWriter(output)
+		writer := csv.NewWriter(output)
+
+		// write the header as needed
+		if hasHeader {
+			header := make([]string, len(colDR.Variables))
+			for _, v := range colDR.Variables {
+				header[v.Index] = v.Name
+			}
+			err = writer.Write(header)
+			if err != nil {
+				return errors.Wrap(err, "error writing header to output")
+			}
+		}
+		writers[index] = writer
 		outputData[index] = output
 	}
 
@@ -113,7 +125,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	log.Infof("Writing data to output")
 	for index := range colsToFeaturize {
 		writer := writers[index]
-		pathToWrite := path.Join(outputPath, "features.csv")
+		pathToWrite := path.Join(outputPath, "features", "features.csv")
 		writer.Flush()
 		err = ioutil.WriteFile(pathToWrite, outputData[index].Bytes(), 0644)
 		if err != nil {
@@ -124,7 +136,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	// output the schema
 	if len(colsToFeaturize) > 0 {
 		log.Infof("Writing schema to output")
-		err = meta.WriteSchema(path.Join(outputPath, "datasetDoc.json"))
+		err = meta.WriteSchema(path.Join(outputPath, "featureDatasetDoc.json"))
 	}
 
 	return err
@@ -136,9 +148,9 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 	for _, v := range mainDR.Variables {
 		if v.Name == metadata.D3MIndexName {
 			d3mIndexFieldIndex = v.Index
-		} else if v.RefersTo != nil && v.RefersTo.Path("resID").Data() != nil {
+		} else if v.RefersTo != nil && v.RefersTo["resID"] != nil {
 			// get the refered DR
-			resID := v.RefersTo.Path("resID").Data().(string)
+			resID := v.RefersTo["resID"].(string)
 
 			res := getDataResource(meta, resID)
 
@@ -172,12 +184,13 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 				meta.DataResources = append(meta.DataResources, featureDR)
 
 				// add a reference to the new data resource
-				refData, _ := gabs.Consume(map[string]interface{}{
+				refData := map[string]interface{}{
 					"refersTo": resIndex,
 					"resObject": map[string]interface{}{
-						"columnName": resIndex,
+						"columnName": indexName,
 					},
-				})
+				}
+
 				refVariable := &metadata.Variable{
 					Name:     indexName,
 					Index:    len(mainDR.Variables),

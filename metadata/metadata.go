@@ -57,19 +57,19 @@ func SetTypeProbabilityThreshold(threshold float64) {
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name           string           `json:"colName"`
-	Type           string           `json:"colType,omitempty"`
-	OriginalType   string           `json:"colOriginalType,omitempty"`
-	FileType       string           `json:"colFileType,omitempty"`
-	FileFormat     string           `json:"colFileFormat,omitempty"`
-	SelectedRole   string           `json:"selectedRole,omitempty"`
-	Role           []string         `json:"role,omitempty"`
-	OriginalName   string           `json:"colOriginalName,omitempty"`
-	DisplayName    string           `json:"colDisplayName,omitempty"`
-	Importance     int              `json:"importance,omitempty"`
-	Index          int              `json:"colIndex,omitempty"`
-	SuggestedTypes []*SuggestedType `json:"suggestedTypes,omitempty"`
-	RefersTo       *gabs.Container
+	Name           string                 `json:"colName"`
+	Type           string                 `json:"colType,omitempty"`
+	OriginalType   string                 `json:"colOriginalType,omitempty"`
+	FileType       string                 `json:"colFileType,omitempty"`
+	FileFormat     string                 `json:"colFileFormat,omitempty"`
+	SelectedRole   string                 `json:"selectedRole,omitempty"`
+	Role           []string               `json:"role,omitempty"`
+	OriginalName   string                 `json:"colOriginalName,omitempty"`
+	DisplayName    string                 `json:"colDisplayName,omitempty"`
+	Importance     int                    `json:"importance,omitempty"`
+	Index          int                    `json:"colIndex"`
+	SuggestedTypes []*SuggestedType       `json:"suggestedTypes,omitempty"`
+	RefersTo       map[string]interface{} `json:"refersTo,omitempty"`
 }
 
 // DataResource represents a set of variables found in a data asset.
@@ -114,7 +114,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -557,9 +557,29 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		varFileFormat = v.Path("varFileFormat").Data().(string)
 	}
 
-	var refersTo *gabs.Container
+	// parse the refersTo fields to properly serialize it if necessary
+	var refersTo map[string]interface{}
 	if v.Path("refersTo").Data() != nil {
-		refersTo = v.Path("refersTo")
+		refersTo = make(map[string]interface{})
+		refersToData := v.Path("refersTo")
+		resId := ""
+		resObject := make(map[string]interface{})
+
+		if refersToData.Path("resID").Data() != nil {
+			resId = refersToData.Path("resID").Data().(string)
+		}
+
+		if refersToData.Path("resObject").Data() != nil {
+			resObjectMap, err := refersToData.Path("resObject").ChildrenMap()
+			if err != nil {
+				for k, v := range resObjectMap {
+					resObject[k] = v.Data().(string)
+				}
+			}
+		}
+
+		refersTo["resID"] = resId
+		refersTo["resObject"] = resObject
 	}
 	return NewVariable(
 		varIndex,
@@ -782,7 +802,22 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 
 // WriteSchema exports the current meta data as a schema file.
 func (m *Metadata) WriteSchema(path string) error {
-	bytes, err := json.MarshalIndent(m, "", "    ")
+	dataResources := make([]interface{}, 0)
+	for _, dr := range m.DataResources {
+		dataResources = append(dataResources, dr)
+	}
+
+	output := map[string]interface{}{
+		"about": map[string]interface{}{
+			"datasetID":   m.ID,
+			"datasetName": m.Name,
+			"description": m.Description,
+			"rawData":     m.Raw,
+		},
+		"dataResources": dataResources,
+	}
+
+	bytes, err := json.MarshalIndent(output, "", "    ")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal merged schema file output")
 	}

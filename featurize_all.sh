@@ -22,6 +22,6 @@ do
         --dataset="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN" \
         --media-path="$DATA_SERVER/${DATASET}" \
         --schema="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/$SCHEMA" \
-        --output="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/$OUTPUT_PATH" \
+        --output="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN" \
         --has-header=$HAS_HEADER
 done
