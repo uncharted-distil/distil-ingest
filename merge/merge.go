@@ -162,10 +162,10 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 	links := make(map[string]*FileLink)
 	if len(keyColumns) > 0 {
 		for _, variable := range keyColumns {
-			if variable.RefersTo.Path("resID").Data() == nil {
+			if variable.RefersTo["resID"] == nil {
 				continue
 			}
-			resID := variable.RefersTo.Path("resID").Data().(string)
+			resID := variable.RefersTo["resID"].(string)
 
 			res := dataResources[resID]
 			l, err := readFileLink(res, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))

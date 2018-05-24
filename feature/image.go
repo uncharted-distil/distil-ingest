@@ -161,7 +161,7 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 				resIndex := fmt.Sprintf("%d", len(meta.DataResources))
 				featureDR := &metadata.DataResource{
 					ResID:        resIndex,
-					ResPath:      res.ResPath,
+					ResPath:      "features/",
 					ResType:      "table",
 					IsCollection: false,
 					Variables: []*metadata.Variable{
