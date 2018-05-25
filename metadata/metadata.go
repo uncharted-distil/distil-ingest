@@ -688,7 +688,7 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 }
 
 func (m *Metadata) loadMergedSchemaVariables() error {
-	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
+	schemaVariables, err := m.schema.Path("dataResources.columns").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse merged schema")
 	}
@@ -710,9 +710,14 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 }
 
 func (m *Metadata) loadClassificationVariables() error {
-	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
+	schemaResources, err := m.schema.Path("dataResources").Children()
 	if err != nil {
-		return errors.Wrap(err, "failed to parse merged data")
+		return errors.Wrap(err, "failed to parse merged resource data")
+	}
+
+	schemaVariables, err := schemaResources[0].Path("columns").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse merged variable data")
 	}
 
 	labels, err := m.classification.Path("labels").Children()
