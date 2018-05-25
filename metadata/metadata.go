@@ -74,11 +74,11 @@ type Variable struct {
 
 // DataResource represents a set of variables found in a data asset.
 type DataResource struct {
-	ResID        string `json:"resID"`
-	ResType      string `json:"resType"`
-	ResPath      string `json:"resPath"`
-	IsCollection bool   `json:"isCollection"`
-	Variables    []*Variable
+	ResID        string      `json:"resID"`
+	ResType      string      `json:"resType"`
+	ResPath      string      `json:"resPath"`
+	IsCollection bool        `json:"isCollection"`
+	Variables    []*Variable `json:"columns,omitempty"`
 }
 
 // SuggestedType represents a classified variable type.
@@ -788,9 +788,7 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 			"rawData":      m.Raw,
 			"mergedSchema": "true",
 		},
-		"mergedData": map[string]interface{}{
-			"mergedData": mergedDataResource.Variables,
-		},
+		"dataResources": []*DataResource{mergedDataResource},
 	}
 	bytes, err := json.MarshalIndent(output, "", "    ")
 	if err != nil {

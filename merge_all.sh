@@ -2,8 +2,8 @@
 
 DATA_DIR=~/datasets/seed_datasets_current
 SCHEMA=/featureDatasetDoc.json
-OUTPUT_SCHEMA=mergedDataSchema.json
-DATA_PATH=/tables/learningData.csv
+OUTPUT_SCHEMA=mergedDatasetDoc.json
+DATA_PATH=/features/features.csv
 OUTPUT_PATH=tables/merged.csv
 OUTPUT_PATH_HEADER=tables/merged_header.csv
 DATASET_FOLDER_SUFFIX=_dataset
@@ -20,6 +20,7 @@ do
         --data="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/$DATA_PATH" \
         --raw-data="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/" \
         --output-path="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/$OUTPUT_PATH" \
+        --output-path-relative="$OUTPUT_PATH" \
         --output-path-header="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/$OUTPUT_PATH_HEADER" \
         --output-schema-path="$DATA_DIR/${DATASET}/TRAIN/dataset_TRAIN/$OUTPUT_SCHEMA" \
         --has-header=$HAS_HEADER

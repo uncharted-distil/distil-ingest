@@ -63,6 +63,11 @@ func main() {
 			Usage: "The merged output path",
 		},
 		cli.StringFlag{
+			Name:  "output-path-relative",
+			Value: "",
+			Usage: "The merged output path relative to the schema output path",
+		},
+		cli.StringFlag{
 			Name:  "output-path-header",
 			Value: "",
 			Usage: "The merged with header output path",
@@ -87,6 +92,7 @@ func main() {
 		}
 
 		outputPath := filepath.Clean(c.String("output-path"))
+		outputPathRelative := filepath.Clean(c.String("output-path-relative"))
 		dataPath := filepath.Clean(c.String("data"))
 
 		// If no schema provided, assume it is a raw data file.
@@ -122,7 +128,7 @@ func main() {
 		}
 
 		// merge file links in dataset
-		mergedDR, output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath, hasHeader)
+		mergedDR, output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath, outputPathRelative, hasHeader)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

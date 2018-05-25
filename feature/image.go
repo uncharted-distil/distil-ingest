@@ -19,7 +19,7 @@ import (
 
 type potentialFeature struct {
 	originalResPath string
-	newDataResource *metadata.DataResource
+	newVariable     *metadata.Variable
 }
 
 func getMainDataResource(meta *metadata.Metadata) *metadata.DataResource {
@@ -55,7 +55,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 
 	// featurize image columns
 	log.Infof("adding features to schema")
-	d3mIndexFieldIndex, colsToFeaturize := addFeaturesToSchema(meta, mainDR)
+	colsToFeaturize := addFeaturesToSchema(meta, mainDR)
 
 	// read the data to process every row
 	log.Infof("opening data from source")
@@ -67,26 +67,20 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	defer csvFile.Close()
 	reader := csv.NewReader(csvFile)
 
-	// initialize csv writers
-	writers := make(map[int]*csv.Writer)
-	outputData := make(map[int]*bytes.Buffer)
-	for index, colDR := range colsToFeaturize {
-		output := &bytes.Buffer{}
-		writer := csv.NewWriter(output)
+	// initialize csv writer
+	output := &bytes.Buffer{}
+	writer := csv.NewWriter(output)
 
-		// write the header as needed
-		if hasHeader {
-			header := make([]string, len(colDR.newDataResource.Variables))
-			for _, v := range colDR.newDataResource.Variables {
-				header[v.Index] = v.Name
-			}
-			err = writer.Write(header)
-			if err != nil {
-				return errors.Wrap(err, "error writing header to output")
-			}
+	// write the header as needed
+	if hasHeader {
+		header := make([]string, len(mainDR.Variables))
+		for _, v := range mainDR.Variables {
+			header[v.Index] = v.Name
 		}
-		writers[index] = writer
-		outputData[index] = output
+		err = writer.Write(header)
+		if err != nil {
+			return errors.Wrap(err, "error writing header to output")
+		}
 	}
 
 	// skip header
@@ -116,11 +110,13 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 					return errors.Wrap(err, "error getting image feature output")
 				}
 
-				// write the index,feature output
-				err = writers[index].Write([]string{line[d3mIndexFieldIndex], feature})
-				if err != nil {
-					return errors.Wrap(err, "error storing image feature output")
-				}
+				// add the feature output
+				line = append(line, feature)
+			}
+
+			writer.Write(line)
+			if err != nil {
+				return errors.Wrap(err, "error storing featured output")
 			}
 		}
 		count++
@@ -128,30 +124,28 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 
 	// output the data
 	log.Infof("Writing data to output")
-	for index := range colsToFeaturize {
-		writer := writers[index]
-		pathToWrite := path.Join(outputPath, "features", "features.csv")
-		writer.Flush()
-		err = ioutil.WriteFile(pathToWrite, outputData[index].Bytes(), 0644)
-		if err != nil {
-			return errors.Wrap(err, "error writing image feature output")
-		}
+	pathToWriteRelative := path.Join("features", "features.csv")
+	pathToWrite := path.Join(outputPath, pathToWriteRelative)
+	writer.Flush()
+	err = ioutil.WriteFile(pathToWrite, output.Bytes(), 0644)
+	if err != nil {
+		return errors.Wrap(err, "error writing feature output")
 	}
+
+	// main DR should point to new file
 
 	// output the schema
 	log.Infof("Writing schema to output")
+	mainDR.ResPath = pathToWriteRelative
 	err = meta.WriteSchema(path.Join(outputPath, "featureDatasetDoc.json"))
 
 	return err
 }
 
-func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource) (int, map[int]*potentialFeature) {
-	d3mIndexFieldIndex := -1
+func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource) map[int]*potentialFeature {
 	colsToFeaturize := make(map[int]*potentialFeature)
 	for _, v := range mainDR.Variables {
-		if v.Name == metadata.D3MIndexName {
-			d3mIndexFieldIndex = v.Index
-		} else if v.RefersTo != nil && v.RefersTo["resID"] != nil {
+		if v.RefersTo != nil && v.RefersTo["resID"] != nil {
 			// get the refered DR
 			resID := v.RefersTo["resID"].(string)
 
@@ -161,56 +155,25 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 			if res.CanBeFeaturized() {
 				// create the new resource to hold the featured output
 				indexName := fmt.Sprintf("_feature_%s", v.Name)
-				resIndex := fmt.Sprintf("%d", len(meta.DataResources))
-				featureDR := &metadata.DataResource{
-					ResID:        resIndex,
-					ResPath:      "features/",
-					ResType:      "table",
-					IsCollection: false,
-					Variables: []*metadata.Variable{
-						{
-							Name:  indexName,
-							Index: 0,
-							Type:  "integer",
-							Role:  []string{"index"},
-						},
-						{
-							Name:  "feature",
-							Index: 1,
-							Type:  "string",
-							Role:  []string{"attribute"},
-						},
-					},
-				}
 
-				meta.DataResources = append(meta.DataResources, featureDR)
-
-				// add a reference to the new data resource
-				refData := map[string]interface{}{
-					"refersTo": resIndex,
-					"resObject": map[string]interface{}{
-						"columnName": indexName,
-					},
-				}
-
+				// add the feature variable
 				refVariable := &metadata.Variable{
-					Name:     indexName,
-					Index:    len(mainDR.Variables),
-					Type:     "integer",
-					Role:     []string{"key"},
-					RefersTo: refData,
+					Name:  indexName,
+					Index: len(mainDR.Variables),
+					Type:  "string",
+					Role:  []string{"attribute"},
 				}
 				mainDR.Variables = append(mainDR.Variables, refVariable)
 
 				colsToFeaturize[v.Index] = &potentialFeature{
 					originalResPath: res.ResPath,
-					newDataResource: featureDR,
+					newVariable:     refVariable,
 				}
 			}
 		}
 	}
 
-	return d3mIndexFieldIndex, colsToFeaturize
+	return colsToFeaturize
 }
 
 func featurizeImage(filepath string, featurizer *rest.Featurizer) (string, error) {

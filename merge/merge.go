@@ -92,7 +92,7 @@ func readFileLink(dataResource *metadata.DataResource, filename string) (*FileLi
 }
 
 // InjectFileLinksFromFile traverses all file links and injests the relevant data.
-func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawDataPath string, hasHeader bool) (*metadata.DataResource, []byte, error) {
+func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawDataPath string, mergedDataPath string, hasHeader bool) (*metadata.DataResource, []byte, error) {
 	// need to skip the header row.
 	var data []byte
 	var err error
@@ -132,14 +132,17 @@ func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawD
 		}
 	}
 
-	return InjectFileLinks(meta, data, rawDataPath)
+	return InjectFileLinks(meta, data, rawDataPath, mergedDataPath)
 }
 
 // InjectFileLinks traverses all file links and injests the relevant data.
-func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string) (*metadata.DataResource, []byte, error) {
+func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string, mergedDataPath string) (*metadata.DataResource, []byte, error) {
 	// determine if there are any links
 	// assume the main data resource is the one with a key column
-	mergedDataResource := &metadata.DataResource{}
+	mergedDataResource := &metadata.DataResource{
+		ResID:   "0",
+		ResPath: mergedDataPath,
+	}
 	dataResources := make(map[string]*metadata.DataResource)
 	indexColumns := make(map[string]*metadata.Variable)
 	keyColumns := make([]*metadata.Variable, 0)
@@ -151,6 +154,7 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string)
 				indexColumns[variable.Name] = variable
 				if variable.Name == d3mIndexName {
 					mergedDataResource.Variables = dr.Variables
+					mergedDataResource.ResType = dr.ResType
 				}
 			} else if variable.SelectedRole == "key" && variable.RefersTo != nil {
 				keyColumns = append(keyColumns, variable)
