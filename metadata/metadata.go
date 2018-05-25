@@ -688,9 +688,14 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 }
 
 func (m *Metadata) loadMergedSchemaVariables() error {
-	schemaVariables, err := m.schema.Path("dataResources.columns").Children()
+	schemaResources, err := m.schema.Path("dataResources").Children()
 	if err != nil {
-		return errors.Wrap(err, "failed to parse merged schema")
+		return errors.Wrap(err, "failed to parse merged resource data")
+	}
+
+	schemaVariables, err := schemaResources[0].Path("columns").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse merged variable data")
 	}
 
 	// Merged schema has only one set of variables
