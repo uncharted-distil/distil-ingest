@@ -17,6 +17,11 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/rest"
 )
 
+type potentialFeature struct {
+	originalResPath string
+	newDataResource *metadata.DataResource
+}
+
 func getMainDataResource(meta *metadata.Metadata) *metadata.DataResource {
 	// main data resource has d3m index variable
 	for _, dr := range meta.DataResources {
@@ -71,8 +76,8 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 
 		// write the header as needed
 		if hasHeader {
-			header := make([]string, len(colDR.Variables))
-			for _, v := range colDR.Variables {
+			header := make([]string, len(colDR.newDataResource.Variables))
+			for _, v := range colDR.newDataResource.Variables {
 				header[v.Index] = v.Name
 			}
 			err = writer.Write(header)
@@ -104,7 +109,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		if count > 0 || !hasHeader {
 			// featurize the row as necessary
 			for index, colDR := range colsToFeaturize {
-				imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.ResPath, line[index]))
+				imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, line[index]))
 				log.Infof("Featurizing %s", imagePath)
 				feature, err := featurizeImage(imagePath, imageFeaturizer)
 				if err != nil {
@@ -134,17 +139,15 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	// output the schema
-	if len(colsToFeaturize) > 0 {
-		log.Infof("Writing schema to output")
-		err = meta.WriteSchema(path.Join(outputPath, "featureDatasetDoc.json"))
-	}
+	log.Infof("Writing schema to output")
+	err = meta.WriteSchema(path.Join(outputPath, "featureDatasetDoc.json"))
 
 	return err
 }
 
-func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource) (int, map[int]*metadata.DataResource) {
+func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource) (int, map[int]*potentialFeature) {
 	d3mIndexFieldIndex := -1
-	colsToFeaturize := make(map[int]*metadata.DataResource)
+	colsToFeaturize := make(map[int]*potentialFeature)
 	for _, v := range mainDR.Variables {
 		if v.Name == metadata.D3MIndexName {
 			d3mIndexFieldIndex = v.Index
@@ -180,7 +183,6 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 					},
 				}
 
-				colsToFeaturize[v.Index] = featureDR
 				meta.DataResources = append(meta.DataResources, featureDR)
 
 				// add a reference to the new data resource
@@ -199,6 +201,11 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 					RefersTo: refData,
 				}
 				mainDR.Variables = append(mainDR.Variables, refVariable)
+
+				colsToFeaturize[v.Index] = &potentialFeature{
+					originalResPath: res.ResPath,
+					newDataResource: featureDR,
+				}
 			}
 		}
 	}
