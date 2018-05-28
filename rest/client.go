@@ -78,3 +78,43 @@ func (c *Client) PostFile(function string, filename string, params map[string]st
 
 	return result, nil
 }
+
+// PostRequest submits a post request with the provided parameters.
+func (c *Client) PostRequest(function string, params map[string]string) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s", c.baseEndpoint, function)
+
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	// add the parameters
+	for name, value := range params {
+		err := w.WriteField(name, value)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to add parameter field")
+		}
+	}
+	w.Close()
+
+	req, err := http.NewRequest("POST", url, &b)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to create request")
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to post request")
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", res.Status)
+	}
+
+	result, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to read result")
+	}
+
+	return result, nil
+}

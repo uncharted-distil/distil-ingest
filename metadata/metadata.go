@@ -32,6 +32,8 @@ const (
 	variableNameSizeLimit = 50
 	datasetSuffix         = "_dataset"
 
+	// D3MIndexName is the variable name for the d3m index column
+	D3MIndexName = "d3mIndex"
 	// SchemaSourceClassification was loaded via classification
 	SchemaSourceClassification = "classification"
 	// SchemaSourceMerged was loaded via merged output
@@ -55,28 +57,28 @@ func SetTypeProbabilityThreshold(threshold float64) {
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name           string           `json:"colName"`
-	Type           string           `json:"colType,omitempty"`
-	OriginalType   string           `json:"colOriginalType,omitempty"`
-	FileType       string           `json:"colFileType,omitempty"`
-	FileFormat     string           `json:"colFileFormat,omitempty"`
-	SelectedRole   string           `json:"selectedRole,omitempty"`
-	Role           []string         `json:"role,omitempty"`
-	OriginalName   string           `json:"colOriginalName,omitempty"`
-	DisplayName    string           `json:"colDisplayName,omitempty"`
-	Importance     int              `json:"importance,omitempty"`
-	Index          int              `json:"colIndex,omitempty"`
-	SuggestedTypes []*SuggestedType `json:"suggestedTypes,omitempty"`
-	RefersTo       *gabs.Container
+	Name           string                 `json:"colName"`
+	Type           string                 `json:"colType,omitempty"`
+	OriginalType   string                 `json:"colOriginalType,omitempty"`
+	FileType       string                 `json:"colFileType,omitempty"`
+	FileFormat     string                 `json:"colFileFormat,omitempty"`
+	SelectedRole   string                 `json:"selectedRole,omitempty"`
+	Role           []string               `json:"role,omitempty"`
+	OriginalName   string                 `json:"colOriginalName,omitempty"`
+	DisplayName    string                 `json:"colDisplayName,omitempty"`
+	Importance     int                    `json:"importance,omitempty"`
+	Index          int                    `json:"colIndex"`
+	SuggestedTypes []*SuggestedType       `json:"suggestedTypes,omitempty"`
+	RefersTo       map[string]interface{} `json:"refersTo,omitempty"`
 }
 
 // DataResource represents a set of variables found in a data asset.
 type DataResource struct {
-	ResID        string `json:"resID"`
-	ResType      string `json:"resType"`
-	ResPath      string `json:"resPath"`
-	IsCollection bool   `json:"isCollection"`
-	Variables    []*Variable
+	ResID        string      `json:"resID"`
+	ResType      string      `json:"resType"`
+	ResPath      string      `json:"resPath"`
+	IsCollection bool        `json:"isCollection"`
+	Variables    []*Variable `json:"columns,omitempty"`
 }
 
 // SuggestedType represents a classified variable type.
@@ -112,7 +114,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo *gabs.Container, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -226,6 +228,11 @@ func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*Me
 		return nil, err
 	}
 	return meta, nil
+}
+
+// CanBeFeaturized determines if a data resource can be featurized.
+func (dr *DataResource) CanBeFeaturized() bool {
+	return dr.ResType == resTypeImage
 }
 
 func (m *Metadata) loadRawVariables(datasetPath string, classificationPath string) error {
@@ -550,9 +557,29 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		varFileFormat = v.Path("varFileFormat").Data().(string)
 	}
 
-	var refersTo *gabs.Container
+	// parse the refersTo fields to properly serialize it if necessary
+	var refersTo map[string]interface{}
 	if v.Path("refersTo").Data() != nil {
-		refersTo = v.Path("refersTo")
+		refersTo = make(map[string]interface{})
+		refersToData := v.Path("refersTo")
+		resId := ""
+		resObject := make(map[string]interface{})
+
+		if refersToData.Path("resID").Data() != nil {
+			resId = refersToData.Path("resID").Data().(string)
+		}
+
+		if refersToData.Path("resObject").Data() != nil {
+			resObjectMap, err := refersToData.Path("resObject").ChildrenMap()
+			if err != nil {
+				for k, v := range resObjectMap {
+					resObject[k] = v.Data().(string)
+				}
+			}
+		}
+
+		refersTo["resID"] = resId
+		refersTo["resObject"] = resObject
 	}
 	return NewVariable(
 		varIndex,
@@ -569,7 +596,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
 	// set the d3m index to int regardless of what gets returned
-	if name == "d3mIndex" {
+	if name == D3MIndexName {
 		return "index"
 	}
 	// map types
@@ -661,9 +688,14 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 }
 
 func (m *Metadata) loadMergedSchemaVariables() error {
-	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
+	schemaResources, err := m.schema.Path("dataResources").Children()
 	if err != nil {
-		return errors.Wrap(err, "failed to parse merged schema")
+		return errors.Wrap(err, "failed to parse merged resource data")
+	}
+
+	schemaVariables, err := schemaResources[0].Path("columns").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse merged variable data")
 	}
 
 	// Merged schema has only one set of variables
@@ -683,9 +715,14 @@ func (m *Metadata) loadMergedSchemaVariables() error {
 }
 
 func (m *Metadata) loadClassificationVariables() error {
-	schemaVariables, err := m.schema.Path("mergedData.mergedData").Children()
+	schemaResources, err := m.schema.Path("dataResources").Children()
 	if err != nil {
-		return errors.Wrap(err, "failed to parse merged data")
+		return errors.Wrap(err, "failed to parse merged resource data")
+	}
+
+	schemaVariables, err := schemaResources[0].Path("columns").Children()
+	if err != nil {
+		return errors.Wrap(err, "failed to parse merged variable data")
 	}
 
 	labels, err := m.classification.Path("labels").Children()
@@ -761,10 +798,33 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 			"rawData":      m.Raw,
 			"mergedSchema": "true",
 		},
-		"mergedData": map[string]interface{}{
-			"mergedData": mergedDataResource.Variables,
-		},
+		"dataResources": []*DataResource{mergedDataResource},
 	}
+	bytes, err := json.MarshalIndent(output, "", "    ")
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal merged schema file output")
+	}
+	// write copy to disk
+	return ioutil.WriteFile(path, bytes, 0644)
+}
+
+// WriteSchema exports the current meta data as a schema file.
+func (m *Metadata) WriteSchema(path string) error {
+	dataResources := make([]interface{}, 0)
+	for _, dr := range m.DataResources {
+		dataResources = append(dataResources, dr)
+	}
+
+	output := map[string]interface{}{
+		"about": map[string]interface{}{
+			"datasetID":   m.ID,
+			"datasetName": m.Name,
+			"description": m.Description,
+			"rawData":     m.Raw,
+		},
+		"dataResources": dataResources,
+	}
+
 	bytes, err := json.MarshalIndent(output, "", "    ")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal merged schema file output")

@@ -368,6 +368,9 @@ func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *metad
 
 func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	log.Info("Starting ingestion")
+
+	dbTableName := fmt.Sprintf("d_%s", meta.ID)
+
 	// Connect to the database.
 	pg, err := postgres.NewDatabase(config)
 	if err != nil {
@@ -387,11 +390,11 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 
 	// Drop the current table if requested.
 	if config.ClearExisting {
-		err = pg.DropView(config.DBTable)
+		err = pg.DropView(dbTableName)
 		if err != nil {
 			log.Warn(err)
 		}
-		err = pg.DropTable(fmt.Sprintf("%s_base", config.DBTable))
+		err = pg.DropTable(fmt.Sprintf("%s_base", dbTableName))
 		if err != nil {
 			log.Warn(err)
 		}
@@ -403,19 +406,19 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 		return err
 	}
 
-	err = pg.InitializeTable(config.DBTable, ds)
+	err = pg.InitializeTable(dbTableName, ds)
 	if err != nil {
 		return err
 	}
 	log.Infof("Done table initialization")
 
-	err = pg.StoreMetadata(config.DBTable)
+	err = pg.StoreMetadata(dbTableName)
 	if err != nil {
 		return err
 	}
 	log.Infof("Done storing metadata")
 
-	err = pg.CreateResultTable(config.DBTable)
+	err = pg.CreateResultTable(dbTableName)
 	if err != nil {
 		return err
 	}
@@ -434,7 +437,7 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 				log.Warn(fmt.Sprintf("%v", err))
 			}
 
-			err = pg.IngestRow(config.DBTable, line)
+			err = pg.IngestRow(dbTableName, line)
 			if err != nil {
 				log.Warn(fmt.Sprintf("%v", err))
 			}
