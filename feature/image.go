@@ -49,7 +49,7 @@ func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResour
 // FeaturizeDataset reads adds features based on referenced data resources
 // in the metadata. The features are added as a reference resource in
 // the metadata and written to the output path.
-func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputPath string, hasHeader bool) error {
+func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool) error {
 	// find the main data resource
 	mainDR := getMainDataResource(meta)
 
@@ -124,20 +124,20 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 
 	// output the data
 	log.Infof("Writing data to output")
-	pathToWriteRelative := path.Join("features", "features.csv")
-	pathToWrite := path.Join(outputPath, pathToWriteRelative)
+	dataPathToWrite := path.Join(outputFolder, outputPathData)
 	writer.Flush()
-	err = ioutil.WriteFile(pathToWrite, output.Bytes(), 0644)
+	err = ioutil.WriteFile(dataPathToWrite, output.Bytes(), 0644)
 	if err != nil {
 		return errors.Wrap(err, "error writing feature output")
 	}
 
 	// main DR should point to new file
+	mainDR.ResPath = outputPathData
 
 	// output the schema
 	log.Infof("Writing schema to output")
-	mainDR.ResPath = pathToWriteRelative
-	err = meta.WriteSchema(path.Join(outputPath, "featureDatasetDoc.json"))
+	schemaPathToWrite := path.Join(outputFolder, outputPathSchema)
+	err = meta.WriteSchema(schemaPathToWrite)
 
 	return err
 }
