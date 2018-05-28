@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DATA_DIR=~/datasets/seed_datasets_current
-SCHEMA=/featureDatasetDoc.json
+SCHEMA=/featuresDatasetDoc.json
 OUTPUT_SCHEMA=mergedDatasetDoc.json
 DATA_PATH=/features/features.csv
 OUTPUT_PATH=tables/merged.csv
