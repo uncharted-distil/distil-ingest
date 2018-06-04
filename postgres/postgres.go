@@ -62,7 +62,8 @@ const (
 			filter_mode			varchar(40),
 			filter_min			double precision,
 			filter_max			double precision,
-			filter_categories	varchar(200)
+			filter_categories	varchar(200),
+			filter_indices		varchar(200)
 		);`
 	solutionScoreTableCreationSQL = `CREATE TABLE %s (
 			solution_id	varchar(200),
