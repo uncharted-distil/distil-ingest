@@ -79,7 +79,6 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	log.Infof("reading data from source")
-	count := 0
 	for {
 		line, err := reader.Read()
 		if err == io.EOF {
@@ -87,26 +86,23 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		} else if err != nil {
 			return errors.Wrap(err, "failed to read line from file")
 		}
-		if count > 0 || !hasHeader {
-			// featurize the row as necessary
-			for index, colDR := range colsToFeaturize {
-				imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, line[index]))
-				log.Infof("Featurizing %s", imagePath)
-				feature, err := featurizeImage(imagePath, imageFeaturizer)
-				if err != nil {
-					return errors.Wrap(err, "error getting image feature output")
-				}
-
-				// add the feature output
-				line = append(line, feature)
-			}
-
-			writer.Write(line)
+		// featurize the row as necessary
+		for index, colDR := range colsToFeaturize {
+			imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, line[index]))
+			log.Infof("Featurizing %s", imagePath)
+			feature, err := featurizeImage(imagePath, imageFeaturizer)
 			if err != nil {
-				return errors.Wrap(err, "error storing featured output")
+				return errors.Wrap(err, "error getting image feature output")
 			}
+
+			// add the feature output
+			line = append(line, feature)
 		}
-		count++
+
+		writer.Write(line)
+		if err != nil {
+			return errors.Wrap(err, "error storing featured output")
+		}
 	}
 
 	// output the data
