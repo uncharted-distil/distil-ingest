@@ -235,6 +235,26 @@ func (dr *DataResource) CanBeFeaturized() bool {
 	return dr.ResType == resTypeImage
 }
 
+// AddVariable creates and add a new variable to the data resource.
+func (dr *DataResource) AddVariable(name string, typ string, role []string) {
+	v := NewVariable(len(dr.Variables), name, typ, typ, "", "", role, nil, dr.Variables, false)
+	dr.Variables = append(dr.Variables, v)
+}
+
+// GetMainDataResource returns the data resource that contains the D3M index.
+func (m *Metadata) GetMainDataResource() *DataResource {
+	// main data resource has d3m index variable
+	for _, dr := range m.DataResources {
+		for _, v := range dr.Variables {
+			if v.Name == D3MIndexName {
+				return dr
+			}
+		}
+	}
+
+	return nil
+}
+
 func (m *Metadata) loadRawVariables(datasetPath string, classificationPath string) error {
 	// read header from the raw datafile.
 	csvFile, err := os.Open(datasetPath)

@@ -22,19 +22,6 @@ type potentialFeature struct {
 	newVariable     *metadata.Variable
 }
 
-func getMainDataResource(meta *metadata.Metadata) *metadata.DataResource {
-	// main data resource has d3m index variable
-	for _, dr := range meta.DataResources {
-		for _, v := range dr.Variables {
-			if v.Name == metadata.D3MIndexName {
-				return dr
-			}
-		}
-	}
-
-	return nil
-}
-
 func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResource {
 	// main data resource has d3m index variable
 	for _, dr := range meta.DataResources {
@@ -51,7 +38,7 @@ func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResour
 // the metadata and written to the output path.
 func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool) error {
 	// find the main data resource
-	mainDR := getMainDataResource(meta)
+	mainDR := meta.GetMainDataResource()
 
 	// featurize image columns
 	log.Infof("adding features to schema")
@@ -92,7 +79,6 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	}
 
 	log.Infof("reading data from source")
-	count := 0
 	for {
 		line, err := reader.Read()
 		if err == io.EOF {
@@ -100,26 +86,23 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		} else if err != nil {
 			return errors.Wrap(err, "failed to read line from file")
 		}
-		if count > 0 || !hasHeader {
-			// featurize the row as necessary
-			for index, colDR := range colsToFeaturize {
-				imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, line[index]))
-				log.Infof("Featurizing %s", imagePath)
-				feature, err := featurizeImage(imagePath, imageFeaturizer)
-				if err != nil {
-					return errors.Wrap(err, "error getting image feature output")
-				}
-
-				// add the feature output
-				line = append(line, feature)
-			}
-
-			writer.Write(line)
+		// featurize the row as necessary
+		for index, colDR := range colsToFeaturize {
+			imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, line[index]))
+			log.Infof("Featurizing %s", imagePath)
+			feature, err := featurizeImage(imagePath, imageFeaturizer)
 			if err != nil {
-				return errors.Wrap(err, "error storing featured output")
+				return errors.Wrap(err, "error getting image feature output")
 			}
+
+			// add the feature output
+			line = append(line, feature)
 		}
-		count++
+
+		writer.Write(line)
+		if err != nil {
+			return errors.Wrap(err, "error storing featured output")
+		}
 	}
 
 	// output the data
