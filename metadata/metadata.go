@@ -1002,10 +1002,12 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                         "analyzer": "search_analyzer"
                     },
                     "summary": {
-                        "type": "text"
+                        "type": "text",
+                        "analyzer": "search_analyzer"
                     },
                     "summaryMachine": {
-                        "type": "text"
+                        "type": "text",
+                        "analyzer": "search_analyzer"
                     },
                     "numRows": {
                         "type": "long"
@@ -1019,6 +1021,12 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                                 "type": "text"
                             },
                             "varName": {
+                                "type": "text",
+                                "analyzer": "search_analyzer",
+                                "include_in_all": true,
+                                "term_vector": "yes"
+                            },
+                            "colName": {
                                 "type": "text",
                                 "analyzer": "search_analyzer",
                                 "include_in_all": true,
