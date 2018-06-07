@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+
+	"github.com/unchartedsoftware/distil-ingest/csv"
 )
 
 // SummaryResult represents a REST summary result.
@@ -33,10 +35,30 @@ func (s *Summarizer) SummarizeFile(filename string) (*SummaryResult, error) {
 		return nil, errors.Wrap(err, "Unable to summarize file")
 	}
 
-	// Structure of response is a string describing the dataset
-	summary := string(result)
-	summary = strings.Replace(summary, "\"", "", -1)
+	// Structure of response is an array of label + probability
+	summaryRaw := string(result)
+	summaryParsed := csv.ParseResultCSVString([]string{summaryRaw})[0]
+	labelsRaw, ok := summaryParsed.([]interface{})
+	if !ok {
+		return nil, errors.Wrap(err, "Unable to parse outer summary result")
+	}
+
+	labelsRaw, ok = labelsRaw[0].([]interface{})
+	if !ok {
+		return nil, errors.Wrap(err, "Unable to parse raw summary result")
+	}
+
+	labels := make([]string, len(labelsRaw))
+	for i, l := range labelsRaw {
+		label, ok := l.(string)
+		if !ok {
+			return nil, errors.Wrap(err, "Unable to parse nested summary result")
+		}
+
+		labels[i] = label
+	}
+
 	return &SummaryResult{
-		Summary: summary,
+		Summary: strings.Join(labels, ","),
 	}, nil
 }
