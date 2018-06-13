@@ -42,6 +42,10 @@ const (
 	SchemaSourceOriginal = "original"
 	// SchemaSourceRaw was loaded via raw data file
 	SchemaSourceRaw = "raw"
+	// VarRoleData is the distil role for data variables
+	VarRoleData = "data"
+	// VarRoleMetadata is the distil role for metadata variables
+	VarRoleMetadata = "metadata"
 )
 
 var (
@@ -57,19 +61,21 @@ func SetTypeProbabilityThreshold(threshold float64) {
 
 // Variable represents a single variable description.
 type Variable struct {
-	Name           string                 `json:"colName"`
-	Type           string                 `json:"colType,omitempty"`
-	OriginalType   string                 `json:"colOriginalType,omitempty"`
-	FileType       string                 `json:"colFileType,omitempty"`
-	FileFormat     string                 `json:"colFileFormat,omitempty"`
-	SelectedRole   string                 `json:"selectedRole,omitempty"`
-	Role           []string               `json:"role,omitempty"`
-	OriginalName   string                 `json:"colOriginalName,omitempty"`
-	DisplayName    string                 `json:"colDisplayName,omitempty"`
-	Importance     int                    `json:"importance,omitempty"`
-	Index          int                    `json:"colIndex"`
-	SuggestedTypes []*SuggestedType       `json:"suggestedTypes,omitempty"`
-	RefersTo       map[string]interface{} `json:"refersTo,omitempty"`
+	Name             string                 `json:"colName"`
+	Type             string                 `json:"colType,omitempty"`
+	OriginalType     string                 `json:"colOriginalType,omitempty"`
+	FileType         string                 `json:"colFileType,omitempty"`
+	FileFormat       string                 `json:"colFileFormat,omitempty"`
+	SelectedRole     string                 `json:"selectedRole,omitempty"`
+	Role             []string               `json:"role,omitempty"`
+	DistilRole       string                 `json:"distilRole,omitempty"`
+	OriginalVariable string                 `json:"varOriginalName"`
+	OriginalName     string                 `json:"colOriginalName,omitempty"`
+	DisplayName      string                 `json:"colDisplayName,omitempty"`
+	Importance       int                    `json:"importance,omitempty"`
+	Index            int                    `json:"colIndex"`
+	SuggestedTypes   []*SuggestedType       `json:"suggestedTypes,omitempty"`
+	RefersTo         map[string]interface{} `json:"refersTo,omitempty"`
 }
 
 // DataResource represents a set of variables found in a data asset.
@@ -145,6 +151,7 @@ func NewVariable(index int, name, typ, originalType, fileType, fileFormat string
 		OriginalType: originalType,
 		Role:         role,
 		SelectedRole: selectedRole,
+		DistilRole:   VarRoleData,
 		OriginalName: normed,
 		DisplayName:  name,
 		FileType:     fileType,
@@ -582,11 +589,11 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 	if v.Path("refersTo").Data() != nil {
 		refersTo = make(map[string]interface{})
 		refersToData := v.Path("refersTo")
-		resId := ""
+		resID := ""
 		resObject := make(map[string]interface{})
 
 		if refersToData.Path("resID").Data() != nil {
-			resId = refersToData.Path("resID").Data().(string)
+			resID = refersToData.Path("resID").Data().(string)
 		}
 
 		if refersToData.Path("resObject").Data() != nil {
@@ -598,7 +605,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 			}
 		}
 
-		refersTo["resID"] = resId
+		refersTo["resID"] = resID
 		refersTo["resObject"] = resObject
 	}
 	return NewVariable(

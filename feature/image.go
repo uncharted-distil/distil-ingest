@@ -141,10 +141,12 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 
 				// add the feature variable
 				refVariable := &metadata.Variable{
-					Name:  indexName,
-					Index: len(mainDR.Variables),
-					Type:  "string",
-					Role:  []string{"attribute"},
+					Name:             indexName,
+					Index:            len(mainDR.Variables),
+					Type:             "string",
+					Role:             []string{"attribute"},
+					DistilRole:       metadata.VarRoleMetadata,
+					OriginalVariable: v.Name,
 				}
 				mainDR.Variables = append(mainDR.Variables, refVariable)
 
