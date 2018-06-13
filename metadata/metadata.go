@@ -120,7 +120,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, distilRole string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -151,7 +151,7 @@ func NewVariable(index int, name, typ, originalType, fileType, fileFormat string
 		OriginalType: originalType,
 		Role:         role,
 		SelectedRole: selectedRole,
-		DistilRole:   VarRoleData,
+		DistilRole:   distilRole,
 		OriginalName: normed,
 		DisplayName:  name,
 		FileType:     fileType,
@@ -243,8 +243,8 @@ func (dr *DataResource) CanBeFeaturized() bool {
 }
 
 // AddVariable creates and add a new variable to the data resource.
-func (dr *DataResource) AddVariable(name string, typ string, role []string) {
-	v := NewVariable(len(dr.Variables), name, typ, typ, "", "", role, nil, dr.Variables, false)
+func (dr *DataResource) AddVariable(name string, typ string, role []string, distilRole string) {
+	v := NewVariable(len(dr.Variables), name, typ, typ, "", "", role, distilRole, nil, dr.Variables, false)
 	dr.Variables = append(dr.Variables, v)
 }
 
@@ -301,6 +301,7 @@ func (m *Metadata) loadRawVariables(datasetPath string, classificationPath strin
 			"",
 			"",
 			nil,
+			VarRoleData,
 			nil,
 			m.DataResources[0].Variables,
 			false)
@@ -574,6 +575,11 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		}
 	}
 
+	varDistilRole := ""
+	if v.Path("distilRole").Data() != nil {
+		varDistilRole = v.Path("distilRole").Data().(string)
+	}
+
 	varFileType := ""
 	if v.Path("varFileType").Data() != nil {
 		varFileType = v.Path("varFileType").Data().(string)
@@ -616,6 +622,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		varFileType,
 		varFileFormat,
 		varRoles,
+		varDistilRole,
 		refersTo,
 		existingVariables,
 		normalizeName), nil
