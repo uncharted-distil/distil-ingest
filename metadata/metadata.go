@@ -120,7 +120,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, distilRole string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, originalName, typ, originalType, fileType, fileFormat string, role []string, distilRole string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -142,6 +142,12 @@ func NewVariable(index int, name, typ, originalType, fileType, fileFormat string
 	selectedRole := ""
 	if len(role) > 0 {
 		selectedRole = role[0]
+	}
+	if distilRole == "" {
+		distilRole = VarRoleData
+	}
+	if originalName == "" {
+		originalName = normed
 	}
 
 	return &Variable{
@@ -243,8 +249,8 @@ func (dr *DataResource) CanBeFeaturized() bool {
 }
 
 // AddVariable creates and add a new variable to the data resource.
-func (dr *DataResource) AddVariable(name string, typ string, role []string, distilRole string) {
-	v := NewVariable(len(dr.Variables), name, typ, typ, "", "", role, distilRole, nil, dr.Variables, false)
+func (dr *DataResource) AddVariable(name string, originalName string, typ string, role []string, distilRole string) {
+	v := NewVariable(len(dr.Variables), name, originalName, typ, typ, "", "", role, distilRole, nil, dr.Variables, false)
 	dr.Variables = append(dr.Variables, v)
 }
 
@@ -296,6 +302,7 @@ func (m *Metadata) loadRawVariables(datasetPath string, classificationPath strin
 		variable := NewVariable(
 			index,
 			v,
+			"",
 			"",
 			"",
 			"",
@@ -580,6 +587,11 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		varDistilRole = v.Path("distilRole").Data().(string)
 	}
 
+	varOriginalName := ""
+	if v.Path("varOriginalName").Data() != nil {
+		varOriginalName = v.Path("varOriginalName").Data().(string)
+	}
+
 	varFileType := ""
 	if v.Path("varFileType").Data() != nil {
 		varFileType = v.Path("varFileType").Data().(string)
@@ -617,6 +629,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 	return NewVariable(
 		varIndex,
 		varName,
+		varOriginalName,
 		varType,
 		varType,
 		varFileType,
