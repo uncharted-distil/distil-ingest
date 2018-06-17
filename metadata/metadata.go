@@ -151,18 +151,19 @@ func NewVariable(index int, name, originalName, typ, originalType, fileType, fil
 	}
 
 	return &Variable{
-		Name:         normed,
-		Index:        index,
-		Type:         typ,
-		OriginalType: originalType,
-		Role:         role,
-		SelectedRole: selectedRole,
-		DistilRole:   distilRole,
-		OriginalName: normed,
-		DisplayName:  name,
-		FileType:     fileType,
-		FileFormat:   fileFormat,
-		RefersTo:     refersTo,
+		Name:             normed,
+		Index:            index,
+		Type:             typ,
+		OriginalType:     originalType,
+		Role:             role,
+		SelectedRole:     selectedRole,
+		DistilRole:       distilRole,
+		OriginalVariable: originalName,
+		OriginalName:     normed,
+		DisplayName:      name,
+		FileType:         fileType,
+		FileFormat:       fileFormat,
+		RefersTo:         refersTo,
 	}
 }
 
