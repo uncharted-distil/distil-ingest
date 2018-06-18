@@ -120,7 +120,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, typ, originalType, fileType, fileFormat string, role []string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, originalName, typ, originalType, fileType, fileFormat string, role []string, distilRole string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -143,20 +143,27 @@ func NewVariable(index int, name, typ, originalType, fileType, fileFormat string
 	if len(role) > 0 {
 		selectedRole = role[0]
 	}
+	if distilRole == "" {
+		distilRole = VarRoleData
+	}
+	if originalName == "" {
+		originalName = normed
+	}
 
 	return &Variable{
-		Name:         normed,
-		Index:        index,
-		Type:         typ,
-		OriginalType: originalType,
-		Role:         role,
-		SelectedRole: selectedRole,
-		DistilRole:   VarRoleData,
-		OriginalName: normed,
-		DisplayName:  name,
-		FileType:     fileType,
-		FileFormat:   fileFormat,
-		RefersTo:     refersTo,
+		Name:             normed,
+		Index:            index,
+		Type:             typ,
+		OriginalType:     originalType,
+		Role:             role,
+		SelectedRole:     selectedRole,
+		DistilRole:       distilRole,
+		OriginalVariable: originalName,
+		OriginalName:     normed,
+		DisplayName:      name,
+		FileType:         fileType,
+		FileFormat:       fileFormat,
+		RefersTo:         refersTo,
 	}
 }
 
@@ -243,8 +250,8 @@ func (dr *DataResource) CanBeFeaturized() bool {
 }
 
 // AddVariable creates and add a new variable to the data resource.
-func (dr *DataResource) AddVariable(name string, typ string, role []string) {
-	v := NewVariable(len(dr.Variables), name, typ, typ, "", "", role, nil, dr.Variables, false)
+func (dr *DataResource) AddVariable(name string, originalName string, typ string, role []string, distilRole string) {
+	v := NewVariable(len(dr.Variables), name, originalName, typ, typ, "", "", role, distilRole, nil, dr.Variables, false)
 	dr.Variables = append(dr.Variables, v)
 }
 
@@ -300,7 +307,9 @@ func (m *Metadata) loadRawVariables(datasetPath string, classificationPath strin
 			"",
 			"",
 			"",
+			"",
 			nil,
+			VarRoleData,
 			nil,
 			m.DataResources[0].Variables,
 			false)
@@ -574,6 +583,16 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		}
 	}
 
+	varDistilRole := ""
+	if v.Path("distilRole").Data() != nil {
+		varDistilRole = v.Path("distilRole").Data().(string)
+	}
+
+	varOriginalName := ""
+	if v.Path("varOriginalName").Data() != nil {
+		varOriginalName = v.Path("varOriginalName").Data().(string)
+	}
+
 	varFileType := ""
 	if v.Path("varFileType").Data() != nil {
 		varFileType = v.Path("varFileType").Data().(string)
@@ -611,11 +630,13 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 	return NewVariable(
 		varIndex,
 		varName,
+		varOriginalName,
 		varType,
 		varType,
 		varFileType,
 		varFileFormat,
 		varRoles,
+		varDistilRole,
 		refersTo,
 		existingVariables,
 		normalizeName), nil
