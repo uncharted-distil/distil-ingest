@@ -179,8 +179,9 @@ func featurizeImage(filepath string, featurizer *rest.Featurizer) (string, error
 
 	labelText := make([]string, 0)
 	for _, l := range labels {
-		labelText = append(labelText, l.(string))
+		cleanedLabel := strings.Replace(l.(string), "_", " ", -1)
+		labelText = append(labelText, cleanedLabel)
 	}
 
-	return strings.Join(labelText, " "), nil
+	return strings.Join(labelText, ","), nil
 }
