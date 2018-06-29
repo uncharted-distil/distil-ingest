@@ -248,8 +248,7 @@ func main() {
 		}
 
 		// load importance rankings
-		colIndices := split.GetNumericColumnIndices(meta)
-		err = meta.LoadImportance(config.ImportancePath, colIndices)
+		err = meta.LoadImportance(config.ImportancePath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
