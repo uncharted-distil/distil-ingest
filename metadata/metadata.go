@@ -410,7 +410,7 @@ func (m *Metadata) LoadImportance(importanceFile string) error {
 			return errors.Wrap(err, "features attribute missing from file")
 		}
 		for index, v := range m.DataResources[0].Variables {
-			v.Importance = int(metric[index].Data().(float64))
+			v.Importance = int(metric[index].Data().(float64)) + 1
 		}
 	}
 	return nil
