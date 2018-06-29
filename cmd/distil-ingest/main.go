@@ -18,7 +18,6 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres"
-	"github.com/unchartedsoftware/distil-ingest/split"
 	"github.com/unchartedsoftware/plog"
 )
 
