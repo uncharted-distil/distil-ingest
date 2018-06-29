@@ -395,7 +395,7 @@ func (m *Metadata) loadClassification(classificationPath string) error {
 }
 
 // LoadImportance wiull load the importance feature selection metric.
-func (m *Metadata) LoadImportance(importanceFile string, colIndices []int) error {
+func (m *Metadata) LoadImportance(importanceFile string) error {
 	// unmarshall the schema file
 	importance, err := gabs.ParseJSONFile(importanceFile)
 	if err != nil {
@@ -409,8 +409,8 @@ func (m *Metadata) LoadImportance(importanceFile string, colIndices []int) error
 		if err != nil {
 			return errors.Wrap(err, "features attribute missing from file")
 		}
-		for index, col := range colIndices {
-			m.DataResources[0].Variables[col].Importance = int(metric[index].Data().(float64))
+		for index, v := range m.DataResources[0].Variables {
+			v.Importance = int(metric[index].Data().(float64)) + 1
 		}
 	}
 	return nil
