@@ -2,6 +2,8 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -29,6 +31,31 @@ func NewFeaturizer(functionName string, client *Client) *Featurizer {
 func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 	params := map[string]string{
 		"image_path": filename,
+	}
+	result, err := f.client.PostRequest(f.functionName, params)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to featurize file")
+	}
+
+	// response is a json of objects and text found in the image
+	imageData := make(map[string]interface{}, 0)
+	err = json.Unmarshal(result, &imageData)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to unmarshal image response")
+	}
+	return &ImageResult{
+		Image: imageData,
+	}, nil
+}
+
+func (f *Featurizer) ClusterImage(filename string) (*ImageResult, error) {
+	return f.ClusterImages([]string{filename})
+}
+
+func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
+	filenamesParam := strings.Join(filenames, ",")
+	params := map[string]string{
+		"image_paths": fmt.Sprintf("[%]", filenamesParam),
 	}
 	result, err := f.client.PostRequest(f.functionName, params)
 	if err != nil {
