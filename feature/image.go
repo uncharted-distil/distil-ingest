@@ -42,7 +42,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 
 	// featurize image columns
 	log.Infof("adding features to schema")
-	colsToFeaturize := addFeaturesToSchema(meta, mainDR)
+	colsToFeaturize := addFeaturesToSchema(meta, mainDR, "_feature_")
 
 	// read the data to process every row
 	log.Infof("opening data from source")
@@ -68,10 +68,6 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		if err != nil {
 			return errors.Wrap(err, "error writing header to output")
 		}
-	}
-
-	// skip header
-	if hasHeader {
 		_, err = reader.Read()
 		if err != nil {
 			return errors.Wrap(err, "failed to read header from file")
@@ -125,7 +121,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	return err
 }
 
-func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource) map[int]*potentialFeature {
+func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource, namePrefix string) map[int]*potentialFeature {
 	colsToFeaturize := make(map[int]*potentialFeature)
 	for _, v := range mainDR.Variables {
 		if v.RefersTo != nil && v.RefersTo["resID"] != nil {
@@ -137,7 +133,7 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource)
 			// check if needs to be featurized
 			if res.CanBeFeaturized() {
 				// create the new resource to hold the featured output
-				indexName := fmt.Sprintf("_feature_%s", v.Name)
+				indexName := fmt.Sprintf("%s%s", namePrefix, v.Name)
 
 				// add the feature variable
 				refVariable := &metadata.Variable{

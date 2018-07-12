@@ -48,10 +48,6 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 	}, nil
 }
 
-func (f *Featurizer) ClusterImage(filename string) (*ImageResult, error) {
-	return f.ClusterImages([]string{filename})
-}
-
 func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
 	filenamesParam := strings.Join(filenames, ",")
 	params := map[string]string{
