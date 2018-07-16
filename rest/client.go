@@ -128,6 +128,13 @@ func (c *Client) PostRequestRaw(function string, params map[string]interface{}) 
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to marshal parameters")
 	}
+
+	// interface requires double marshalling to have a raw string
+	b, err = json.Marshal(string(b))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to marshal (*2) parameters")
+	}
+
 	res, err := http.Post(url, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to post request")

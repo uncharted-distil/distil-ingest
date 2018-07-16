@@ -6,6 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	minClusterCount = 5
+)
+
 // ImageResult represents a REST image feature result.
 type ImageResult struct {
 	Image map[string]interface{} `json:"image"`
@@ -48,6 +52,10 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 
 // ClusterImages places images into similar clusters.
 func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
+	if len(filenames) < minClusterCount {
+		return &ImageResult{}, nil
+	}
+
 	params := map[string]interface{}{
 		"image_paths": filenames,
 	}
