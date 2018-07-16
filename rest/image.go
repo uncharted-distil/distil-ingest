@@ -2,8 +2,6 @@ package rest
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -48,14 +46,14 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 	}, nil
 }
 
+// ClusterImages places images into similar clusters.
 func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
-	filenamesParam := strings.Join(filenames, ",")
-	params := map[string]string{
-		"image_paths": fmt.Sprintf("[%]", filenamesParam),
+	params := map[string]interface{}{
+		"image_paths": filenames,
 	}
-	result, err := f.client.PostRequest(f.functionName, params)
+	result, err := f.client.PostRequestRaw(f.functionName, params)
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to featurize file")
+		return nil, errors.Wrap(err, "Unable to cluster file")
 	}
 
 	// response is a json of objects and text found in the image
