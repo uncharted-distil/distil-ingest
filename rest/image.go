@@ -2,6 +2,7 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -53,7 +54,15 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 // ClusterImages places images into similar clusters.
 func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
 	if len(filenames) < minClusterCount {
-		return &ImageResult{}, nil
+		imageClusters := make(map[string]interface{})
+		for i := range filenames {
+			imageClusters[fmt.Sprintf("%d", i)] = i
+		}
+		images := &ImageResult{
+			Image: make(map[string]interface{}),
+		}
+		images.Image["pred_class"] = imageClusters
+		return images, nil
 	}
 
 	params := map[string]interface{}{

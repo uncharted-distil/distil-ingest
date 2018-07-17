@@ -78,9 +78,14 @@ func ClusterDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, s
 	}
 
 	// cluster the files
+	log.Infof("Clustering data with featurizer")
 	clusteredImages, err := clusterImages(files, imageFeaturizer)
+	if err != nil {
+		return errors.Wrap(err, "failed to cluster images using featurizer")
+	}
 
 	// append and output the new clustered data
+	log.Infof("Adding cluster labels to source data")
 	for _, l := range lines {
 		for index, colDR := range colsToFeaturize {
 			imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, l[index]))
@@ -121,20 +126,20 @@ func clusterImages(filepaths []string, featurizer *rest.Featurizer) (map[string]
 
 	preds, ok := feature.Image["pred_class"].(map[string]interface{})
 	if !ok {
-		return nil, errors.Wrap(err, "image feature objects in unexpected format")
+		return nil, errors.Errorf("image feature objects in unexpected format")
 	}
 
-	clusters := make(map[string]string, len(preds))
+	clusters := make(map[string]string)
 	for i, c := range preds {
 		index, err := strconv.ParseInt(i, 10, 64)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed parse file index")
 		}
-		cluster, ok := c.(string)
+		cluster, ok := c.(float64)
 		if !ok {
-			return nil, errors.Wrap(err, "failed to parse file cluster")
+			return nil, errors.Errorf("failed to parse file cluster")
 		}
-		clusters[filepaths[index]] = cluster
+		clusters[filepaths[index]] = strconv.Itoa(int(cluster))
 	}
 
 	return clusters, nil
