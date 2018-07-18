@@ -2,8 +2,13 @@ package rest
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
+)
+
+const (
+	minClusterCount = 5
 )
 
 // ImageResult represents a REST image feature result.
@@ -33,6 +38,39 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 	result, err := f.client.PostRequest(f.functionName, params)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to featurize file")
+	}
+
+	// response is a json of objects and text found in the image
+	imageData := make(map[string]interface{}, 0)
+	err = json.Unmarshal(result, &imageData)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to unmarshal image response")
+	}
+	return &ImageResult{
+		Image: imageData,
+	}, nil
+}
+
+// ClusterImages places images into similar clusters.
+func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
+	if len(filenames) < minClusterCount {
+		imageClusters := make(map[string]interface{})
+		for i := range filenames {
+			imageClusters[fmt.Sprintf("%d", i)] = i
+		}
+		images := &ImageResult{
+			Image: make(map[string]interface{}),
+		}
+		images.Image["pred_class"] = imageClusters
+		return images, nil
+	}
+
+	params := map[string]interface{}{
+		"image_paths": filenames,
+	}
+	result, err := f.client.PostRequestRaw(f.functionName, params)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to cluster file")
 	}
 
 	// response is a json of objects and text found in the image

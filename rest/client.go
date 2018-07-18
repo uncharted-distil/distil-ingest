@@ -2,6 +2,7 @@ package rest
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -103,6 +104,38 @@ func (c *Client) PostRequest(function string, params map[string]string) ([]byte,
 
 	client := &http.Client{}
 	res, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to post request")
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status: %s", res.Status)
+	}
+
+	result, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to read result")
+	}
+
+	return result, nil
+}
+
+// PostRequestRaw submits a post request with the provided parameters
+// submitted as a raw string.
+func (c *Client) PostRequestRaw(function string, params map[string]interface{}) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s", c.baseEndpoint, function)
+	b, err := json.Marshal(params)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to marshal parameters")
+	}
+
+	// interface requires double marshalling to have a raw string
+	b, err = json.Marshal(string(b))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to marshal (*2) parameters")
+	}
+
+	res, err := http.Post(url, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to post request")
 	}
