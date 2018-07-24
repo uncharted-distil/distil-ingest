@@ -120,7 +120,7 @@ func NormalizeVariableName(name string) string {
 }
 
 // NewVariable creates a new variable.
-func NewVariable(index int, name, originalName, typ, originalType, fileType, fileFormat string, role []string, distilRole string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
+func NewVariable(index int, name, displayName, originalName, typ, originalType, fileType, fileFormat string, role []string, distilRole string, refersTo map[string]interface{}, existingVariables []*Variable, normalizeName bool) *Variable {
 	normed := name
 	if normalizeName {
 		// normalize name
@@ -150,6 +150,10 @@ func NewVariable(index int, name, originalName, typ, originalType, fileType, fil
 		originalName = normed
 	}
 
+	if displayName == "" {
+		displayName = name
+	}
+
 	return &Variable{
 		Name:             normed,
 		Index:            index,
@@ -160,7 +164,7 @@ func NewVariable(index int, name, originalName, typ, originalType, fileType, fil
 		DistilRole:       distilRole,
 		OriginalVariable: originalName,
 		OriginalName:     normed,
-		DisplayName:      name,
+		DisplayName:      displayName,
 		FileType:         fileType,
 		FileFormat:       fileFormat,
 		RefersTo:         refersTo,
@@ -251,7 +255,7 @@ func (dr *DataResource) CanBeFeaturized() bool {
 
 // AddVariable creates and add a new variable to the data resource.
 func (dr *DataResource) AddVariable(name string, originalName string, typ string, role []string, distilRole string) {
-	v := NewVariable(len(dr.Variables), name, originalName, typ, typ, "", "", role, distilRole, nil, dr.Variables, false)
+	v := NewVariable(len(dr.Variables), name, "", originalName, typ, typ, "", "", role, distilRole, nil, dr.Variables, false)
 	dr.Variables = append(dr.Variables, v)
 }
 
@@ -303,6 +307,7 @@ func (m *Metadata) loadRawVariables(datasetPath string, classificationPath strin
 		variable := NewVariable(
 			index,
 			v,
+			"",
 			"",
 			"",
 			"",
@@ -561,6 +566,11 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 	}
 	varName := v.Path("colName").Data().(string)
 
+	varDisplayName := ""
+	if v.Path("colDisplayName").Data() != nil {
+		varDisplayName = v.Path("colDisplayName").Data().(string)
+	}
+
 	varType := ""
 	if v.Path("colType").Data() != nil {
 		varType = v.Path("colType").Data().(string)
@@ -630,6 +640,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 	return NewVariable(
 		varIndex,
 		varName,
+		varDisplayName,
 		varOriginalName,
 		varType,
 		varType,

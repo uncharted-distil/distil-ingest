@@ -25,7 +25,7 @@ func ClusterDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, s
 
 	// cluster image columns
 	log.Infof("adding clusters to schema")
-	colsToFeaturize := addFeaturesToSchema(meta, mainDR, "_cluster_")
+	colsToFeaturize := addFeaturesToSchema(meta, mainDR, "_cluster_", "group")
 
 	// read the data to process every row
 	log.Infof("opening data from source")

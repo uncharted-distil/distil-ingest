@@ -42,7 +42,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 
 	// featurize image columns
 	log.Infof("adding features to schema")
-	colsToFeaturize := addFeaturesToSchema(meta, mainDR, "_feature_")
+	colsToFeaturize := addFeaturesToSchema(meta, mainDR, "_feature_", "label")
 
 	// read the data to process every row
 	log.Infof("opening data from source")
@@ -121,7 +121,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	return err
 }
 
-func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource, namePrefix string) map[int]*potentialFeature {
+func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource, namePrefix string, displayName string) map[int]*potentialFeature {
 	colsToFeaturize := make(map[int]*potentialFeature)
 	for _, v := range mainDR.Variables {
 		if v.RefersTo != nil && v.RefersTo["resID"] != nil {
@@ -138,6 +138,7 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource,
 				// add the feature variable
 				refVariable := &metadata.Variable{
 					Name:             indexName,
+					DisplayName:      displayName,
 					Index:            len(mainDR.Variables),
 					Type:             "string",
 					Role:             []string{"attribute"},
