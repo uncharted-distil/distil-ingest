@@ -48,7 +48,8 @@ const (
 			request_id		varchar(200),
 			solution_id		varchar(200),
 			progress		varchar(40),
-			created_time	timestamp
+			created_time	timestamp,
+			deleted         boolean
 		);`
 	requestFeatureTableCreationSQL = `CREATE TABLE %s (
 			request_id		varchar(200),
