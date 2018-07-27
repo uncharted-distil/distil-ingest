@@ -900,9 +900,6 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 		return errors.New("metadata variables not merged into a single dataset")
 	}
 	adjustedID := datasetPrefix + meta.ID
-	if !strings.HasSuffix(meta.ID, datasetSuffix) {
-		adjustedID = fmt.Sprintf("%s%s", adjustedID, datasetSuffix)
-	}
 
 	source := map[string]interface{}{
 		"datasetName":    meta.Name,
