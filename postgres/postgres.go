@@ -19,8 +19,8 @@ import (
 const (
 	metadataTableCreationSQL = `CREATE TABLE %s (
 			name	varchar(100)	NOT NULL,
-			role	varchar(20),
-			type	varchar(20)
+			role	varchar(100),
+			type	varchar(100)
 		);`
 	resultTableCreationSQL = `CREATE TABLE %s (
 			result_id	varchar(1000)	NOT NULL,
