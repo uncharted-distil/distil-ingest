@@ -86,6 +86,11 @@ func main() {
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
 		},
+		cli.Float64Flag{
+			Name:  "threshold",
+			Value: 0.2,
+			Usage: "Confidence threshold to use for labels",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 		if c.String("rest-endpoint") == "" {
@@ -107,6 +112,7 @@ func main() {
 		schemaPath := c.String("schema")
 		outputFilePath := c.String("output")
 		hasHeader := c.Bool("has-header")
+		threshold := c.Float64("threshold")
 
 		// initialize REST client
 		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
@@ -136,7 +142,7 @@ func main() {
 		}
 
 		// featurize data
-		err = feature.FeaturizeDataset(meta, featurizer, datasetPath, mediaPath, outputFilePath, outputData, outputSchema, hasHeader)
+		err = feature.FeaturizeDataset(meta, featurizer, datasetPath, mediaPath, outputFilePath, outputData, outputSchema, hasHeader, threshold)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

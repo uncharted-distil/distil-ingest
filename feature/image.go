@@ -36,7 +36,7 @@ func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResour
 // FeaturizeDataset reads adds features based on referenced data resources
 // in the metadata. The features are added as a reference resource in
 // the metadata and written to the output path.
-func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool) error {
+func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool, threshold float64) error {
 	// find the main data resource
 	mainDR := meta.GetMainDataResource()
 
@@ -86,7 +86,7 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 		for index, colDR := range colsToFeaturize {
 			imagePath := fmt.Sprintf("%s/%s", mediaPath, path.Join(colDR.originalResPath, line[index]))
 			log.Infof("Featurizing %s", imagePath)
-			feature, err := featurizeImage(imagePath, imageFeaturizer)
+			feature, err := featurizeImage(imagePath, imageFeaturizer, threshold)
 			if err != nil {
 				return errors.Wrap(err, "error getting image feature output")
 			}
@@ -158,7 +158,7 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource,
 	return colsToFeaturize
 }
 
-func featurizeImage(filepath string, featurizer *rest.Featurizer) (string, error) {
+func featurizeImage(filepath string, featurizer *rest.Featurizer, threshold float64) (string, error) {
 	feature, err := featurizer.FeaturizeImage(filepath)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to featurize image")
@@ -174,10 +174,22 @@ func featurizeImage(filepath string, featurizer *rest.Featurizer) (string, error
 		return "", errors.Wrap(err, "image feature labels in unexpected format")
 	}
 
+	confidences, ok := objs["confidence"].(map[string]interface{})
+	if !ok {
+		return "", errors.Wrap(err, "image feature confidences in unexpected format")
+	}
+
 	labelText := make([]string, 0)
-	for _, l := range labels {
-		cleanedLabel := strings.Replace(l.(string), "_", " ", -1)
-		labelText = append(labelText, cleanedLabel)
+	for i, l := range labels {
+		if confidences[i].(float64) >= threshold {
+			cleanedLabel := strings.Replace(l.(string), "_", " ", -1)
+			labelText = append(labelText, cleanedLabel)
+		}
+	}
+
+	// use default value if no labels had high enough confidence
+	if len(labelText) == 0 {
+		labelText = append(labelText, "other")
 	}
 
 	return strings.Join(labelText, ","), nil
