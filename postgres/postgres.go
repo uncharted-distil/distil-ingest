@@ -3,7 +3,6 @@ package postgres
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/go-pg/pg"
@@ -274,6 +273,8 @@ func (d *Database) IngestRow(tableName string, data string) error {
 		var val interface{}
 		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
 			val = nil
+		} else if d.isArray(variables[i].Type) {
+			val = fmt.Sprintf("{%s}", doc.Cols[i])
 		} else {
 			val = doc.Cols[i]
 		}
@@ -431,42 +432,10 @@ func (d *Database) mapType(typ string) string {
 		return "FLOAT8"
 	case "latitude":
 		return "FLOAT8"
+	case "realVector":
+		return "FLOAT[]"
 	default:
 		return "TEXT"
-	}
-}
-
-// mapVariable uses the variable type to map a string value to the proper type.
-func (d *Database) mapVariable(typ, value string) (interface{}, error) {
-	// NOTE: current classification has issues so if numerical, assume float64.
-	switch typ {
-	case "index":
-		if value == "" {
-			return nil, nil
-		}
-		return strconv.ParseInt(value, 10, 32)
-	case "integer":
-		if value == "" {
-			return nil, nil
-		}
-		return strconv.ParseFloat(value, 64)
-	case "float":
-		if value == "" {
-			return nil, nil
-		}
-		return strconv.ParseFloat(value, 64)
-	case "longitude":
-		if value == "" {
-			return nil, nil
-		}
-		return strconv.ParseFloat(value, 64)
-	case "latitude":
-		if value == "" {
-			return nil, nil
-		}
-		return strconv.ParseFloat(value, 64)
-	default:
-		return value, nil
 	}
 }
 
@@ -482,6 +451,8 @@ func (d *Database) defaultValue(typ string) interface{} {
 		return float64(0)
 	case "latitude":
 		return float64(0)
+	case "realVector":
+		return "{}"
 	default:
 		return "''"
 	}
@@ -489,4 +460,8 @@ func (d *Database) defaultValue(typ string) interface{} {
 
 func (d *Database) isNullVariable(typ, value string) bool {
 	return value == "" && nonNullableTypes[typ]
+}
+
+func (d *Database) isArray(typ string) bool {
+	return strings.HasSuffix(typ, "Vector")
 }
