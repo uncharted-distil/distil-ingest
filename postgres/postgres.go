@@ -268,6 +268,11 @@ func (d *Database) IngestRow(tableName string, data string) error {
 	values := make([]interface{}, len(variables))
 	doc := &document.CSV{}
 	doc.SetData(data)
+
+	// If a row ends in a delimeter, deluge does not add the last field.
+	if len(doc.Cols) == len(variables)-1 && strings.HasSuffix(data, ",") {
+		doc.Cols = append(doc.Cols, "")
+	}
 	for i := 0; i < len(variables); i++ {
 		// Default columns that have an empty column.
 		var val interface{}
@@ -452,7 +457,7 @@ func (d *Database) defaultValue(typ string) interface{} {
 	case "latitude":
 		return float64(0)
 	case "realVector":
-		return "{}"
+		return "'{}'"
 	default:
 		return "''"
 	}

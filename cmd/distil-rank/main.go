@@ -96,9 +96,6 @@ func main() {
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
-		if c.String("classification") == "" {
-			return cli.NewExitError("missing commandline flag `--classification`", 1)
-		}
 		if c.String("rest-endpoint") == "" {
 			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
 		}
