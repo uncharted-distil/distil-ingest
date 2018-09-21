@@ -171,7 +171,7 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 					references[variable.Name] = variable.RefersTo
 				} else {
 					// reverse the reference to point from the key to the index
-					obj, ok := variable.RefersTo["resobject"].(map[string]interface{})
+					obj, ok := variable.RefersTo["resObject"].(map[string]interface{})
 					if !ok {
 						return nil, nil, errors.Errorf("failed to parse reference for %s", variable.Name)
 					}

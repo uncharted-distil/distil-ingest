@@ -628,9 +628,11 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		if refersToData.Path("resObject").Data() != nil {
 			resObjectMap, err := refersToData.Path("resObject").ChildrenMap()
 			if err != nil {
-				for k, v := range resObjectMap {
-					resObject[k] = v.Data().(string)
-				}
+				return nil, fmt.Errorf("unable to parse resObject")
+			}
+
+			for k, v := range resObjectMap {
+				resObject[k] = v.Data().(string)
 			}
 		}
 
