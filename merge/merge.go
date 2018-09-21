@@ -27,7 +27,7 @@ type FileLink struct {
 	Variables []*metadata.Variable
 }
 
-func readFileLink(dataResource *metadata.DataResource, filename string) (*FileLink, error) {
+func readFileLink(dataResource *metadata.DataResource, indexVarName string, filename string) (*FileLink, error) {
 	// open file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -59,7 +59,7 @@ func readFileLink(dataResource *metadata.DataResource, filename string) (*FileLi
 	var indexVar *metadata.Variable
 	variables := make([]*metadata.Variable, 0)
 	for _, variable := range dataResource.Variables {
-		if variable.SelectedRole == "index" {
+		if variable.Name == indexVarName {
 			indexVar = variable
 		} else {
 			variables = append(variables, variable)
@@ -196,13 +196,16 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 	links := make(map[string]*FileLink)
 	if len(keyColumns) > 0 {
 		for _, variable := range keyColumns {
-			if variable.RefersTo["resID"] == nil {
+			reference := references[variable.Name]
+			if reference == nil {
 				continue
 			}
 			resID := variable.RefersTo["resID"].(string)
-
 			res := dataResources[resID]
-			l, err := readFileLink(res, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))
+			obj := variable.RefersTo["resObject"].(map[string]interface{})
+			targetName := obj["columnName"].(string)
+
+			l, err := readFileLink(res, targetName, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed read file link %s from resource %s", res.ResPath, res.ResPath)
 			}
