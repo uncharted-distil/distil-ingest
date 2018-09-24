@@ -176,16 +176,16 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 						return nil, nil, errors.Errorf("failed to parse reference for %s", variable.Name)
 					}
 
+					// Some datasets point to a resource rather than column
+					// Ignore those references
 					name, ok := obj["columnName"].(string)
-					if !ok {
-						return nil, nil, errors.Errorf("failed to parse reference name for %s", variable.Name)
-					}
-
-					references[name] = map[string]interface{}{
-						"resID": dr.ResID,
-						"resObject": map[string]interface{}{
-							"columnName": variable.Name,
-						},
+					if ok {
+						references[name] = map[string]interface{}{
+							"resID": dr.ResID,
+							"resObject": map[string]interface{}{
+								"columnName": variable.Name,
+							},
+						}
 					}
 				}
 			}
