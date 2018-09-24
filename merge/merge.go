@@ -27,7 +27,7 @@ type FileLink struct {
 	Variables []*metadata.Variable
 }
 
-func readFileLink(dataResource *metadata.DataResource, filename string) (*FileLink, error) {
+func readFileLink(dataResource *metadata.DataResource, indexVarName string, filename string) (*FileLink, error) {
 	// open file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -59,7 +59,7 @@ func readFileLink(dataResource *metadata.DataResource, filename string) (*FileLi
 	var indexVar *metadata.Variable
 	variables := make([]*metadata.Variable, 0)
 	for _, variable := range dataResource.Variables {
-		if variable.SelectedRole == "index" {
+		if variable.Name == indexVarName {
 			indexVar = variable
 		} else {
 			variables = append(variables, variable)
@@ -146,18 +146,48 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 	dataResources := make(map[string]*metadata.DataResource)
 	indexColumns := make(map[string]*metadata.Variable)
 	keyColumns := make([]*metadata.Variable, 0)
+	references := make(map[string]map[string]interface{})
 	for _, dr := range meta.DataResources {
 		dataResources[dr.ResID] = dr
 		for i := 0; i < len(dr.Variables); i++ {
 			variable := dr.Variables[i]
-			if variable.SelectedRole == "index" {
-				indexColumns[variable.Name] = variable
-				if variable.Name == d3mIndexName {
-					mergedDataResource.Variables = dr.Variables
-					mergedDataResource.ResType = dr.ResType
+			isKey := false
+			for _, r := range variable.Role {
+				if r == "index" {
+					indexColumns[variable.Name] = variable
+					if variable.Name == d3mIndexName {
+						mergedDataResource.Variables = dr.Variables
+						mergedDataResource.ResType = dr.ResType
+					}
+				} else if r == "key" {
+					keyColumns = append(keyColumns, variable)
+					isKey = true
 				}
-			} else if variable.SelectedRole == "key" && variable.RefersTo != nil {
-				keyColumns = append(keyColumns, variable)
+			}
+
+			// store references to other data resources
+			if variable.RefersTo != nil && variable.RefersTo["resObject"] != nil {
+				if isKey {
+					references[variable.Name] = variable.RefersTo
+				} else {
+					// reverse the reference to point from the key to the index
+					obj, ok := variable.RefersTo["resObject"].(map[string]interface{})
+					if !ok {
+						return nil, nil, errors.Errorf("failed to parse reference for %s", variable.Name)
+					}
+
+					// Some datasets point to a resource rather than column
+					// Ignore those references
+					name, ok := obj["columnName"].(string)
+					if ok {
+						references[name] = map[string]interface{}{
+							"resID": dr.ResID,
+							"resObject": map[string]interface{}{
+								"columnName": variable.Name,
+							},
+						}
+					}
+				}
 			}
 		}
 	}
@@ -166,13 +196,16 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 	links := make(map[string]*FileLink)
 	if len(keyColumns) > 0 {
 		for _, variable := range keyColumns {
-			if variable.RefersTo["resID"] == nil {
+			reference := references[variable.Name]
+			if reference == nil {
 				continue
 			}
-			resID := variable.RefersTo["resID"].(string)
-
+			resID := reference["resID"].(string)
 			res := dataResources[resID]
-			l, err := readFileLink(res, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))
+			obj := reference["resObject"].(map[string]interface{})
+			targetName := obj["columnName"].(string)
+
+			l, err := readFileLink(res, targetName, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed read file link %s from resource %s", res.ResPath, res.ResPath)
 			}
