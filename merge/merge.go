@@ -166,7 +166,7 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 			}
 
 			// store references to other data resources
-			if variable.RefersTo != nil {
+			if variable.RefersTo != nil && variable.RefersTo["resObject"] != nil {
 				if isKey {
 					references[variable.Name] = variable.RefersTo
 				} else {
@@ -200,9 +200,9 @@ func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string,
 			if reference == nil {
 				continue
 			}
-			resID := variable.RefersTo["resID"].(string)
+			resID := reference["resID"].(string)
 			res := dataResources[resID]
-			obj := variable.RefersTo["resObject"].(map[string]interface{})
+			obj := reference["resObject"].(map[string]interface{})
 			targetName := obj["columnName"].(string)
 
 			l, err := readFileLink(res, targetName, fmt.Sprintf("%s/%s", rawDataPath, res.ResPath))
