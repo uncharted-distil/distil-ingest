@@ -92,6 +92,7 @@ var (
 		"index":   true,
 		"integer": true,
 		"float":   true,
+		"real":    true,
 	}
 	wordRegex = regexp.MustCompile("[^a-zA-Z]")
 )
@@ -431,7 +432,7 @@ func (d *Database) mapType(typ string) string {
 		return "INTEGER"
 	case "integer":
 		return "FLOAT8"
-	case "float":
+	case "float", "real":
 		return "FLOAT8"
 	case "longitude":
 		return "FLOAT8"
@@ -450,7 +451,7 @@ func (d *Database) defaultValue(typ string) interface{} {
 		return int(0)
 	case "integer":
 		return float64(0)
-	case "float":
+	case "float", "real":
 		return float64(0)
 	case "longitude":
 		return float64(0)
