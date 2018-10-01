@@ -16,6 +16,7 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
+	"github.com/unchartedsoftware/plog"
 	"gopkg.in/olivere/elastic.v5"
 
 	"github.com/unchartedsoftware/distil-ingest/rest"
@@ -46,6 +47,9 @@ const (
 	VarRoleData = "data"
 	// VarRoleMetadata is the distil role for metadata variables
 	VarRoleMetadata = "metadata"
+
+	provenanceSimon  = "d3m.primitives.distil.simon"
+	provenanceSchema = "schema"
 )
 
 var (
@@ -91,6 +95,7 @@ type DataResource struct {
 type SuggestedType struct {
 	Type        string  `json:"type"`
 	Probability float64 `json:"probability"`
+	Provenance  string  `json:"provenance"`
 }
 
 // Metadata represents a collection of dataset descriptions.
@@ -168,6 +173,7 @@ func NewVariable(index int, name, displayName, originalName, typ, originalType, 
 		FileType:         fileType,
 		FileFormat:       fileFormat,
 		RefersTo:         refersTo,
+		SuggestedTypes:   make([]*SuggestedType, 0),
 	}
 }
 
@@ -242,6 +248,44 @@ func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*Me
 		return nil, err
 	}
 	err = meta.loadRawVariables(datasetPath, classificationPath)
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+// LoadMetadataFromClassification loads metadata from a merged schema and
+// classification file.
+func LoadMetadataFromClassification(schemaPath string, classificationPath string) (*Metadata, error) {
+	meta := &Metadata{
+		SchemaSource: SchemaSourceClassification,
+	}
+
+	// If classification can't be loaded, try to load from merged schema.
+	err := meta.loadClassification(classificationPath)
+	if err != nil {
+		log.Warnf("unable to load classification file: %v", err)
+		log.Warnf("attempting to load from merged schema")
+		return LoadMetadataFromMergedSchema(schemaPath)
+	}
+
+	err = meta.loadMergedSchema(schemaPath)
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadName()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadID()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadDescription()
+	if err != nil {
+		return nil, err
+	}
+	err = meta.loadClassificationVariables()
 	if err != nil {
 		return nil, err
 	}
@@ -323,49 +367,16 @@ func (m *Metadata) loadRawVariables(datasetPath string, classificationPath strin
 		if err != nil {
 			return err
 		}
-		variable.SuggestedTypes = suggestedTypes
+		variable.SuggestedTypes = append(variable.SuggestedTypes, suggestedTypes...)
 		// set type to that with highest probability
-		if len(suggestedTypes) > 0 && suggestedTypes[0].Probability >= typeProbabilityThreshold {
-			variable.Type = suggestedTypes[0].Type
+		if len(variable.SuggestedTypes) > 0 && variable.SuggestedTypes[0].Probability >= typeProbabilityThreshold {
+			variable.Type = variable.SuggestedTypes[0].Type
 		} else {
 			variable.Type = defaultVarType
 		}
 		m.DataResources[0].Variables = append(m.DataResources[0].Variables, variable)
 	}
 	return nil
-}
-
-// LoadMetadataFromClassification loads metadata from a merged schema and
-// classification file.
-func LoadMetadataFromClassification(schemaPath string, classificationPath string) (*Metadata, error) {
-	meta := &Metadata{
-		SchemaSource: SchemaSourceClassification,
-	}
-	err := meta.loadMergedSchema(schemaPath)
-	if err != nil {
-		return nil, err
-	}
-	err = meta.loadClassification(classificationPath)
-	if err != nil {
-		return nil, err
-	}
-	err = meta.loadName()
-	if err != nil {
-		return nil, err
-	}
-	err = meta.loadID()
-	if err != nil {
-		return nil, err
-	}
-	err = meta.loadDescription()
-	if err != nil {
-		return nil, err
-	}
-	err = meta.loadClassificationVariables()
-	if err != nil {
-		return nil, err
-	}
-	return meta, nil
 }
 
 func (m *Metadata) loadSchema(schemaPath string) error {
@@ -643,7 +654,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		refersTo["resID"] = resID
 		refersTo["resObject"] = resObject
 	}
-	return NewVariable(
+	variable := NewVariable(
 		varIndex,
 		varName,
 		varDisplayName,
@@ -656,7 +667,14 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 		varDistilRole,
 		refersTo,
 		existingVariables,
-		normalizeName), nil
+		normalizeName)
+	variable.SuggestedTypes = append(variable.SuggestedTypes, &SuggestedType{
+		Type:        variable.Type,
+		Probability: 2,
+		Provenance:  provenanceSchema,
+	})
+
+	return variable, nil
 }
 
 func (m *Metadata) cleanVarType(name string, typ string) string {
@@ -707,6 +725,7 @@ func (m *Metadata) parseSuggestedTypes(name string, index int, labels []*gabs.Co
 		suggested = append(suggested, &SuggestedType{
 			Type:        m.cleanVarType(name, typ),
 			Probability: probability,
+			Provenance:  provenanceSimon,
 		})
 	}
 	// sort by probability
@@ -816,10 +835,10 @@ func (m *Metadata) loadClassificationVariables() error {
 		if err != nil {
 			return err
 		}
-		variable.SuggestedTypes = suggestedTypes
+		variable.SuggestedTypes = append(variable.SuggestedTypes, suggestedTypes...)
 		// set type to that with highest probability
-		if len(suggestedTypes) > 0 && suggestedTypes[0].Probability >= typeProbabilityThreshold {
-			variable.Type = suggestedTypes[0].Type
+		if len(variable.SuggestedTypes) > 0 && variable.SuggestedTypes[0].Probability >= typeProbabilityThreshold {
+			variable.Type = variable.SuggestedTypes[0].Type
 		} else {
 			variable.Type = defaultVarType
 		}
