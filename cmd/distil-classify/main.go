@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -11,7 +9,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/rest"
+	"github.com/unchartedsoftware/distil-ingest/primitive"
+	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 )
 
 func splitAndTrim(arg string) []string {
@@ -34,17 +33,12 @@ func main() {
 	app.Name = "distil-classify"
 	app.Version = "0.1.0"
 	app.Usage = "Classify D3M merged datasets"
-	app.UsageText = "distil-classify --rest-endpoint=<url> --classification-function=<function> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-classify --endpoint=<url> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "rest-endpoint",
+			Name:  "endpoint",
 			Value: "",
-			Usage: "The REST endpoint url",
-		},
-		cli.StringFlag{
-			Name:  "classification-function",
-			Value: "",
-			Usage: "The classification function to use",
+			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
 			Name:  "dataset",
@@ -63,48 +57,33 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-		if c.String("rest-endpoint") == "" {
-			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
-		}
-		if c.String("classification-function") == "" {
-			return cli.NewExitError("missing commandline flag `--classification-function`", 1)
+		if c.String("endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
 
-		classificationFunction := c.String("classification-function")
-		restBaseEndpoint := c.String("rest-endpoint")
+		endpoint := c.String("endpoint")
 		path := c.String("dataset")
 		outputFilePath := c.String("output")
 
-		// initialize REST client
-		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
-		client := rest.NewClient(restBaseEndpoint)
-
-		// create classifier
-		classifier := rest.NewClassifier(classificationFunction, client)
+		// initialize client
+		log.Infof("Using pipeline runner interface at `%s` ", endpoint)
+		client, err := compute.NewRunner(endpoint, true, "distil-ingest", 60, 10, true)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		step := primitive.NewIngestStep(client)
 
 		// classify the file
-		classification, err := classifier.ClassifyFile(path)
+		err = step.ClassifyPrimitive(path, outputFilePath)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 		log.Infof("Classification for `%s` successful", path)
-		// marshall result
-		bytes, err := json.MarshalIndent(classification, "", "    ")
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-		// write to file
-		log.Infof("Writing classification to file `%s`", outputFilePath)
-		err = ioutil.WriteFile(outputFilePath, bytes, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
 
 		return nil
 	}
