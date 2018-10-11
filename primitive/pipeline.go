@@ -145,7 +145,7 @@ func getFeatureVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				v := metadata.NewVariable(len(mainDR.Variables), indexName, "label", v.Name, "string", "string", "", "", []string{"attribute"}, metadata.VarRoleMetadata, nil, mainDR.Variables, false)
 
 				// create the required pipeline
-				step, err := description.CreateCrocPipeline("leather", "", []string{v.Name}, []string{indexName})
+				step, err := description.CreateCrocPipeline("leather", "", []string{denormFieldName}, []string{indexName})
 				if err != nil {
 					return nil, errors.Wrap(err, "unable to create step pipeline")
 				}

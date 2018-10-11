@@ -19,7 +19,7 @@ func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 	util.CreateContainingDirs(outputSchemaPath)
 
 	// load metadata from original schema
-	meta, err := metadata.LoadMetadataFromOriginalSchema(outputSchemaPath)
+	meta, err := metadata.LoadMetadataFromOriginalSchema(schemaFile)
 	if err != nil {
 		return errors.Wrap(err, "unable to load original schema file")
 	}

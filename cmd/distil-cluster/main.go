@@ -12,7 +12,6 @@ import (
 
 	"github.com/unchartedsoftware/distil-ingest/primitive"
 	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
-	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
 func splitAndTrim(arg string) []string {
@@ -72,11 +71,6 @@ func main() {
 			Value: "",
 			Usage: "The path to use as output for the clustered schema document",
 		},
-		cli.StringFlag{
-			Name:  "output-data",
-			Value: "",
-			Usage: "The path to use as output for the clustered data",
-		},
 		cli.BoolFlag{
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
@@ -94,9 +88,8 @@ func main() {
 		datasetPath := c.String("dataset")
 		//mediaPath := c.String("media-path")
 		outputSchema := c.String("output-schema")
-		//outputData := c.String("output-data")
 		schemaPath := c.String("schema")
-		outputFilePath := c.String("output")
+		outputData := c.String("output")
 		hasHeader := c.Bool("has-header")
 
 		// initialize client
@@ -109,25 +102,19 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// create feature folder
-		clusterPath := path.Join(outputFilePath, "clusters")
-		if util.DirExists(clusterPath) {
-			// delete existing data to overwrite with latest
-			os.RemoveAll(clusterPath)
-			log.Infof("Deleted data at %s", clusterPath)
-		}
-		if err := os.MkdirAll(clusterPath, 0777); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(path.Dir(outputData), 0777); err != nil && !os.IsExist(err) {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		os.Remove(path.Join(outputFilePath, "clusterDatasetDoc.json"))
+		os.Remove(outputData)
 
 		// create featurizer
-		err = step.ClusterPrimitive(schemaPath, datasetPath, datasetPath, outputSchema, outputFilePath, hasHeader)
+		err = step.ClusterPrimitive(schemaPath, datasetPath, datasetPath, outputSchema, outputData, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Clustered data written to %s", outputFilePath)
+		log.Infof("Clustered data written to %s", outputData)
 
 		return nil
 	}
