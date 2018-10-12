@@ -15,7 +15,7 @@ import (
 
 	"github.com/unchartedsoftware/distil-ingest/merge"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/s3"
+	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
 const (
@@ -46,11 +46,6 @@ func main() {
 			Name:  "raw-data",
 			Value: "",
 			Usage: "The raw dat a file path",
-		},
-		cli.StringFlag{
-			Name:  "output-bucket",
-			Value: "",
-			Usage: "The merged output AWS S3 bucket",
 		},
 		cli.StringFlag{
 			Name:  "output-key",
@@ -114,8 +109,6 @@ func main() {
 		}
 		schemaPath := filepath.Clean(c.String("schema"))
 		rawDataPath := filepath.Clean(c.String("raw-data"))
-		outputBucket := c.String("output-bucket")
-		outputKey := c.String("output-key")
 		outputPathHeader := filepath.Clean(c.String("output-path-header"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
 		hasHeader := c.Bool("has-header")
@@ -134,24 +127,8 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
-		// get AWS S3 client
-		client, err := s3.NewClient()
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 3)
-		}
-
-		// write merged output to AWS S3
-		if outputBucket != "" {
-			err = s3.WriteToBucket(client, outputBucket, outputKey, output)
-			if err != nil {
-				log.Errorf("%+v", err)
-				return cli.NewExitError(errors.Cause(err), 4)
-			}
-		}
-
 		// write copy to disk
-		err = ioutil.WriteFile(outputPath, output, 0644)
+		err = util.WriteFileWithDirs(outputPath, output, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 5)
@@ -166,9 +143,6 @@ func main() {
 
 		// log success / failure
 		log.Infof("Merged data successfully written to %s", outputPath)
-		if outputBucket != "" {
-			log.Infof("Merged data successfully written to %s/%s", outputBucket, outputKey)
-		}
 
 		// get header for the merged data
 		headers, err := meta.GenerateHeaders()
@@ -188,7 +162,7 @@ func main() {
 		}
 
 		// write to file to submit the file
-		err = ioutil.WriteFile(outputPathHeader, data, 0644)
+		err = util.WriteFileWithDirs(outputPathHeader, data, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

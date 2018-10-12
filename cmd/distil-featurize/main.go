@@ -12,7 +12,6 @@ import (
 
 	"github.com/unchartedsoftware/distil-ingest/primitive"
 	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
-	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
 func splitAndTrim(arg string) []string {
@@ -115,17 +114,11 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// create feature folder
-		featurePath := path.Join(outputFilePath, "features")
-		if util.DirExists(featurePath) {
-			// delete existing data to overwrite with latest
-			os.RemoveAll(featurePath)
-			log.Infof("Deleted data at %s", featurePath)
-		}
-		if err := os.MkdirAll(featurePath, 0777); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(path.Dir(outputFilePath), 0777); err != nil && !os.IsExist(err) {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		os.Remove(path.Join(outputFilePath, "featureDatasetDoc.json"))
+		os.Remove(outputFilePath)
 
 		// create featurizer
 		err = step.FeaturizePrimitive(schemaPath, datasetPath, datasetPath, outputSchema, outputFilePath, hasHeader)

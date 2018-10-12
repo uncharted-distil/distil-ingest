@@ -50,6 +50,8 @@ const (
 
 	provenanceSimon  = "d3m.primitives.distil.simon"
 	provenanceSchema = "schema"
+
+	schemaVersion = "3.1.1"
 )
 
 var (
@@ -89,6 +91,7 @@ type DataResource struct {
 	ResPath      string      `json:"resPath"`
 	IsCollection bool        `json:"isCollection"`
 	Variables    []*Variable `json:"columns,omitempty"`
+	ResFormat    []string    `json:"resFormat"`
 }
 
 // SuggestedType represents a classified variable type.
@@ -876,11 +879,12 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 	// create output format
 	output := map[string]interface{}{
 		"about": map[string]interface{}{
-			"datasetID":    m.ID,
-			"datasetName":  m.Name,
-			"description":  m.Description,
-			"rawData":      m.Raw,
-			"mergedSchema": "true",
+			"datasetID":            m.ID,
+			"datasetName":          m.Name,
+			"description":          m.Description,
+			"datasetSchemaVersion": schemaVersion,
+			"rawData":              m.Raw,
+			"mergedSchema":         "true",
 		},
 		"dataResources": []*DataResource{mergedDataResource},
 	}

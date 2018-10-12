@@ -15,6 +15,7 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 	"github.com/unchartedsoftware/distil-ingest/primitive/compute/description"
 	"github.com/unchartedsoftware/distil-ingest/primitive/compute/result"
+	"github.com/unchartedsoftware/plog"
 )
 
 const (
@@ -88,6 +89,7 @@ func (s *IngestStep) appendFeature(dataset string, d3mIndexField int, hasHeader 
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to run pipeline primitive")
 	}
+	log.Infof("parsing primitive result from '%s'", datasetURI)
 
 	// parse primitive response (new field contains output)
 	res, err := result.ParseResultCSV(datasetURI)
@@ -185,9 +187,9 @@ func getClusterVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				var step *pipeline.PipelineDescription
 				var err error
 				if res.CanBeFeaturized() {
-					step, err = description.CreateUnicornPipeline("horned", "", []string{v.Name}, []string{indexName})
+					step, err = description.CreateUnicornPipeline("horned", "", []string{denormFieldName}, []string{indexName})
 				} else {
-					step, err = description.CreateSlothPipeline("leaf", "", []string{v.Name}, []string{indexName})
+					step, err = description.CreateSlothPipeline("leaf", "", []string{denormFieldName}, []string{indexName})
 				}
 				if err != nil {
 					return nil, errors.Wrap(err, "unable to create step pipeline")

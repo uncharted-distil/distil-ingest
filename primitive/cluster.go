@@ -26,7 +26,7 @@ func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 	mainDR := meta.GetMainDataResource()
 
 	// add feature variables
-	features, err := getFeatureVariables(meta, "_cluster_")
+	features, err := getClusterVariables(meta, "_cluster_")
 	if err != nil {
 		return errors.Wrap(err, "unable to get cluster variables")
 	}

@@ -101,7 +101,7 @@ func main() {
 		}
 		step := primitive.NewIngestStep(client)
 
-		// create feature folder
+		// create cluster folder
 		if err := os.MkdirAll(path.Dir(outputData), 0777); err != nil && !os.IsExist(err) {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
