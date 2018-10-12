@@ -52,6 +52,7 @@ const (
 	provenanceSchema = "schema"
 
 	schemaVersion = "3.1.1"
+	license       = "Unknown"
 )
 
 var (
@@ -883,6 +884,7 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 			"datasetName":          m.Name,
 			"description":          m.Description,
 			"datasetSchemaVersion": schemaVersion,
+			"license":              license,
 			"rawData":              m.Raw,
 			"mergedSchema":         "true",
 		},

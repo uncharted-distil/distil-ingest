@@ -38,6 +38,8 @@ func (r *Table) Parse(res *gabs.Container) (*DataResource, error) {
 		for i, r := range formatsRaw {
 			resFormats[i] = r.Data().(string)
 		}
+	} else {
+		resFormats = make([]string, 0)
 	}
 
 	dr := &DataResource{

@@ -87,13 +87,14 @@ func main() {
 		}
 
 		outputPath := filepath.Clean(c.String("output-path"))
+		outputPathHeader := filepath.Clean(c.String("output-path-header"))
 		outputPathRelative := filepath.Clean(c.String("output-path-relative"))
 		dataPath := filepath.Clean(c.String("data"))
 
 		// If no schema provided, assume it is a raw data file.
 		if c.String("schema") == "" {
-			log.Infof("Schema file not specified so assuming raw dataset being merged, copying from %s to %s", dataPath, outputPath)
-			err := mergeRawData(dataPath, outputPath)
+			log.Infof("Schema file not specified so assuming raw dataset being merged, copying from %s to %s", dataPath, outputPathHeader)
+			err := mergeRawData(dataPath, outputPathHeader)
 			if err != nil {
 				log.Errorf("%+v", err)
 				return cli.NewExitError(errors.Cause(err), 1)
@@ -109,7 +110,6 @@ func main() {
 		}
 		schemaPath := filepath.Clean(c.String("schema"))
 		rawDataPath := filepath.Clean(c.String("raw-data"))
-		outputPathHeader := filepath.Clean(c.String("output-path-header"))
 		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
 		hasHeader := c.Bool("has-header")
 
@@ -128,21 +128,14 @@ func main() {
 		}
 
 		// write copy to disk
-		err = util.WriteFileWithDirs(outputPath, output, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 5)
-		}
-
-		// write merged metadata out to disk
-		err = meta.WriteMergedSchema(outputSchemaPath, mergedDR)
+		err = util.WriteFileWithDirs(outputPathHeader, output, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 5)
 		}
 
 		// log success / failure
-		log.Infof("Merged data successfully written to %s", outputPath)
+		log.Infof("Merged data successfully written to %s", outputPathHeader)
 
 		// get header for the merged data
 		headers, err := meta.GenerateHeaders()
@@ -155,17 +148,24 @@ func main() {
 		header := headers[0]
 
 		// add the header to the raw data
-		data, err := getMergedData(header, outputPath, hasHeader)
+		data, err := getMergedData(header, outputPathHeader, hasHeader)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
 		// write to file to submit the file
-		err = util.WriteFileWithDirs(outputPathHeader, data, 0644)
+		err = util.WriteFileWithDirs(outputPath, data, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
+		}
+
+		// write merged metadata out to disk
+		err = meta.WriteMergedSchema(outputSchemaPath, mergedDR)
+		if err != nil {
+			log.Errorf("%+v", err)
+			return cli.NewExitError(errors.Cause(err), 5)
 		}
 
 		// log success / failure
