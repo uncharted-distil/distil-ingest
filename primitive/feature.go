@@ -26,7 +26,7 @@ func (s *IngestStep) FeaturizePrimitive(schemaFile string, dataset string,
 	mainDR := meta.GetMainDataResource()
 
 	// add feature variables
-	features, err := getClusterVariables(meta, "_feature_")
+	features, err := getFeatureVariables(meta, "_feature_")
 	if err != nil {
 		return errors.Wrap(err, "unable to get feature variables")
 	}
