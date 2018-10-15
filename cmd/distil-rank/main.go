@@ -92,7 +92,7 @@ func main() {
 		if c.String("endpoint") == "" {
 			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
-		if c.String("ranking-output") == "" {
+		if c.String("output") == "" {
 			return cli.NewExitError("missing commandline flag `--ranking-output`", 1)
 		}
 

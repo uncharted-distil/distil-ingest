@@ -128,34 +128,27 @@ func main() {
 		}
 
 		// write copy to disk
-		err = util.WriteFileWithDirs(outputPathHeader, output, 0644)
+		err = util.WriteFileWithDirs(outputPath, output, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 5)
 		}
 
 		// log success / failure
-		log.Infof("Merged data successfully written to %s", outputPathHeader)
+		log.Infof("Merged data successfully written to %s", outputPath)
 
 		// get header for the merged data
-		headers, err := meta.GenerateHeaders()
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// merged data only has 1 header
-		header := headers[0]
+		header := mergedDR.GenerateHeader()
 
 		// add the header to the raw data
-		data, err := getMergedData(header, outputPathHeader, hasHeader)
+		data, err := getMergedData(header, outputPath, hasHeader)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 
 		// write to file to submit the file
-		err = util.WriteFileWithDirs(outputPath, data, 0644)
+		err = util.WriteFileWithDirs(outputPathHeader, data, 0644)
 		if err != nil {
 			log.Errorf("%+v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

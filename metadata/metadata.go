@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
@@ -116,6 +115,7 @@ type Metadata struct {
 	NumRows        int64
 	NumBytes       int64
 	SchemaSource   string
+	Redacted       bool
 }
 
 // NormalizeVariableName normalizes a variable name.
@@ -198,7 +198,7 @@ func LoadMetadataFromOriginalSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription()
+	err = meta.loadAbout()
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +226,7 @@ func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription()
+	err = meta.loadAbout()
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription()
+	err = meta.loadAbout()
 	if err != nil {
 		return nil, err
 	}
@@ -446,17 +446,23 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 	headers := make([][]string, len(m.DataResources))
 
 	for index, dr := range m.DataResources {
-		header := make([]string, len(dr.Variables))
-
-		// iterate over the fields
-		for hIndex, field := range dr.Variables {
-			header[hIndex] = strings.Replace(field.Name, "_", "", -1)
-		}
-
+		header := dr.GenerateHeader()
 		headers[index] = header
 	}
 
 	return headers, nil
+}
+
+// GenerateHeaders generates csv headers for the data resource.
+func (dr *DataResource) GenerateHeader() []string {
+	header := make([]string, len(dr.Variables))
+
+	// iterate over the fields
+	for hIndex, field := range dr.Variables {
+		header[hIndex] = field.Name
+	}
+
+	return header
 }
 
 // LoadSummaryFromDescription loads a summary from the description.
@@ -566,11 +572,12 @@ func (m *Metadata) loadName() error {
 	return nil
 }
 
-func (m *Metadata) loadDescription() error {
-	// load from property
+func (m *Metadata) loadAbout() error {
 	if m.schema.Path("about.description").Data() != nil {
 		m.Description = m.schema.Path("about.description").Data().(string)
-		return nil
+	}
+	if m.schema.Path("about.redacted").Data() != nil {
+		m.Redacted = m.schema.Path("about.redacted").Data().(bool)
 	}
 	return nil
 }
@@ -644,19 +651,20 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 			resObjectMap, err := refersToData.Path("resObject").ChildrenMap()
 			if err != nil {
 				// see if it is maybe a string and if it is, ignore
-				_, ok := refersToData.Path("resObject").Data().(string)
+				data, ok := refersToData.Path("resObject").Data().(string)
 				if !ok {
 					return nil, errors.Wrapf(err, "unable to parse resObject")
 				}
+				refersTo["resObject"] = data
 			} else {
 				for k, v := range resObjectMap {
 					resObject[k] = v.Data().(string)
 				}
+				refersTo["resObject"] = resObject
 			}
 		}
 
 		refersTo["resID"] = resID
-		refersTo["resObject"] = resObject
 	}
 	variable := NewVariable(
 		varIndex,
@@ -886,6 +894,7 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 			"datasetSchemaVersion": schemaVersion,
 			"license":              license,
 			"rawData":              m.Raw,
+			"redacted":             m.Redacted,
 			"mergedSchema":         "true",
 		},
 		"dataResources": []*DataResource{mergedDataResource},
