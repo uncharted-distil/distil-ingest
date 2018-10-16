@@ -387,7 +387,7 @@ func (c *Client) ExecutePipeline(ctx context.Context, datasetURI string, pipelin
 	out := new(pipeline.PipelineExecuteResponse)
 	err := c.runner.Invoke(ctx, "/Executor/ExecutePipeline", in, out)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "unable to invoke pipeline execution")
 	}
 	return out, nil
 }

@@ -122,6 +122,7 @@ func (s *IngestStep) appendFeature(dataset string, d3mIndexField int, hasHeader 
 			d3mIndex := line[d3mIndexField]
 			feature := features[d3mIndex]
 			line = append(line, feature)
+			lines[i] = line
 		}
 	}
 

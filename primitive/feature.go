@@ -44,7 +44,7 @@ func (s *IngestStep) FeaturizePrimitive(schemaFile string, dataset string,
 	for _, f := range features {
 		mainDR.Variables = append(mainDR.Variables, f.Variable)
 
-		lines, err = s.appendFeature(dataset, d3mIndexField, hasHeader, f, lines)
+		lines, err = s.appendFeature(dataset, d3mIndexField, false, f, lines)
 		if err != nil {
 			return errors.Wrap(err, "error appending feature data")
 		}
