@@ -35,7 +35,7 @@ func (s *IngestStep) SummarizePrimitive(dataset string, outputPath string) error
 	for i, v := range res {
 		// skip the header
 		if i > 0 {
-			token, ok := v[0].(string)
+			token, ok := v[1].(string)
 			if !ok {
 				return errors.Wrap(err, "unable to parse Duke token")
 			}

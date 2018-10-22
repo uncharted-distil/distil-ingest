@@ -125,3 +125,16 @@ func CreatePCAFeaturesPipeline(name string, description string) (*pipeline.Pipel
 	}
 	return pipeline, nil
 }
+
+// CreateDenormalizePipeline creates a pipeline to run the denormalize primitive on an input dataset.
+func CreateDenormalizePipeline(name string, description string) (*pipeline.PipelineDescription, error) {
+	// insantiate the pipeline
+	pipeline, err := NewBuilder(name, description).
+		Add(NewDenormalizeStep()).
+		Compile()
+
+	if err != nil {
+		return nil, err
+	}
+	return pipeline, nil
+}
