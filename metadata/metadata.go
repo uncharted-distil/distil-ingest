@@ -118,6 +118,12 @@ type Metadata struct {
 	Redacted       bool
 }
 
+func NewMetadata() *Metadata {
+	return &Metadata{
+		DataResources: make([]*DataResource, 0),
+	}
+}
+
 // NormalizeVariableName normalizes a variable name.
 func NormalizeVariableName(name string) string {
 	nameNormalized := nameRegex.ReplaceAllString(name, "_")
@@ -916,10 +922,14 @@ func (m *Metadata) WriteSchema(path string) error {
 
 	output := map[string]interface{}{
 		"about": map[string]interface{}{
-			"datasetID":   m.ID,
-			"datasetName": m.Name,
-			"description": m.Description,
-			"rawData":     m.Raw,
+			"datasetID":            m.ID,
+			"datasetName":          m.Name,
+			"description":          m.Description,
+			"datasetSchemaVersion": schemaVersion,
+			"license":              license,
+			"rawData":              m.Raw,
+			"redacted":             m.Redacted,
+			"mergedSchema":         "false",
 		},
 		"dataResources": dataResources,
 	}

@@ -78,7 +78,7 @@ func (s *IngestStep) FeaturizePrimitive(schemaFile string, dataset string,
 		return errors.Wrap(err, "error writing feature output")
 	}
 
-	relativePath := getRelativePath(rootDataPath, outputDataPath)
+	relativePath := getRelativePath(path.Dir(outputSchemaPath), outputDataPath)
 	mainDR.ResPath = relativePath
 
 	// write the new schema to file

@@ -131,6 +131,7 @@ func CreateDenormalizePipeline(name string, description string) (*pipeline.Pipel
 	// insantiate the pipeline
 	pipeline, err := NewBuilder(name, description).
 		Add(NewDenormalizeStep()).
+		Add(NewDatasetToDataframeStep()).
 		Compile()
 
 	if err != nil {

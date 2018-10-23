@@ -38,6 +38,11 @@ func main() {
 			Usage: "The dataet path",
 		},
 		cli.StringFlag{
+			Name:  "endpoint",
+			Value: "",
+			Usage: "The pipeline runner endpoint",
+		},
+		cli.StringFlag{
 			Name:  "raw-data",
 			Value: "",
 			Usage: "The raw dat a file path",
@@ -75,11 +80,15 @@ func main() {
 		if c.String("endpoint") == "" {
 			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
-		if c.String("output") == "" {
-			return cli.NewExitError("missing commandline flag `--ranking-output`", 1)
+		if c.String("output-data") == "" {
+			return cli.NewExitError("missing commandline flag `--output-data`", 1)
+		}
+		if c.String("output-schema") == "" {
+			return cli.NewExitError("missing commandline flag `--output-schema`", 1)
 		}
 
-		output := filepath.Clean(c.String("output"))
+		outputDataPath := filepath.Clean(c.String("output-data"))
+		outputSchemaPath := filepath.Clean(c.String("output-schema"))
 		endpoint := filepath.Clean(c.String("endpoint"))
 		dataset := filepath.Clean(c.String("dataset"))
 
@@ -93,12 +102,12 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// merge the dataset into a single file
-		err = step.MergePrimitive(dataset, output)
+		err = step.MergePrimitive(dataset, outputSchemaPath, outputDataPath)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Merged data written to %s", output)
+		log.Infof("Merged data written to %s", outputSchemaPath)
 
 		return nil
 	}
