@@ -19,6 +19,11 @@ import (
 )
 
 const (
+	// D3MSchemaPathRelative is the standard name of the schema document.
+	D3MSchemaPathRelative = "datasetDoc.json"
+	// D3MDataPathRelative is the standard name of the data file.
+	D3MDataPathRelative = "tables/learningData.csv"
+
 	denormFieldName = "filename"
 )
 

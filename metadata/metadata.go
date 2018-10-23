@@ -118,9 +118,21 @@ type Metadata struct {
 	Redacted       bool
 }
 
-func NewMetadata() *Metadata {
+func NewMetadata(id string, name string, description string) *Metadata {
 	return &Metadata{
+		ID:            id,
+		Name:          name,
+		Description:   description,
 		DataResources: make([]*DataResource, 0),
+	}
+}
+
+func NewDataResource(id string, typ string, format []string) *DataResource {
+	return &DataResource{
+		ResID:     id,
+		ResType:   typ,
+		ResFormat: format,
+		Variables: make([]*Variable, 0),
 	}
 }
 

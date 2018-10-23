@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/distil-ingest/metadata"
@@ -15,14 +16,35 @@ import (
 )
 
 // RankPrimitive will rank the dataset using a primitive.
-func (s *IngestStep) MergePrimitive(dataset string, outputSchemaPath string, outputDataPath string) error {
+func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
+	outputSchemaPath := path.Join(outputFolder, D3MSchemaPathRelative)
+	outputDataPath := path.Join(outputFolder, D3MDataPathRelative)
+	sourceFolder := path.Dir(dataset)
+
+	// copy the source folder to have all the linked files for merging
+	err := copy.Copy(sourceFolder, outputFolder)
+	if err != nil {
+		return errors.Wrap(err, "unable to copy source data")
+	}
+
+	// delete the existing files that will be overwritten
+	err = os.Remove(outputSchemaPath)
+	if err != nil {
+		return errors.Wrap(err, "unable to delete existing schema file")
+	}
+	err = os.Remove(outputDataPath)
+	if err != nil {
+		return errors.Wrap(err, "unable to delete existing data file")
+	}
+
 	// create & submit the solution request
 	pip, err := description.CreateDenormalizePipeline("3NF", "")
 	if err != nil {
 		return errors.Wrap(err, "unable to create denormalize pipeline")
 	}
 
-	datasetURI, err := s.submitPrimitive(dataset, pip)
+	// pipeline execution assumes datasetDoc.json as schema file
+	datasetURI, err := s.submitPrimitive(sourceFolder, pip)
 	if err != nil {
 		return errors.Wrap(err, "unable to run denormalize pipeline")
 	}
@@ -39,8 +61,10 @@ func (s *IngestStep) MergePrimitive(dataset string, outputSchemaPath string, out
 		return errors.Wrap(err, "unable to load original metadata")
 	}
 	vars := s.mapFields(meta)
+	mainDR := meta.GetMainDataResource()
 
-	outputMeta := metadata.NewMetadata()
+	outputMeta := metadata.NewMetadata(meta.ID, meta.Name, meta.Description)
+	outputMeta.DataResources = append(outputMeta.DataResources, metadata.NewDataResource("0", mainDR.ResType, mainDR.ResFormat))
 	header := rawResults[0]
 	for i, field := range header {
 		// the first column is a row idnex and should be discarded.
@@ -80,7 +104,7 @@ func (s *IngestStep) MergePrimitive(dataset string, outputSchemaPath string, out
 	outputMeta.DataResources[0].ResPath = relativePath
 
 	// write the new schema to file
-	err = meta.WriteSchema(outputSchemaPath)
+	err = outputMeta.WriteSchema(outputSchemaPath)
 	if err != nil {
 		return errors.Wrap(err, "unable to store merged schema")
 	}
