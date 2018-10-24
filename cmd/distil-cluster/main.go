@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"path"
 	"runtime"
 	"strings"
 
@@ -86,10 +85,8 @@ func main() {
 
 		endpoint := c.String("endpoint")
 		datasetPath := c.String("dataset")
-		//mediaPath := c.String("media-path")
-		outputSchema := c.String("output-schema")
 		schemaPath := c.String("schema")
-		outputData := c.String("output")
+		output := c.String("output")
 		hasHeader := c.Bool("has-header")
 
 		// initialize client
@@ -101,20 +98,13 @@ func main() {
 		}
 		step := primitive.NewIngestStep(client)
 
-		// create cluster folder
-		if err := os.MkdirAll(path.Dir(outputData), 0777); err != nil && !os.IsExist(err) {
-			log.Errorf("%v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-		os.Remove(outputData)
-
 		// create featurizer
-		err = step.ClusterPrimitive(schemaPath, datasetPath, datasetPath, outputSchema, outputData, hasHeader)
+		err = step.ClusterPrimitive(schemaPath, datasetPath, datasetPath, output, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Clustered data written to %s", outputData)
+		log.Infof("Clustered data written to %s", output)
 
 		return nil
 	}

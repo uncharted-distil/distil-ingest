@@ -7,16 +7,33 @@ import (
 	"path"
 
 	"github.com/pkg/errors"
+
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
 // ClusterPrimitive will cluster the dataset fields using a primitive.
 func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
-	rootDataPath string, outputSchemaPath string, outputDataPath string, hasHeader bool) error {
-	// create required folders for outputPath
-	util.CreateContainingDirs(outputDataPath)
-	util.CreateContainingDirs(outputSchemaPath)
+	rootDataPath string, outputFolder string, hasHeader bool) error {
+	outputSchemaPath := path.Join(outputFolder, D3MSchemaPathRelative)
+	outputDataPath := path.Join(outputFolder, D3MDataPathRelative)
+	sourceFolder := path.Dir(dataset)
+
+	// copy the source folder to have all the linked files for merging
+	err := copyResourceFiles(sourceFolder, outputFolder)
+	if err != nil {
+		return errors.Wrap(err, "unable to copy source data")
+	}
+
+	// delete the existing files that will be overwritten
+	err = os.Remove(outputSchemaPath)
+	if err != nil {
+		return errors.Wrap(err, "unable to delete existing schema file")
+	}
+	err = os.Remove(outputDataPath)
+	if err != nil {
+		return errors.Wrap(err, "unable to delete existing data file")
+	}
 
 	// load metadata from original schema
 	meta, err := metadata.LoadMetadataFromOriginalSchema(schemaFile)

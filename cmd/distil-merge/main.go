@@ -80,7 +80,7 @@ func main() {
 		if c.String("endpoint") == "" {
 			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
-		if c.String("output-data") == "" {
+		if c.String("output") == "" {
 			return cli.NewExitError("missing commandline flag `--output`", 1)
 		}
 

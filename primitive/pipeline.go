@@ -5,11 +5,14 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
+
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/pipeline"
 	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
@@ -261,4 +264,32 @@ func getRelativePath(rootPath string, filePath string) string {
 	relativePath = strings.TrimPrefix(relativePath, "/")
 
 	return relativePath
+}
+
+func copyResourceFiles(sourceFolder string, destinationFolder string) error {
+	// if source contains destination, then go folder by folder to avoid
+	// recursion problem
+
+	if strings.HasPrefix(destinationFolder, sourceFolder) {
+		// copy every subfolder that isn't the destination folder
+		files, err := ioutil.ReadDir(sourceFolder)
+		if err != nil {
+			return errors.Wrapf(err, "unable to read source data '%s'", sourceFolder)
+		}
+		for _, f := range files {
+			if f.Name() != destinationFolder {
+				err = copyResourceFiles(f.Name(), destinationFolder)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	} else {
+		err := copy.Copy(sourceFolder, destinationFolder)
+		if err != nil {
+			return errors.Wrap(err, "unable to copy source data")
+		}
+	}
+
+	return nil
 }
