@@ -57,22 +57,12 @@ func main() {
 			Usage: "The dataset file type",
 		},
 		cli.StringFlag{
-			Name:  "output",
-			Value: "",
-			Usage: "The featurize output file path",
-		},
-		cli.StringFlag{
 			Name:  "media-path",
 			Value: "",
 			Usage: "The path to the folder containing the media subfolder that is accessible for featurization",
 		},
 		cli.StringFlag{
-			Name:  "output-schema",
-			Value: "",
-			Usage: "The path to use as output for the featurized schema document",
-		},
-		cli.StringFlag{
-			Name:  "output-data",
+			Name:  "output",
 			Value: "",
 			Usage: "The path to use as output for the featurized data",
 		},
@@ -97,11 +87,11 @@ func main() {
 		endpoint := c.String("endpoint")
 		datasetPath := c.String("dataset")
 		//mediaPath := c.String("media-path")
-		outputSchema := c.String("output-schema")
 		//outputData := c.String("output-data")
 		schemaPath := c.String("schema")
-		outputFilePath := c.String("output")
+		outputPath := c.String("output")
 		hasHeader := c.Bool("has-header")
+		rootDataPath := path.Dir(datasetPath)
 		//threshold := c.Float64("threshold")
 
 		// initialize client
@@ -113,20 +103,13 @@ func main() {
 		}
 		step := primitive.NewIngestStep(client)
 
-		// create feature folder
-		if err := os.MkdirAll(path.Dir(outputFilePath), 0777); err != nil && !os.IsExist(err) {
-			log.Errorf("%v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-		os.Remove(outputFilePath)
-
 		// create featurizer
-		err = step.FeaturizePrimitive(schemaPath, datasetPath, datasetPath, outputSchema, outputFilePath, hasHeader)
+		err = step.FeaturizePrimitive(schemaPath, datasetPath, rootDataPath, outputPath, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Featurized data written to %s", outputFilePath)
+		log.Infof("Featurized data written to %s", outputPath)
 
 		return nil
 	}

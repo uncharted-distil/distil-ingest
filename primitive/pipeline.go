@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -277,8 +278,9 @@ func copyResourceFiles(sourceFolder string, destinationFolder string) error {
 			return errors.Wrapf(err, "unable to read source data '%s'", sourceFolder)
 		}
 		for _, f := range files {
-			if f.Name() != destinationFolder {
-				err = copyResourceFiles(f.Name(), destinationFolder)
+			name := path.Join(sourceFolder, f.Name())
+			if name != destinationFolder {
+				err = copyResourceFiles(name, destinationFolder)
 				if err != nil {
 					return err
 				}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/distil-ingest/metadata"
@@ -20,7 +21,8 @@ func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 	sourceFolder := path.Dir(dataset)
 
 	// copy the source folder to have all the linked files for merging
-	err := copyResourceFiles(sourceFolder, outputFolder)
+	os.MkdirAll(outputFolder, os.ModePerm)
+	err := copy.Copy(sourceFolder, outputFolder)
 	if err != nil {
 		return errors.Wrap(err, "unable to copy source data")
 	}
@@ -61,7 +63,7 @@ func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 	for _, f := range features {
 		mainDR.Variables = append(mainDR.Variables, f.Variable)
 
-		lines, err = s.appendFeature(dataset, d3mIndexField, false, f, lines)
+		lines, err = s.appendFeature(sourceFolder, d3mIndexField, false, f, lines)
 		if err != nil {
 			return errors.Wrap(err, "error appending clustered data")
 		}

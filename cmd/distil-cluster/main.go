@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"runtime"
 	"strings"
 
@@ -88,6 +89,7 @@ func main() {
 		schemaPath := c.String("schema")
 		output := c.String("output")
 		hasHeader := c.Bool("has-header")
+		rootDataPath := path.Dir(datasetPath)
 
 		// initialize client
 		log.Infof("Using pipeline runner interface at `%s` ", endpoint)
@@ -99,7 +101,7 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// create featurizer
-		err = step.ClusterPrimitive(schemaPath, datasetPath, datasetPath, output, hasHeader)
+		err = step.ClusterPrimitive(schemaPath, datasetPath, rootDataPath, output, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
