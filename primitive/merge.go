@@ -54,8 +54,12 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to load original metadata")
 	}
-	vars := s.mapFields(meta)
 	mainDR := meta.GetMainDataResource()
+	vars := s.mapFields(meta)
+	varsDenorm := s.mapDenormFields(mainDR)
+	for k, v := range varsDenorm {
+		vars[k] = v
+	}
 
 	outputMeta := metadata.NewMetadata(meta.ID, meta.Name, meta.Description)
 	outputMeta.DataResources = append(outputMeta.DataResources, metadata.NewDataResource("0", mainDR.ResType, mainDR.ResFormat))
@@ -115,5 +119,16 @@ func (s *IngestStep) mapFields(meta *metadata.Metadata) map[string]*metadata.Var
 		}
 	}
 
+	return fields
+}
+
+func (s *IngestStep) mapDenormFields(mainDR *metadata.DataResource) map[string]*metadata.Variable {
+	fields := make(map[string]*metadata.Variable)
+	for _, field := range mainDR.Variables {
+		if field.IsMediaReference() {
+			// DENORM PRIMITIVE RENAMES REFERENCE FIELDS TO `filename`
+			fields[denormFieldName] = field
+		}
+	}
 	return fields
 }

@@ -954,6 +954,21 @@ func (m *Metadata) WriteSchema(path string) error {
 	return ioutil.WriteFile(path, bytes, 0644)
 }
 
+// IsMediaReference returns true if a variable is a reference to a media resource.
+func (v *Variable) IsMediaReference() bool {
+	// if refers to has a res object of string, assume media reference`
+	mediaReference := false
+	if v.RefersTo != nil {
+		if v.RefersTo["resObject"] != nil {
+			_, ok := v.RefersTo["resObject"].(string)
+			if ok {
+				mediaReference = true
+			}
+		}
+	}
+	return mediaReference
+}
+
 // IngestMetadata adds a document consisting of the metadata to the
 // provided index.
 func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, meta *Metadata) error {
