@@ -28,14 +28,8 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	}
 
 	// delete the existing files that will be overwritten
-	err = os.Remove(outputSchemaPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to delete existing schema file")
-	}
-	err = os.Remove(outputDataPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to delete existing data file")
-	}
+	os.Remove(outputSchemaPath)
+	os.Remove(outputDataPath)
 
 	// create & submit the solution request
 	pip, err := description.CreateDenormalizePipeline("3NF", "")

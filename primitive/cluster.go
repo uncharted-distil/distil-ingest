@@ -28,14 +28,8 @@ func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 	}
 
 	// delete the existing files that will be overwritten
-	err = os.Remove(outputSchemaPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to delete existing schema file")
-	}
-	err = os.Remove(outputDataPath)
-	if err != nil {
-		return errors.Wrap(err, "unable to delete existing data file")
-	}
+	os.Remove(outputSchemaPath)
+	os.Remove(outputDataPath)
 
 	// load metadata from original schema
 	meta, err := metadata.LoadMetadataFromOriginalSchema(schemaFile)
@@ -98,7 +92,7 @@ func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 		return errors.Wrap(err, "error writing clustered output")
 	}
 
-	relativePath := getRelativePath(rootDataPath, outputDataPath)
+	relativePath := getRelativePath(path.Dir(outputSchemaPath), outputDataPath)
 	mainDR.ResPath = relativePath
 
 	// write the new schema to file

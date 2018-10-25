@@ -21,15 +21,14 @@ func (s *IngestStep) FeaturizePrimitive(schemaFile string, dataset string,
 	sourceFolder := path.Dir(dataset)
 
 	// copy the source folder to have all the linked files for merging
-	os.MkdirAll(outputFolder, os.ModePerm)
 	err := copy.Copy(sourceFolder, outputFolder)
 	if err != nil {
 		return errors.Wrap(err, "unable to copy source data")
 	}
-	// create required folders for outputPath
-	util.CreateContainingDirs(outputDataPath)
-	util.CreateContainingDirs(outputSchemaPath)
 
+	// delete the existing files that will be overwritten
+	os.Remove(outputSchemaPath)
+	os.Remove(outputDataPath)
 	// load metadata from original schema
 	meta, err := metadata.LoadMetadataFromOriginalSchema(schemaFile)
 	if err != nil {
