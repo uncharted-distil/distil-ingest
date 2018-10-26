@@ -82,7 +82,15 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	output := &bytes.Buffer{}
 	writer := csv.NewWriter(output)
 
+	// returned header doesnt match expected header so use metadata header
+	headerMetadata, err := outputMeta.GenerateHeaders()
+	if err != nil {
+		return errors.Wrapf(err, "unable to generate header")
+	}
+	writer.Write(headerMetadata[0])
+
 	// rewrite the output without the first column
+	rawResults = rawResults[1:]
 	for _, line := range rawResults {
 		lineString := make([]string, len(line)-1)
 		for i := 1; i < len(line); i++ {

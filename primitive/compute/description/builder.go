@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/distil-ingest/pipeline"
+	"github.com/unchartedsoftware/distil/api/pipeline"
 )
 
 type builder struct {
