@@ -3,7 +3,7 @@ package description
 import (
 	"fmt"
 
-	"github.com/unchartedsoftware/distil/api/pipeline"
+	"github.com/unchartedsoftware/distil-ingest/pipeline"
 	log "github.com/unchartedsoftware/plog"
 )
 

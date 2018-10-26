@@ -199,7 +199,19 @@ func getClusterVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				if res.CanBeFeaturized() {
 					step, err = description.CreateUnicornPipeline("horned", "", []string{denormFieldName}, []string{indexName})
 				} else {
-					step, err = description.CreateSlothPipeline("leaf", "", []string{denormFieldName}, []string{indexName})
+					// TODO: Extract actual column names from time series resource
+					timeField, valueField := getTimeSeriesFields(res)
+					resFields := []*metadata.Variable{
+						{
+							Name:  "time",
+							Index: 0,
+						},
+						{
+							Name:  "value",
+							Index: 1,
+						},
+					}
+					step, err = description.CreateSlothPipeline("leaf", "", v.Name, timeField, valueField, mainDR.Variables, resFields)
 				}
 				if err != nil {
 					return nil, errors.Wrap(err, "unable to create step pipeline")
@@ -294,4 +306,8 @@ func copyResourceFiles(sourceFolder string, destinationFolder string) error {
 	}
 
 	return nil
+}
+
+func getTimeSeriesFields(dr *metadata.DataResource) (string, string) {
+	return "time", "value"
 }

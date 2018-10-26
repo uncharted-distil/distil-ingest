@@ -1,7 +1,7 @@
 package description
 
 import (
-	"github.com/unchartedsoftware/distil/api/pipeline"
+	"github.com/unchartedsoftware/distil-ingest/pipeline"
 )
 
 // NewSimonStep creates a SIMON data classification step.  It examines an input

@@ -4,54 +4,18 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/distil/api/model"
-	"github.com/unchartedsoftware/distil/api/pipeline"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-ingest/pipeline"
 )
 
 const defaultResource = "0"
 
 // CreateUserDatasetPipeline creates a pipeline description to capture user feature selection and
 // semantic type information.
-func CreateUserDatasetPipeline(name string, description string, allFeatures []*model.Variable,
-	targetFeature string, selectedFeatures []string, filters []*model.Filter) (*pipeline.PipelineDescription, error) {
-
-	// save the selected features in a set for quick lookup
-	selectedSet := map[string]bool{}
-	for _, v := range selectedFeatures {
-		selectedSet[strings.ToLower(v)] = true
-	}
-	columnIndices := mapColumns(allFeatures, selectedSet)
-
-	// create the semantic type update primitive
-	updateSemanticTypes, err := createUpdateSemanticTypes(allFeatures, selectedSet)
-	if err != nil {
-		return nil, err
-	}
-
-	// create the feature selection primitive
-	removeFeatures, err := createRemoveFeatures(allFeatures, selectedSet)
-	if err != nil {
-		return nil, err
-	}
-
-	// If neither have any content, we'll skip the template altogether.
-	if len(updateSemanticTypes) == 0 && removeFeatures == nil {
-		return nil, nil
-	}
-
-	filterData := createFilterData(filters, columnIndices)
+func CreateUserDatasetPipeline(name string, description string, targetFeature string) (*pipeline.PipelineDescription, error) {
 
 	// instantiate the pipeline
 	builder := NewBuilder(name, description)
-	for _, v := range updateSemanticTypes {
-		builder = builder.Add(v)
-	}
-	if removeFeatures != nil {
-		builder = builder.Add(removeFeatures)
-	}
-	for _, f := range filterData {
-		builder = builder.Add(f)
-	}
 
 	pip, err := builder.AddInferencePoint().Compile()
 	if err != nil {
@@ -65,135 +29,37 @@ func CreateUserDatasetPipeline(name string, description string, allFeatures []*m
 	return pip, nil
 }
 
-func createRemoveFeatures(allFeatures []*model.Variable, selectedSet map[string]bool) (*StepData, error) {
-	// create a list of features to remove
-	removeFeatures := []int{}
-	for _, v := range allFeatures {
-		if !selectedSet[strings.ToLower(v.Key)] {
-			removeFeatures = append(removeFeatures, v.Index)
-		}
-	}
+// CreateSlothPipeline creates a pipeline to peform timeseries clustering on a dataset.
+func CreateSlothPipeline(name string, description string, targetColumn string, timeColumn string, valueColumn string,
+	baseFeatures []*metadata.Variable, timeSeriesFeatures []*metadata.Variable) (*pipeline.PipelineDescription, error) {
 
-	if len(removeFeatures) == 0 {
-		return nil, nil
-	}
-
-	// instantiate the feature remove primitive
-	featureSelect, err := NewRemoveColumnsStep(defaultResource, removeFeatures)
+	targetIdx, err := getIndex(baseFeatures, targetColumn)
 	if err != nil {
 		return nil, err
 	}
-	return featureSelect, nil
-}
 
-type update struct {
-	removeIndices []int
-	addIndices    []int
-}
-
-func newUpdate() *update {
-	return &update{
-		addIndices:    []int{},
-		removeIndices: []int{},
-	}
-}
-
-func createUpdateSemanticTypes(allFeatures []*model.Variable, selectedSet map[string]bool) ([]*StepData, error) {
-	// create maps of (semantic type, index list) - primitive allows for semantic types to be added to /
-	// remove from multiple columns in a single operation
-	updateMap := map[string]*update{}
-	for _, v := range allFeatures {
-		if selectedSet[strings.ToLower(v.Key)] {
-			addType := model.MapTA2Type(v.Type)
-			if addType == "" {
-				return nil, errors.Errorf("variable `%s` internal type `%s` can't be mapped to ta2", v.Key, v.Type)
-			}
-			removeType := model.MapTA2Type(v.OriginalType)
-			if removeType == "" {
-				return nil, errors.Errorf("remove variable `%s` internal type `%s` can't be mapped to ta2", v.Key, v.OriginalType)
-			}
-
-			// only apply change when types are different
-			if addType != removeType {
-				if _, ok := updateMap[addType]; !ok {
-					updateMap[addType] = newUpdate()
-				}
-				updateMap[addType].addIndices = append(updateMap[addType].addIndices, v.Index)
-
-				if _, ok := updateMap[removeType]; !ok {
-					updateMap[removeType] = newUpdate()
-				}
-				updateMap[removeType].removeIndices = append(updateMap[removeType].removeIndices, v.Index)
-			}
-		}
+	timeIdx, err := getIndex(timeSeriesFeatures, timeColumn)
+	if err != nil {
+		return nil, err
 	}
 
-	// Copy the created maps into the column update structure used by the primitive
-	semanticTypeUpdates := []*StepData{}
-	for k, v := range updateMap {
-		var addKey string
-		if len(v.addIndices) > 0 {
-			addKey = k
-		}
-		add := &ColumnUpdate{
-			SemanticTypes: []string{addKey},
-			Indices:       v.addIndices,
-		}
-		var removeKey string
-		if len(v.removeIndices) > 0 {
-			removeKey = k
-		}
-		remove := &ColumnUpdate{
-			SemanticTypes: []string{removeKey},
-			Indices:       v.removeIndices,
-		}
-		semanticTypeUpdate, err := NewUpdateSemanticTypeStep(defaultResource, add, remove)
-		if err != nil {
-			return nil, err
-		}
-		semanticTypeUpdates = append(semanticTypeUpdates, semanticTypeUpdate)
+	valueIdx, err := getIndex(timeSeriesFeatures, valueColumn)
+	if err != nil {
+		return nil, err
 	}
-	return semanticTypeUpdates, nil
-}
 
-func createFilterData(filters []*model.Filter, columnIndices map[string]int) []*StepData {
-
-	// Map the fiters to pipeline primitives
-	filterSteps := []*StepData{}
-	for _, f := range filters {
-		var filter *StepData
-		inclusive := f.Mode == model.IncludeFilter
-		colIndex := columnIndices[f.Key]
-
-		switch f.Type {
-		case model.NumericalFilter:
-			filter = NewNumericRangeFilterStep(defaultResource, colIndex, inclusive, *f.Min, *f.Max, false)
-		case model.CategoricalFilter:
-			filter = NewTermFilterStep(defaultResource, colIndex, inclusive, f.Categories, true)
-		case model.RowFilter:
-			filter = NewTermFilterStep(defaultResource, colIndex, inclusive, f.D3mIndices, true)
-		case model.FeatureFilter, model.TextFilter:
-			filter = NewTermFilterStep(defaultResource, colIndex, inclusive, f.Categories, false)
-		}
-
-		filterSteps = append(filterSteps, filter)
-	}
-	return filterSteps
-}
-
-// CreateSlothPipeline creates a pipeline to peform timeseries clustering on a dataset.
-func CreateSlothPipeline(name string, description string) (*pipeline.PipelineDescription, error) {
 	// insantiate the pipeline
 	pipeline, err := NewBuilder(name, description).
 		Add(NewDenormalizeStep()).
 		Add(NewDatasetToDataframeStep()).
-		Add(NewTimeSeriesReaderStep(1, 0, 1)).
+		Add(NewTimeSeriesLoaderStep(targetIdx, timeIdx, valueIdx)).
 		Add(NewSlothStep()).
 		Compile()
 
 	if err != nil {
 		return nil, err
 	}
+
 	return pipeline, nil
 }
 
@@ -270,15 +136,46 @@ func CreatePCAFeaturesPipeline(name string, description string) (*pipeline.Pipel
 	return pipeline, nil
 }
 
-func mapColumns(allFeatures []*model.Variable, selectedSet map[string]bool) map[string]int {
-	colIndices := make(map[string]int)
-	index := 0
+// CreateDenormalizePipeline creates a pipeline to run the denormalize primitive on an input dataset.
+func CreateDenormalizePipeline(name string, description string) (*pipeline.PipelineDescription, error) {
+	// insantiate the pipeline
+	pipeline, err := NewBuilder(name, description).
+		Add(NewDenormalizeStep()).
+		Add(NewDatasetToDataframeStep()).
+		Compile()
+
+	if err != nil {
+		return nil, err
+	}
+	return pipeline, nil
+}
+
+func getIndex(allFeatures []*metadata.Variable, name string) (int, error) {
 	for _, f := range allFeatures {
-		if selectedSet[f.Key] {
-			colIndices[f.Key] = index
-			index = index + 1
+		if strings.EqualFold(name, f.Name) {
+			return f.Index, nil
 		}
 	}
+	return -1, errors.Errorf("can't find var '%s'", name)
+}
 
-	return colIndices
+// NewTimeSeriesLoaderStep creates a primitive step that reads time series values using a dataframe
+// containing a file URI column.  The result is a new dataframe that stores the timetamps as the column headers,
+// and the accompanying values for each file as a row.
+func NewTimeSeriesLoaderStep(fileColIndex int, timeColIndex int, valueColIndex int) *StepData {
+	return NewStepDataWithHyperparameters(
+		&pipeline.Primitive{
+			Id:         "1689aafa-16dc-4c55-8ad4-76cadcf46086",
+			Version:    "0.1.0",
+			Name:       "Time series loader",
+			PythonPath: "d3m.primitives.distil.TimeSeriesLoader",
+			Digest:     "",
+		},
+		[]string{"produce"},
+		map[string]interface{}{
+			"file_col_index":  fileColIndex,
+			"time_col_index":  timeColIndex,
+			"value_col_index": valueColIndex,
+		},
+	)
 }

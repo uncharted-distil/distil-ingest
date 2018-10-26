@@ -6,40 +6,13 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-	"github.com/unchartedsoftware/distil/api/model"
+	"github.com/unchartedsoftware/distil-ingest/metadata"
 )
 
 func TestCreateUserDatasetPipeline(t *testing.T) {
 
-	variables := []*model.Variable{
-		{
-			Key:          "test_var_0",
-			OriginalType: "ordinal",
-			Type:         "categorical",
-			Index:        0,
-		},
-		{
-			Key:          "test_var_1",
-			OriginalType: "categorical",
-			Type:         "integer",
-			Index:        1,
-		},
-		{
-			Key:          "test_var_2",
-			OriginalType: "categorical",
-			Type:         "integer",
-			Index:        2,
-		},
-		{
-			Key:          "test_var_3",
-			OriginalType: "categorical",
-			Type:         "integer",
-			Index:        3,
-		},
-	}
-
 	pipeline, err := CreateUserDatasetPipeline(
-		"test_user_pipeline", "a test user pipeline", variables, "test_target", []string{"test_var_0", "test_var_1", "test_var_3"}, nil)
+		"test_user_pipeline", "a test user pipeline", "test_target")
 
 	// assert 1st is a semantic type update
 	hyperParams := pipeline.GetSteps()[0].GetPrimitive().GetHyperparams()
@@ -67,34 +40,16 @@ func TestCreateUserDatasetPipeline(t *testing.T) {
 
 func TestCreateUserDatasetPipelineMappingError(t *testing.T) {
 
-	variables := []*model.Variable{
-		{
-			Key:          "test_var_0",
-			OriginalType: "blordinal",
-			Type:         "categorical",
-			Index:        0,
-		},
-	}
-
 	pipeline, err := CreateUserDatasetPipeline(
-		"test_user_pipeline", "a test user pipeline", variables, "test_target", []string{"test_var_0"}, nil)
+		"test_user_pipeline", "a test user pipeline", "test_target")
 	assert.Error(t, err)
 	t.Logf("\n%s", proto.MarshalTextString(pipeline))
 }
 
 func TestCreateUserDatasetEmpty(t *testing.T) {
 
-	variables := []*model.Variable{
-		{
-			Key:          "test_var_0",
-			OriginalType: "categorical",
-			Type:         "categorical",
-			Index:        0,
-		},
-	}
-
 	pipeline, err := CreateUserDatasetPipeline(
-		"test_user_pipeline", "a test user pipeline", variables, "test_target", []string{"test_var_0"}, nil)
+		"test_user_pipeline", "a test user pipeline", "test_target")
 
 	assert.Nil(t, pipeline)
 	assert.Nil(t, err)
@@ -151,7 +106,16 @@ func TestCreateUnicornPipeline(t *testing.T) {
 }
 
 func TestCreateSlothPipeline(t *testing.T) {
-	pipeline, err := CreateSlothPipeline("sloth_test", "test sloth object detection pipeline")
+	baseVriables := []*metadata.Variable{
+		{Name: "filename", Index: 1},
+	}
+
+	timeSeriesVariables := []*metadata.Variable{
+		{Name: "time", Index: 0},
+		{Name: "value", Index: 1},
+	}
+
+	pipeline, err := CreateSlothPipeline("sloth_test", "test sloth object detection pipeline", "filename", "time", "value", baseVriables, timeSeriesVariables)
 	assert.NoError(t, err)
 
 	data, err := proto.Marshal(pipeline)
