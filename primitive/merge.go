@@ -15,7 +15,7 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
-// RankPrimitive will rank the dataset using a primitive.
+// MergePrimitive will merge data resources into a single data resource.
 func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	outputSchemaPath := path.Join(outputFolder, D3MSchemaPathRelative)
 	outputDataPath := path.Join(outputFolder, D3MDataPathRelative)

@@ -106,7 +106,7 @@ func NewClientWithRunner(serverAddr string, runnerAddr string, trace bool, userA
 	return client, nil
 }
 
-// NewClientWithRunner creates a new pipline request dispatcher instance. This will establish
+// NewRunner creates a new pipline request dispatcher instance. This will establish
 // the connection to the solution server or return an error on fail
 func NewRunner(runnerAddr string, trace bool, userAgent string, pullTimeout time.Duration, pullMax int, skipPreprocessing bool) (*Client, error) {
 

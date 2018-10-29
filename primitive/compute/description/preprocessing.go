@@ -16,7 +16,6 @@ func CreateUserDatasetPipeline(name string, description string, targetFeature st
 
 	// instantiate the pipeline
 	builder := NewBuilder(name, description)
-
 	pip, err := builder.AddInferencePoint().Compile()
 	if err != nil {
 		return nil, err
@@ -30,13 +29,8 @@ func CreateUserDatasetPipeline(name string, description string, targetFeature st
 }
 
 // CreateSlothPipeline creates a pipeline to peform timeseries clustering on a dataset.
-func CreateSlothPipeline(name string, description string, targetColumn string, timeColumn string, valueColumn string,
-	baseFeatures []*metadata.Variable, timeSeriesFeatures []*metadata.Variable) (*pipeline.PipelineDescription, error) {
-
-	targetIdx, err := getIndex(baseFeatures, targetColumn)
-	if err != nil {
-		return nil, err
-	}
+func CreateSlothPipeline(name string, description string, timeColumn string, valueColumn string,
+	timeSeriesFeatures []*metadata.Variable) (*pipeline.PipelineDescription, error) {
 
 	timeIdx, err := getIndex(timeSeriesFeatures, timeColumn)
 	if err != nil {
@@ -52,7 +46,7 @@ func CreateSlothPipeline(name string, description string, targetColumn string, t
 	pipeline, err := NewBuilder(name, description).
 		Add(NewDenormalizeStep()).
 		Add(NewDatasetToDataframeStep()).
-		Add(NewTimeSeriesLoaderStep(targetIdx, timeIdx, valueIdx)).
+		Add(NewTimeSeriesLoaderStep(-1, timeIdx, valueIdx)).
 		Add(NewSlothStep()).
 		Compile()
 
@@ -157,25 +151,4 @@ func getIndex(allFeatures []*metadata.Variable, name string) (int, error) {
 		}
 	}
 	return -1, errors.Errorf("can't find var '%s'", name)
-}
-
-// NewTimeSeriesLoaderStep creates a primitive step that reads time series values using a dataframe
-// containing a file URI column.  The result is a new dataframe that stores the timetamps as the column headers,
-// and the accompanying values for each file as a row.
-func NewTimeSeriesLoaderStep(fileColIndex int, timeColIndex int, valueColIndex int) *StepData {
-	return NewStepDataWithHyperparameters(
-		&pipeline.Primitive{
-			Id:         "1689aafa-16dc-4c55-8ad4-76cadcf46086",
-			Version:    "0.1.0",
-			Name:       "Time series loader",
-			PythonPath: "d3m.primitives.distil.TimeSeriesLoader",
-			Digest:     "",
-		},
-		[]string{"produce"},
-		map[string]interface{}{
-			"file_col_index":  fileColIndex,
-			"time_col_index":  timeColIndex,
-			"value_col_index": valueColIndex,
-		},
-	)
 }

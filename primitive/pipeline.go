@@ -39,10 +39,12 @@ type FeatureRequest struct {
 	Step                *pipeline.PipelineDescription
 }
 
+// IngestStep is a step in the ingest process.
 type IngestStep struct {
 	client *compute.Client
 }
 
+// NewIngestStep creates a new ingest step.
 func NewIngestStep(client *compute.Client) *IngestStep {
 	return &IngestStep{
 		client: client,
@@ -199,19 +201,8 @@ func getClusterVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				if res.CanBeFeaturized() {
 					step, err = description.CreateUnicornPipeline("horned", "", []string{denormFieldName}, []string{indexName})
 				} else {
-					// TODO: Extract actual column names from time series resource
-					timeField, valueField := getTimeSeriesFields(res)
-					resFields := []*metadata.Variable{
-						{
-							Name:  "time",
-							Index: 0,
-						},
-						{
-							Name:  "value",
-							Index: 1,
-						},
-					}
-					step, err = description.CreateSlothPipeline("leaf", "", v.Name, timeField, valueField, mainDR.Variables, resFields)
+					fields, _ := getTimeValueCols(res)
+					step, err = description.CreateSlothPipeline("leaf", "", fields.timeCol, fields.valueCol, res.Variables)
 				}
 				if err != nil {
 					return nil, errors.Wrap(err, "unable to create step pipeline")
@@ -308,6 +299,35 @@ func copyResourceFiles(sourceFolder string, destinationFolder string) error {
 	return nil
 }
 
-func getTimeSeriesFields(dr *metadata.DataResource) (string, string) {
-	return "time", "value"
+type timeValueCols struct {
+	timeCol  string
+	valueCol string
+}
+
+func getTimeValueCols(dr *metadata.DataResource) (*timeValueCols, bool) {
+	// find the first column marked as a time and the first that is an
+	// attribute and use those as series values
+	var timeCol string
+	var valueCol string
+	if dr.ResType == "timeseries" {
+		// find a suitable time column and value column - we take the first that works in each
+		// case
+		for _, v := range dr.Variables {
+			for _, r := range v.Role {
+				if r == "timeIndicator" && timeCol != "" {
+					timeCol = v.Name
+				}
+				if r == "attribute" && valueCol != "" {
+					valueCol = v.Name
+				}
+			}
+		}
+		if timeCol != "" && valueCol != "" {
+			return &timeValueCols{
+				timeCol:  timeCol,
+				valueCol: valueCol,
+			}, true
+		}
+	}
+	return nil, false
 }

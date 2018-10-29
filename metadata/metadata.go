@@ -118,6 +118,7 @@ type Metadata struct {
 	Redacted       bool
 }
 
+// NewMetadata creates a new metadata instance.
 func NewMetadata(id string, name string, description string) *Metadata {
 	return &Metadata{
 		ID:            id,
@@ -127,6 +128,7 @@ func NewMetadata(id string, name string, description string) *Metadata {
 	}
 }
 
+// NewDataResource creates a new data resource instance.
 func NewDataResource(id string, typ string, format []string) *DataResource {
 	return &DataResource{
 		ResID:     id,
@@ -471,7 +473,7 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 	return headers, nil
 }
 
-// GenerateHeaders generates csv headers for the data resource.
+// GenerateHeader generates csv headers for the data resource.
 func (dr *DataResource) GenerateHeader() []string {
 	header := make([]string, len(dr.Variables))
 
