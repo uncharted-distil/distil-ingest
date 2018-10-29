@@ -783,11 +783,14 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 
 		var parser DataResourceParser
 		switch resType {
-		case resTypeAudio, resTypeImage, resTypeText, resTypeTime:
+		case resTypeAudio, resTypeImage, resTypeText:
 			parser = NewMedia(resType)
 			break
 		case resTypeTable:
 			parser = &Table{}
+			break
+		case resTypeTime:
+			parser = &Timeseries{}
 			break
 		default:
 			return errors.Errorf("Unrecognized resource type '%s'", resType)
