@@ -314,10 +314,10 @@ func getTimeValueCols(dr *metadata.DataResource) (*timeValueCols, bool) {
 		// case
 		for _, v := range dr.Variables {
 			for _, r := range v.Role {
-				if r == "timeIndicator" && timeCol != "" {
+				if r == "timeIndicator" && timeCol == "" {
 					timeCol = v.Name
 				}
-				if r == "attribute" && valueCol != "" {
+				if r == "attribute" && valueCol == "" {
 					valueCol = v.Name
 				}
 			}
