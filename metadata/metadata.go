@@ -981,6 +981,12 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	if len(meta.DataResources) > 1 {
 		return errors.New("metadata variables not merged into a single dataset")
 	}
+
+	// clear refers to
+	for _, v := range meta.DataResources[0].Variables {
+		v.RefersTo = nil
+	}
+
 	adjustedID := datasetPrefix + meta.ID
 
 	source := map[string]interface{}{

@@ -198,6 +198,15 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:d15b2fd801f2341f1bf31293085717ab203572baa271e8b495e6a0a5a2bea316"
+  name = "github.com/otiai10/copy"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7e9a647135a142c2669943d4a4d29be015ce9392"
+  source = "git@github.com:otiai10/copy.git"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",

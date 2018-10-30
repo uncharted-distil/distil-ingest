@@ -57,6 +57,10 @@
   name = "gopkg.in/olivere/elastic.v5"
   version = "5.0.45"
 
+[[constraint]]
+  name = "github.com/otiai10/copy"
+  source = "git@github.com:otiai10/copy.git"
+
 [prune]
   go-tests = true
   unused-packages = true
