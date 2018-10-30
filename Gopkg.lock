@@ -2,11 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/Sirupsen/logrus"
-  packages = ["."]
-  revision = "a283a10442df8dc09befd873fab202bf8a253d6a"
-
-[[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -19,13 +14,21 @@
     "aws/credentials/ec2rolecreds",
     "aws/credentials/endpointcreds",
     "aws/credentials/stscreds",
+    "aws/csm",
     "aws/defaults",
     "aws/ec2metadata",
     "aws/endpoints",
     "aws/request",
     "aws/session",
     "aws/signer/v4",
+    "internal/s3err",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/sdkuri",
+    "internal/shareddefaults",
     "private/protocol",
+    "private/protocol/eventstream",
+    "private/protocol/eventstream/eventstreamapi",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
@@ -34,19 +37,20 @@
     "service/s3",
     "service/sts"
   ]
-  revision = "7111a70b8bea15081468f11bc1450ac2fec2406b"
-  version = "v1.8.3"
+  revision = "3c7ce80a3b6d9b952022a6c5e5dd758486ff4de1"
+  version = "v1.15.48"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
-  revision = "04cdfd42973bb9c8589fd6a731800cf222fde1a9"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "e7fea39b01aea8d5671f6858f0532f56e8bff3a5"
-  version = "v1.27.0"
+  revision = "7b294651033cd7d9e7f0d9ffa1b75ed1e198e737"
+  version = "v1.38.3"
 
 [[projects]]
   name = "github.com/go-pg/pg"
@@ -58,28 +62,73 @@
     "orm",
     "types"
   ]
-  revision = "6b379280e4b806f329f36da1710cabe134991509"
-  version = "v6.4.24"
+  revision = "514bed76d8f579d6ff8d40294fa77e476a5c1b3f"
+  version = "v6.15.0"
+
+[[projects]]
+  name = "github.com/golang/protobuf"
+  packages = [
+    "proto",
+    "protoc-gen-go/descriptor",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
+    "ptypes/timestamp"
+  ]
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/jeffail/gabs"
   packages = ["."]
-  revision = "9cef256b595a9e616eb6aec1da446529b7705613"
+  revision = "7a0fed31069aba77993a518cc2f37b28ee7aa883"
+  version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/jinzhu/inflection"
   packages = ["."]
-  revision = "1c35d901db3da928c72a72d8458480cc9ade058f"
+  revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
-  revision = "bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d"
+  revision = "0b12d6b5"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter"
+  ]
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
+
+[[projects]]
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+  version = "v0.0.4"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mgutz/ansi"
   packages = ["."]
-  revision = "c286dcecd19ff979eeb73ea444e479b903f2cfcb"
+  revision = "9520e82c474b0a04dd04f8a40959027271bab992"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/otiai10/copy"
+  packages = ["."]
+  revision = "7e9a647135a142c2669943d4a4d29be015ce9392"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -90,12 +139,20 @@
 [[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
-  revision = "d8ed2627bdf02c080bf22230dbb337003b7aba2d"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
 
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "890a5c3458b43e6104ff5da8dfa139d013d77544"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   branch = "master"
@@ -113,22 +170,120 @@
     "threshold",
     "util"
   ]
-  revision = "f967d93bead1da1df483356f0819caa2ecfb1bc8"
+  revision = "2fed02d559eb90bb6c0cb7f8212c25a474f911e3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/unchartedsoftware/plog"
   packages = ["."]
-  revision = "24c9313ea3ff2a86868f9961420e5b72fb83a019"
+  revision = "34d2bbd3c0a9458feb0752af2b578a23eb8ddc4f"
 
 [[projects]]
   name = "github.com/urfave/cli"
   packages = ["."]
-  revision = "f017f86fccc5a039a98f23311f34fdf78b014f78"
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/vmihailenco/sasl"
+  packages = ["."]
+  revision = "2f13c189728a02f8cc31b3b9cc06047b383c21cc"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["pbkdf2"]
+  revision = "e3636079e1a4c1f337f212cc5cd2aca108f6c900"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d15b2fd801f2341f1bf31293085717ab203572baa271e8b495e6a0a5a2bea316"
+  name = "github.com/otiai10/copy"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7e9a647135a142c2669943d4a4d29be015ce9392"
+  source = "git@github.com:otiai10/copy.git"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = [
+    "context",
+    "http/httpguts",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "internal/timeseries",
+    "trace"
+  ]
+  revision = "146acd28ed5894421fb5aac80ca93bc1b1f46f87"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "a646d33e2ee3172a661fc09bca23bb4889a41bc8"
+  revision = "4497e2df6f9e69048a54498c7affbbec3294ad47"
+
+[[projects]]
+  name = "golang.org/x/text"
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable"
+  ]
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/rpc/status"]
+  revision = "af9cb2a35e7f169ec875002c1829c9b315cddc04"
+
+[[projects]]
+  name = "google.golang.org/grpc"
+  packages = [
+    ".",
+    "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
+    "codes",
+    "connectivity",
+    "credentials",
+    "encoding",
+    "encoding/proto",
+    "grpclog",
+    "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/envconfig",
+    "internal/grpcrand",
+    "internal/transport",
+    "keepalive",
+    "metadata",
+    "naming",
+    "peer",
+    "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
+    "stats",
+    "status",
+    "tap"
+  ]
+  revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
+  version = "v1.15.0"
 
 [[projects]]
   name = "gopkg.in/olivere/elastic.v5"
@@ -137,12 +292,12 @@
     "config",
     "uritemplates"
   ]
-  revision = "edbef41beaacc2ee95e61af8faff04e67c01e268"
-  version = "v5.0.45"
+  revision = "fc3063a8c0686f64e94f4b2c17eb140c06eb6793"
+  version = "v5.0.76"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "57866312a139e2614a09a940b81dcf5215f00292d4853fc888ff0ad5ebccfd5a"
+  inputs-digest = "d6f33f77642f451ba56738d07082864113ea3012f7fd770696f38fdd20e2e674"
   solver-name = "gps-cdcl"
   solver-version = 1

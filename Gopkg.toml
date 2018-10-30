@@ -30,8 +30,20 @@
   version = "1.8.3"
 
 [[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "1.1.0"
+
+[[constraint]]
   name = "github.com/go-pg/pg"
   version = "6.4.24"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/unchartedsoftware/plog"
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "1.11.3"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -44,6 +56,10 @@
 [[constraint]]
   name = "gopkg.in/olivere/elastic.v5"
   version = "5.0.45"
+
+[[constraint]]
+  name = "github.com/otiai10/copy"
+  source = "git@github.com:otiai10/copy.git"
 
 [prune]
   go-tests = true

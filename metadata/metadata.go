@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strings"
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
@@ -50,6 +49,9 @@ const (
 
 	provenanceSimon  = "d3m.primitives.distil.simon"
 	provenanceSchema = "schema"
+
+	schemaVersion = "3.1.1"
+	license       = "Unknown"
 )
 
 var (
@@ -89,6 +91,7 @@ type DataResource struct {
 	ResPath      string      `json:"resPath"`
 	IsCollection bool        `json:"isCollection"`
 	Variables    []*Variable `json:"columns,omitempty"`
+	ResFormat    []string    `json:"resFormat"`
 }
 
 // SuggestedType represents a classified variable type.
@@ -112,6 +115,27 @@ type Metadata struct {
 	NumRows        int64
 	NumBytes       int64
 	SchemaSource   string
+	Redacted       bool
+}
+
+// NewMetadata creates a new metadata instance.
+func NewMetadata(id string, name string, description string) *Metadata {
+	return &Metadata{
+		ID:            id,
+		Name:          name,
+		Description:   description,
+		DataResources: make([]*DataResource, 0),
+	}
+}
+
+// NewDataResource creates a new data resource instance.
+func NewDataResource(id string, typ string, format []string) *DataResource {
+	return &DataResource{
+		ResID:     id,
+		ResType:   typ,
+		ResFormat: format,
+		Variables: make([]*Variable, 0),
+	}
 }
 
 // NormalizeVariableName normalizes a variable name.
@@ -194,7 +218,7 @@ func LoadMetadataFromOriginalSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription()
+	err = meta.loadAbout()
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +246,7 @@ func LoadMetadataFromMergedSchema(schemaPath string) (*Metadata, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription()
+	err = meta.loadAbout()
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +305,7 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	if err != nil {
 		return nil, err
 	}
-	err = meta.loadDescription()
+	err = meta.loadAbout()
 	if err != nil {
 		return nil, err
 	}
@@ -442,17 +466,23 @@ func (m *Metadata) GenerateHeaders() ([][]string, error) {
 	headers := make([][]string, len(m.DataResources))
 
 	for index, dr := range m.DataResources {
-		header := make([]string, len(dr.Variables))
-
-		// iterate over the fields
-		for hIndex, field := range dr.Variables {
-			header[hIndex] = strings.Replace(field.Name, "_", "", -1)
-		}
-
+		header := dr.GenerateHeader()
 		headers[index] = header
 	}
 
 	return headers, nil
+}
+
+// GenerateHeader generates csv headers for the data resource.
+func (dr *DataResource) GenerateHeader() []string {
+	header := make([]string, len(dr.Variables))
+
+	// iterate over the fields
+	for hIndex, field := range dr.Variables {
+		header[hIndex] = field.Name
+	}
+
+	return header
 }
 
 // LoadSummaryFromDescription loads a summary from the description.
@@ -562,11 +592,12 @@ func (m *Metadata) loadName() error {
 	return nil
 }
 
-func (m *Metadata) loadDescription() error {
-	// load from property
+func (m *Metadata) loadAbout() error {
 	if m.schema.Path("about.description").Data() != nil {
 		m.Description = m.schema.Path("about.description").Data().(string)
-		return nil
+	}
+	if m.schema.Path("about.redacted").Data() != nil {
+		m.Redacted = m.schema.Path("about.redacted").Data().(bool)
 	}
 	return nil
 }
@@ -640,19 +671,20 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*Variable, norma
 			resObjectMap, err := refersToData.Path("resObject").ChildrenMap()
 			if err != nil {
 				// see if it is maybe a string and if it is, ignore
-				_, ok := refersToData.Path("resObject").Data().(string)
+				data, ok := refersToData.Path("resObject").Data().(string)
 				if !ok {
 					return nil, errors.Wrapf(err, "unable to parse resObject")
 				}
+				refersTo["resObject"] = data
 			} else {
 				for k, v := range resObjectMap {
 					resObject[k] = v.Data().(string)
 				}
+				refersTo["resObject"] = resObject
 			}
 		}
 
 		refersTo["resID"] = resID
-		refersTo["resObject"] = resObject
 	}
 	variable := NewVariable(
 		varIndex,
@@ -751,11 +783,14 @@ func (m *Metadata) loadOriginalSchemaVariables() error {
 
 		var parser DataResourceParser
 		switch resType {
-		case resTypeAudio, resTypeImage, resTypeText, resTypeTime:
+		case resTypeAudio, resTypeImage, resTypeText:
 			parser = NewMedia(resType)
 			break
 		case resTypeTable:
 			parser = &Table{}
+			break
+		case resTypeTime:
+			parser = &Timeseries{}
 			break
 		default:
 			return errors.Errorf("Unrecognized resource type '%s'", resType)
@@ -876,11 +911,14 @@ func (m *Metadata) WriteMergedSchema(path string, mergedDataResource *DataResour
 	// create output format
 	output := map[string]interface{}{
 		"about": map[string]interface{}{
-			"datasetID":    m.ID,
-			"datasetName":  m.Name,
-			"description":  m.Description,
-			"rawData":      m.Raw,
-			"mergedSchema": "true",
+			"datasetID":            m.ID,
+			"datasetName":          m.Name,
+			"description":          m.Description,
+			"datasetSchemaVersion": schemaVersion,
+			"license":              license,
+			"rawData":              m.Raw,
+			"redacted":             m.Redacted,
+			"mergedSchema":         "true",
 		},
 		"dataResources": []*DataResource{mergedDataResource},
 	}
@@ -901,10 +939,14 @@ func (m *Metadata) WriteSchema(path string) error {
 
 	output := map[string]interface{}{
 		"about": map[string]interface{}{
-			"datasetID":   m.ID,
-			"datasetName": m.Name,
-			"description": m.Description,
-			"rawData":     m.Raw,
+			"datasetID":            m.ID,
+			"datasetName":          m.Name,
+			"description":          m.Description,
+			"datasetSchemaVersion": schemaVersion,
+			"license":              license,
+			"rawData":              m.Raw,
+			"redacted":             m.Redacted,
+			"mergedSchema":         "false",
 		},
 		"dataResources": dataResources,
 	}
@@ -917,6 +959,21 @@ func (m *Metadata) WriteSchema(path string) error {
 	return ioutil.WriteFile(path, bytes, 0644)
 }
 
+// IsMediaReference returns true if a variable is a reference to a media resource.
+func (v *Variable) IsMediaReference() bool {
+	// if refers to has a res object of string, assume media reference`
+	mediaReference := false
+	if v.RefersTo != nil {
+		if v.RefersTo["resObject"] != nil {
+			_, ok := v.RefersTo["resObject"].(string)
+			if ok {
+				mediaReference = true
+			}
+		}
+	}
+	return mediaReference
+}
+
 // IngestMetadata adds a document consisting of the metadata to the
 // provided index.
 func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, meta *Metadata) error {
@@ -924,6 +981,12 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	if len(meta.DataResources) > 1 {
 		return errors.New("metadata variables not merged into a single dataset")
 	}
+
+	// clear refers to
+	for _, v := range meta.DataResources[0].Variables {
+		v.RefersTo = nil
+	}
+
 	adjustedID := datasetPrefix + meta.ID
 
 	source := map[string]interface{}{

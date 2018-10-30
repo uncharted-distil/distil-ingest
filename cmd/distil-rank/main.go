@@ -3,9 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/csv"
-	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,8 +13,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/rest"
+	"github.com/unchartedsoftware/distil-ingest/primitive"
+	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 )
 
 func splitAndTrim(arg string) []string {
@@ -39,7 +37,7 @@ func main() {
 	app.Name = "distil-rank"
 	app.Version = "0.1.0"
 	app.Usage = "Rank D3M merged datasets"
-	app.UsageText = "distil-rank --kafka-endpoints=<urls> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-rank --endpoint=<url> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "schema",
@@ -66,14 +64,9 @@ func main() {
 			Usage: "Whether or not the CSV file has a header row",
 		},
 		cli.StringFlag{
-			Name:  "rest-endpoint",
+			Name:  "endpoint",
 			Value: "",
-			Usage: "The REST endpoint url",
-		},
-		cli.StringFlag{
-			Name:  "ranking-function",
-			Value: "",
-			Usage: "The ranking function to use",
+			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
 			Name:  "output",
@@ -96,98 +89,39 @@ func main() {
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
-		if c.String("rest-endpoint") == "" {
-			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
+		if c.String("endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
-		if c.String("ranking-function") == "" {
-			return cli.NewExitError("missing commandline flag `--ranking-function`", 1)
-		}
-		if c.String("ranking-output") == "" {
+		if c.String("output") == "" {
 			return cli.NewExitError("missing commandline flag `--ranking-output`", 1)
 		}
 
-		classificationPath := filepath.Clean(c.String("classification"))
-		typeSource := c.String("type-source")
-		schemaPath := filepath.Clean(c.String("schema"))
-		rankingFunction := c.String("ranking-function")
-		restBaseEndpoint := c.String("rest-endpoint")
+		//classificationPath := filepath.Clean(c.String("classification"))
+		//typeSource := c.String("type-source")
+		//schemaPath := filepath.Clean(c.String("schema"))
+		endpoint := c.String("endpoint")
 		datasetPath := filepath.Clean(c.String("dataset"))
-		rankingOutputFile := c.String("ranking-output")
-		rowLimit := c.Int("row-limit")
-		hasHeader := c.Bool("has-header")
-
+		//rankingOutputFile := c.String("ranking-output")
+		//rowLimit := c.Int("row-limit")
+		//hasHeader := c.Bool("has-header")
 		outputFilePath := c.String("output")
 
-		var err error
-
-		// load the metadata
-		var meta *metadata.Metadata
-		if schemaPath == "" || schemaPath == "." {
-			log.Infof("Loading metadata from raw file")
-			meta, err = metadata.LoadMetadataFromRawFile(datasetPath, classificationPath)
-		} else if typeSource == "classification" {
-			log.Infof("Loading metadata from classification file")
-			meta, err = metadata.LoadMetadataFromClassification(
-				schemaPath,
-				classificationPath)
-		} else {
-			log.Infof("Loading metadata from schema file")
-			meta, err = metadata.LoadMetadataFromMergedSchema(
-				schemaPath)
-		}
+		// initialize client
+		log.Infof("Using pipeline runner interface at `%s` ", endpoint)
+		client, err := compute.NewRunner(endpoint, true, "distil-ingest", 60, 10, true)
 		if err != nil {
-			log.Errorf("%+v", err)
+			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
+		step := primitive.NewIngestStep(client)
 
-		// get header for the merged data
-		headers, err := meta.GenerateHeaders()
+		// rank the dataset variable importance
+		err = step.RankPrimitive(datasetPath, outputFilePath)
 		if err != nil {
-			log.Errorf("%+v", err)
+			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-
-		// merged data only has 1 header
-		header := headers[0]
-
-		// add the header to the raw data
-		data, err := getMergedData(header, datasetPath, hasHeader, rowLimit)
-
-		// write to file to submit the file
-		err = ioutil.WriteFile(rankingOutputFile, data, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// create the REST client
-		log.Infof("Using REST interface at `%s/%s` ", restBaseEndpoint, rankingFunction)
-		client := rest.NewClient(restBaseEndpoint)
-
-		// create ranker
-		ranker := rest.NewRanker(rankingFunction, client)
-
-		// get the importance from the REST interface
-		log.Infof("Getting importance ranking of file `%s`", rankingOutputFile)
-		importance, err := ranker.RankFile(rankingOutputFile)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// marshall result
-		bytes, err := json.MarshalIndent(importance, "", "    ")
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-		// write to file
-		log.Infof("Writing importance ranking to file `%s`", outputFilePath)
-		err = ioutil.WriteFile(outputFilePath, bytes, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
+		log.Infof("Ranked data written to %s", outputFilePath)
 
 		return nil
 	}

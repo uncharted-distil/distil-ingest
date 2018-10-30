@@ -1,10 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/csv"
-	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -13,9 +9,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/merge"
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/s3"
+	"github.com/unchartedsoftware/distil-ingest/primitive"
+	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 )
 
 const (
@@ -38,9 +33,14 @@ func main() {
 			Usage: "The dataset schema file path",
 		},
 		cli.StringFlag{
-			Name:  "data",
+			Name:  "dataset",
 			Value: "",
-			Usage: "The data file path",
+			Usage: "The dataet schema path",
+		},
+		cli.StringFlag{
+			Name:  "endpoint",
+			Value: "",
+			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
 			Name:  "raw-data",
@@ -48,19 +48,9 @@ func main() {
 			Usage: "The raw dat a file path",
 		},
 		cli.StringFlag{
-			Name:  "output-bucket",
+			Name:  "output",
 			Value: "",
-			Usage: "The merged output AWS S3 bucket",
-		},
-		cli.StringFlag{
-			Name:  "output-key",
-			Value: "",
-			Usage: "The merged output AWS S3 key",
-		},
-		cli.StringFlag{
-			Name:  "output-path",
-			Value: "",
-			Usage: "The merged output path",
+			Usage: "The merged output folder",
 		},
 		cli.StringFlag{
 			Name:  "output-path-relative",
@@ -84,208 +74,39 @@ func main() {
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.String("data") == "" {
-			return cli.NewExitError("missing commandline flag `--data`", 1)
+		if c.String("dataset") == "" {
+			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
-		if c.String("output-path") == "" {
-			return cli.NewExitError("missing commandline flag `--output-path`", 1)
+		if c.String("endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
-
-		outputPath := filepath.Clean(c.String("output-path"))
-		outputPathRelative := filepath.Clean(c.String("output-path-relative"))
-		dataPath := filepath.Clean(c.String("data"))
-
-		// If no schema provided, assume it is a raw data file.
-		if c.String("schema") == "" {
-			log.Infof("Schema file not specified so assuming raw dataset being merged, copying from %s to %s", dataPath, outputPath)
-			err := mergeRawData(dataPath, outputPath)
-			if err != nil {
-				log.Errorf("%+v", err)
-				return cli.NewExitError(errors.Cause(err), 1)
-			}
-
-			log.Infof("Successfully merged raw dataset")
-
-			return nil
+		if c.String("output") == "" {
+			return cli.NewExitError("missing commandline flag `--output`", 1)
 		}
 
-		if c.String("output-schema-path") == "" {
-			return cli.NewExitError("missing commandline flag `--output-schema-path`", 1)
-		}
-		schemaPath := filepath.Clean(c.String("schema"))
-		rawDataPath := filepath.Clean(c.String("raw-data"))
-		outputBucket := c.String("output-bucket")
-		outputKey := c.String("output-key")
-		outputPathHeader := filepath.Clean(c.String("output-path-header"))
-		outputSchemaPath := filepath.Clean(c.String("output-schema-path"))
-		hasHeader := c.Bool("has-header")
+		outputFolderPath := filepath.Clean(c.String("output"))
+		endpoint := filepath.Clean(c.String("endpoint"))
+		dataset := filepath.Clean(c.String("dataset"))
 
-		// load the metadata from schema
-		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
+		// initialize client
+		log.Infof("Using pipeline runner interface at `%s` ", endpoint)
+		client, err := compute.NewRunner(endpoint, true, "distil-ingest", 60, 10, true)
 		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 1)
-		}
-
-		// merge file links in dataset
-		mergedDR, output, err := merge.InjectFileLinksFromFile(meta, dataPath, rawDataPath, outputPathRelative, hasHeader)
-		if err != nil {
-			log.Errorf("%+v", err)
+			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
+		step := primitive.NewIngestStep(client)
 
-		// get AWS S3 client
-		client, err := s3.NewClient()
+		// merge the dataset into a single file
+		err = step.MergePrimitive(dataset, outputFolderPath)
 		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 3)
-		}
-
-		// write merged output to AWS S3
-		if outputBucket != "" {
-			err = s3.WriteToBucket(client, outputBucket, outputKey, output)
-			if err != nil {
-				log.Errorf("%+v", err)
-				return cli.NewExitError(errors.Cause(err), 4)
-			}
-		}
-
-		// write copy to disk
-		err = ioutil.WriteFile(outputPath, output, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 5)
-		}
-
-		// write merged metadata out to disk
-		err = meta.WriteMergedSchema(outputSchemaPath, mergedDR)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 5)
-		}
-
-		// log success / failure
-		log.Infof("Merged data successfully written to %s", outputPath)
-		if outputBucket != "" {
-			log.Infof("Merged data successfully written to %s/%s", outputBucket, outputKey)
-		}
-
-		// get header for the merged data
-		headers, err := meta.GenerateHeaders()
-		if err != nil {
-			log.Errorf("%+v", err)
+			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-
-		// merged data only has 1 header
-		header := headers[0]
-
-		// add the header to the raw data
-		data, err := getMergedData(header, outputPath, hasHeader)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// write to file to submit the file
-		err = ioutil.WriteFile(outputPathHeader, data, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		// log success / failure
-		log.Infof("Merged data with header successfully written to %s", outputPathHeader)
+		log.Infof("Merged data written to %s", outputFolderPath)
 
 		return nil
 	}
 	// run app
 	app.Run(os.Args)
-}
-
-func getMergedData(header []string, datasetPath string, hasHeader bool) ([]byte, error) {
-	// Copy source to destination.
-	file, err := os.Open(datasetPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open source file")
-	}
-
-	reader := csv.NewReader(file)
-
-	// output writer
-	output := &bytes.Buffer{}
-	writer := csv.NewWriter(output)
-	if header != nil && len(header) > 0 {
-		err := writer.Write(header)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to write header to file")
-		}
-	}
-
-	count := 0
-	for {
-		line, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, errors.Wrap(err, "failed to read line from file")
-		}
-		if count > 0 || !hasHeader {
-			err := writer.Write(line)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to write line to file")
-			}
-		}
-		count++
-	}
-	// flush writer
-	writer.Flush()
-
-	// close left
-	err = file.Close()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to close input file")
-	}
-	return output.Bytes(), nil
-}
-
-func mergeRawData(dataPath string, outputPath string) error {
-	// Copy source to destination.
-	file, err := os.Open(dataPath)
-	if err != nil {
-		return errors.Wrap(err, "failed to open data file")
-	}
-
-	reader := csv.NewReader(file)
-
-	// output writer
-	output := &bytes.Buffer{}
-	writer := csv.NewWriter(output)
-	for {
-		line, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return errors.Wrap(err, "failed to read line from file")
-		}
-		// write the csv line back out
-		err = writer.Write(line)
-		if err != nil {
-			return errors.Wrap(err, "failed to write line to file")
-		}
-	}
-	// flush writer
-	writer.Flush()
-
-	err = ioutil.WriteFile(outputPath, output.Bytes(), 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to close output file")
-	}
-
-	// close left
-	err = file.Close()
-	if err != nil {
-		return errors.Wrap(err, "failed to close input file")
-	}
-	return nil
 }

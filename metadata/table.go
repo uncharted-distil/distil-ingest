@@ -28,10 +28,25 @@ func (r *Table) Parse(res *gabs.Container) (*DataResource, error) {
 	}
 	resPath := res.Path("resPath").Data().(string)
 
+	var resFormats []string
+	if res.Path("resFormat").Data() != nil {
+		formatsRaw, err := res.Path("resFormat").Children()
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to parse resource format")
+		}
+		resFormats = make([]string, len(formatsRaw))
+		for i, r := range formatsRaw {
+			resFormats[i] = r.Data().(string)
+		}
+	} else {
+		resFormats = make([]string, 0)
+	}
+
 	dr := &DataResource{
 		ResID:        resID,
 		ResPath:      resPath,
 		ResType:      resTypeTable,
+		ResFormat:    resFormats,
 		IsCollection: false,
 		Variables:    make([]*Variable, 0),
 	}

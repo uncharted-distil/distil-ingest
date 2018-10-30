@@ -7,20 +7,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Media is a data resource that is backed by media files.
-type Media struct {
-	Type string
-}
-
-// NewMedia creates a new Media instance.
-func NewMedia(typ string) *Media {
-	return &Media{
-		Type: typ,
-	}
+// Table is a data respurce that is contained within one or many tabular files.
+type Timeseries struct {
 }
 
 // Parse extracts the data resource from the data schema document.
-func (r *Media) Parse(res *gabs.Container) (*DataResource, error) {
+func (r *Timeseries) Parse(res *gabs.Container) (*DataResource, error) {
+	schemaVariables, err := res.Path("columns").Children()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse column data")
+	}
+
 	if res.Path("resID").Data() == nil {
 		return nil, fmt.Errorf("unable to parse resource id")
 	}
@@ -48,9 +45,18 @@ func (r *Media) Parse(res *gabs.Container) (*DataResource, error) {
 	dr := &DataResource{
 		ResID:        resID,
 		ResPath:      resPath,
-		ResType:      r.Type,
-		IsCollection: true,
+		ResType:      resTypeTime,
 		ResFormat:    resFormats,
+		IsCollection: true,
+		Variables:    make([]*Variable, 0),
+	}
+
+	for _, v := range schemaVariables {
+		variable, err := parseSchemaVariable(v, dr.Variables, false)
+		if err != nil {
+			return nil, err
+		}
+		dr.Variables = append(dr.Variables, variable)
 	}
 
 	return dr, nil

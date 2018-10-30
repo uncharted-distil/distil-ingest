@@ -10,9 +10,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/feature"
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/rest"
+	"github.com/unchartedsoftware/distil-ingest/primitive"
+	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 )
 
 func splitAndTrim(arg string) []string {
@@ -35,17 +34,12 @@ func main() {
 	app.Name = "distil-cluster"
 	app.Version = "0.1.0"
 	app.Usage = "Cluster D3M datasets"
-	app.UsageText = "distil-cluster --rest-endpoint=<url> --cluster-function=<function> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-cluster --endpoint=<url> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "rest-endpoint",
+			Name:  "endpoint",
 			Value: "",
-			Usage: "The REST endpoint url",
-		},
-		cli.StringFlag{
-			Name:  "cluster-function",
-			Value: "",
-			Usage: "The clustering function to use",
+			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
 			Name:  "dataset",
@@ -77,82 +71,45 @@ func main() {
 			Value: "",
 			Usage: "The path to use as output for the clustered schema document",
 		},
-		cli.StringFlag{
-			Name:  "output-data",
-			Value: "",
-			Usage: "The path to use as output for the clustered data",
-		},
 		cli.BoolFlag{
 			Name:  "has-header",
 			Usage: "Whether or not the CSV file has a header row",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-		if c.String("rest-endpoint") == "" {
-			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
-		}
-		if c.String("cluster-function") == "" {
-			return cli.NewExitError("missing commandline flag `--cluster-function`", 1)
+		if c.String("endpoint") == "" {
+			return cli.NewExitError("missing commandline flag `--endpoint`", 1)
 		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
 
-		clusterFunction := c.String("cluster-function")
-		restBaseEndpoint := c.String("rest-endpoint")
+		endpoint := c.String("endpoint")
 		datasetPath := c.String("dataset")
-		mediaPath := c.String("media-path")
-		outputSchema := c.String("output-schema")
-		outputData := c.String("output-data")
 		schemaPath := c.String("schema")
-		outputFilePath := c.String("output")
+		output := c.String("output")
 		hasHeader := c.Bool("has-header")
+		rootDataPath := path.Dir(datasetPath)
 
-		// initialize REST client
-		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
-		client := rest.NewClient(restBaseEndpoint)
-
-		// create feature folder
-		clusterPath := path.Join(outputFilePath, "clusters")
-		if dirExists(clusterPath) {
-			// delete existing data to overwrite with latest
-			os.RemoveAll(clusterPath)
-			log.Infof("Deleted data at %s", clusterPath)
-		}
-		if err := os.MkdirAll(clusterPath, 0777); err != nil && !os.IsExist(err) {
+		// initialize client
+		log.Infof("Using pipeline runner interface at `%s` ", endpoint)
+		client, err := compute.NewRunner(endpoint, true, "distil-ingest", 60, 10, true)
+		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		os.Remove(path.Join(outputFilePath, "clusterDatasetDoc.json"))
+		step := primitive.NewIngestStep(client)
 
 		// create featurizer
-		featurizer := rest.NewFeaturizer(clusterFunction, client)
-
-		// load metadata from original schema
-		meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath)
+		err = step.ClusterPrimitive(schemaPath, datasetPath, rootDataPath, output, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-
-		// featurize data
-		err = feature.ClusterDataset(meta, featurizer, datasetPath, mediaPath, outputFilePath, outputData, outputSchema, hasHeader)
-		if err != nil {
-			log.Errorf("%v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
-
-		log.Infof("Clustered data written to %s", outputFilePath)
+		log.Infof("Clustered data written to %s", output)
 
 		return nil
 	}
 	// run app
 	app.Run(os.Args)
-}
-
-func dirExists(path string) bool {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false
-	}
-	return true
 }

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -10,7 +8,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-ingest/rest"
+	"github.com/unchartedsoftware/distil-ingest/primitive"
+	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 )
 
 func main() {
@@ -21,17 +20,12 @@ func main() {
 	app.Name = "distil-summary"
 	app.Version = "0.1.0"
 	app.Usage = "Summarize D3M datasets"
-	app.UsageText = "distil-summary --rest-endpoint=<url> --summary-function=<function> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-summary --endpoint=<url> --dataset=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "rest-endpoint",
+			Name:  "endpoint",
 			Value: "",
-			Usage: "The REST endpoint url",
-		},
-		cli.StringFlag{
-			Name:  "summary-function",
-			Value: "",
-			Usage: "The summary function to use",
+			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
 			Name:  "dataset",
@@ -45,11 +39,8 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-		if c.String("rest-endpoint") == "" {
+		if c.String("endpoint") == "" {
 			return cli.NewExitError("missing commandline flag `--rest-endpoint`", 1)
-		}
-		if c.String("summary-function") == "" {
-			return cli.NewExitError("missing commandline flag `--summary-function`", 1)
 		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
@@ -58,38 +49,26 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--output`", 1)
 		}
 
-		summaryFunction := c.String("summary-function")
-		restBaseEndpoint := c.String("rest-endpoint")
+		endpoint := c.String("endpoint")
 		path := c.String("dataset")
 		outputFilePath := c.String("output")
 
-		// initialize REST client
-		log.Infof("Using REST interface at `%s` ", restBaseEndpoint)
-		client := rest.NewClient(restBaseEndpoint)
-
-		// create classifier
-		summarizer := rest.NewSummarizer(summaryFunction, client)
-
-		// classify the file
-		summary, err := summarizer.SummarizeFile(path)
+		// initialize client
+		log.Infof("Using pipeline runner interface at `%s` ", endpoint)
+		client, err := compute.NewRunner(endpoint, true, "distil-ingest", 60, 10, true)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Summary for `%s` successful", path)
-		// marshall result
-		bytes, err := json.MarshalIndent(summary, "", "    ")
+		step := primitive.NewIngestStep(client)
+
+		// classify the dataset
+		err = step.SummarizePrimitive(path, outputFilePath)
 		if err != nil {
-			log.Errorf("%+v", err)
+			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		// write to file
-		log.Infof("Writing summary to file `%s`", outputFilePath)
-		err = ioutil.WriteFile(outputFilePath, bytes, 0644)
-		if err != nil {
-			log.Errorf("%+v", err)
-			return cli.NewExitError(errors.Cause(err), 2)
-		}
+		log.Infof("Summarized data written to %s", outputFilePath)
 
 		return nil
 	}
