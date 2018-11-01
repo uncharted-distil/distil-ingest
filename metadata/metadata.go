@@ -116,6 +116,7 @@ type Metadata struct {
 	NumBytes       int64
 	SchemaSource   string
 	Redacted       bool
+	DatasetFolder  string
 }
 
 // NewMetadata creates a new metadata instance.
@@ -998,6 +999,7 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 		"numRows":        meta.NumRows,
 		"numBytes":       meta.NumBytes,
 		"variables":      meta.DataResources[0].Variables,
+		"datasetFolder":  meta.DatasetFolder,
 	}
 
 	bytes, err := json.Marshal(source)
@@ -1120,6 +1122,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                                 "ignore_above": 256
                             }
                         }
+                    },
+                    "datasetFolder": {
+                        "type": "text"
                     },
                     "description": {
                         "type": "text",
