@@ -12,6 +12,7 @@ type Conf struct {
 	ClearExisting   bool
 	BulkByteSize    int64
 	ScanBufferSize  int
+	DatasetFolder   string
 
 	// d3m dataset directory path
 	TypeSource         string

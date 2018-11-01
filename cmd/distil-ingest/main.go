@@ -54,6 +54,11 @@ func main() {
 			Usage: "The dataset source path",
 		},
 		cli.StringFlag{
+			Name:  "dataset-folder",
+			Value: "",
+			Usage: "The root dataset folder name",
+		},
+		cli.StringFlag{
 			Name:  "classification",
 			Value: "",
 			Usage: "The classification source path",
@@ -181,6 +186,9 @@ func main() {
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
+		if c.String("dataset-folder") == "" {
+			return cli.NewExitError("missing commandline flag `--dataset-folder`", 1)
+		}
 		if c.String("classification") == "" {
 			return cli.NewExitError("missing commandline flag `--classification`", 1)
 		}
@@ -199,6 +207,7 @@ func main() {
 			ESIndex:              c.String("es-data-index"),
 			ESDatasetPrefix:      c.String("es-dataset-prefix"),
 			TypeSource:           c.String("type-source"),
+			DatasetFolder:        c.String("dataset-folder"),
 			ClassificationPath:   filepath.Clean(c.String("classification")),
 			SummaryPath:          filepath.Clean(c.String("summary")),
 			SummaryMachinePath:   filepath.Clean(c.String("summary-machine")),
@@ -240,6 +249,7 @@ func main() {
 			meta, err = metadata.LoadMetadataFromMergedSchema(
 				config.SchemaPath)
 		}
+		meta.DatasetFolder = config.DatasetFolder
 
 		if err != nil {
 			log.Error(err)
