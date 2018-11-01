@@ -35,6 +35,7 @@ const (
 type FeatureRequest struct {
 	SourceVariableName  string
 	FeatureVariableName string
+	OutputVariableName  string
 	Variable            *metadata.Variable
 	Step                *pipeline.PipelineDescription
 }
@@ -111,7 +112,7 @@ func (s *IngestStep) appendFeature(dataset string, d3mIndexField int, hasHeader 
 	// find the field with the feature output
 	labelIndex := 1
 	for i, f := range res[0] {
-		if f == feature.FeatureVariableName {
+		if f == feature.OutputVariableName {
 			labelIndex = i
 		}
 	}
@@ -167,6 +168,7 @@ func getFeatureVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				features = append(features, &FeatureRequest{
 					SourceVariableName:  denormFieldName,
 					FeatureVariableName: indexName,
+					OutputVariableName:  fmt.Sprintf("%s_object_label", indexName),
 					Variable:            v,
 					Step:                step,
 				})
@@ -198,11 +200,14 @@ func getClusterVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				// create the required pipeline
 				var step *pipeline.PipelineDescription
 				var err error
+				outputName := ""
 				if res.CanBeFeaturized() {
 					step, err = description.CreateUnicornPipeline("horned", "", []string{denormFieldName}, []string{indexName})
+					outputName = unicornResultFieldName
 				} else {
 					fields, _ := getTimeValueCols(res)
 					step, err = description.CreateSlothPipeline("leaf", "", fields.timeCol, fields.valueCol, res.Variables)
+					outputName = slothResultFieldName
 				}
 				if err != nil {
 					return nil, errors.Wrap(err, "unable to create step pipeline")
@@ -211,6 +216,7 @@ func getClusterVariables(meta *metadata.Metadata, prefix string) ([]*FeatureRequ
 				features = append(features, &FeatureRequest{
 					SourceVariableName:  denormFieldName,
 					FeatureVariableName: indexName,
+					OutputVariableName:  outputName,
 					Variable:            v,
 					Step:                step,
 				})

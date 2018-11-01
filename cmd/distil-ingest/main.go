@@ -425,6 +425,9 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	// Load the data.
 	reader, err := os.Open(config.DatasetPath)
 	scanner := bufio.NewScanner(reader)
+
+	// skip header
+	scanner.Scan()
 	count := 0
 	for scanner.Scan() {
 		line := scanner.Text()

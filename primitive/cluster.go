@@ -13,6 +13,11 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
+const (
+	unicornResultFieldName = "pred_class"
+	slothResultFieldName   = "0"
+)
+
 // ClusterPrimitive will cluster the dataset fields using a primitive.
 func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
 	rootDataPath string, outputFolder string, hasHeader bool) error {
