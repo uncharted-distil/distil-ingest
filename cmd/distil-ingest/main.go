@@ -14,6 +14,7 @@ import (
 	"github.com/urfave/cli"
 	"gopkg.in/olivere/elastic.v5"
 
+	"github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-ingest/conf"
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
@@ -235,7 +236,7 @@ func main() {
 
 		// load the metadata
 		var err error
-		var meta *metadata.Metadata
+		var meta *model.Metadata
 		if config.SchemaPath == "" || config.SchemaPath == "." {
 			log.Infof("Loading metadata from classification file (%s) and raw file (%s)", config.ClassificationPath, config.DatasetPath)
 			meta, err = metadata.LoadMetadataFromRawFile(config.DatasetPath, config.ClassificationPath)
@@ -257,21 +258,21 @@ func main() {
 		}
 
 		// load importance rankings
-		err = meta.LoadImportance(config.ImportancePath)
+		err = metadata.LoadImportance(meta, config.ImportancePath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
 
 		// load summary
-		err = meta.LoadSummary(config.SummaryPath, true)
+		err = metadata.LoadSummary(meta, config.SummaryPath, true)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
 
 		// load summary
-		err = meta.LoadSummaryMachine(config.SummaryMachinePath)
+		err = metadata.LoadSummaryMachine(meta, config.SummaryMachinePath)
 		if err != nil {
 			log.Error(err)
 			// NOTE: For now ignore the error as the service may not
@@ -280,7 +281,7 @@ func main() {
 		}
 
 		// load stats
-		err = meta.LoadDatasetStats(config.DatasetPath)
+		err = metadata.LoadDatasetStats(meta, config.DatasetPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
@@ -321,7 +322,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *metadata.Metadata, elasticClient *elastic.Client) error {
+func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *model.Metadata, elasticClient *elastic.Client) error {
 	// Create the metadata index if it doesn't exist
 	err := metadata.CreateMetadataIndex(elasticClient, metadataIndexName, false)
 	if err != nil {
@@ -337,7 +338,7 @@ func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *metada
 	return nil
 }
 
-func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *metadata.Metadata) error {
+func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *model.Metadata) error {
 	input, err := deluge.NewFileInput([]string{config.DatasetPath}, nil)
 	if err != nil {
 		return err
@@ -374,7 +375,7 @@ func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *metad
 	return nil
 }
 
-func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
+func ingestPostgres(config *conf.Conf, meta *model.Metadata) error {
 	log.Info("Starting ingestion")
 
 	dbTableName := fmt.Sprintf("d_%s", meta.ID)
@@ -442,7 +443,7 @@ func ingestPostgres(config *conf.Conf, meta *metadata.Metadata) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Raw schema source will have header row.
-		if count > 0 || meta.SchemaSource != metadata.SchemaSourceRaw {
+		if count > 0 || meta.SchemaSource != model.SchemaSourceRaw {
 			err = pg.AddWordStems(line)
 			if err != nil {
 				log.Warn(fmt.Sprintf("%v", err))

@@ -9,8 +9,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
+	"github.com/unchartedsoftware/distil-compute/primitive/compute"
 	"github.com/unchartedsoftware/distil-ingest/primitive"
-	"github.com/unchartedsoftware/distil-ingest/primitive/compute"
 )
 
 const (

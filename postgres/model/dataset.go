@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-compute/model"
 )
 
 // Dataset is a struct containing the metadata of a dataset being processed.
@@ -9,14 +9,14 @@ type Dataset struct {
 	ID              string
 	Name            string
 	Description     string
-	Variables       []*metadata.Variable
+	Variables       []*model.Variable
 	variablesLookup map[string]bool
 	insertBatch     []string
 	insertArgs      []interface{}
 }
 
 // NewDataset creates a new dataset instance.
-func NewDataset(id, name, description string, meta *metadata.Metadata) *Dataset {
+func NewDataset(id, name, description string, meta *model.Metadata) *Dataset {
 	ds := &Dataset{
 		ID:              id,
 		Name:            name,
@@ -40,12 +40,12 @@ func (ds *Dataset) ResetBatch() {
 }
 
 // HasVariable checks to see if a variable is already contained in the dataset.
-func (ds *Dataset) HasVariable(variable *metadata.Variable) bool {
+func (ds *Dataset) HasVariable(variable *model.Variable) bool {
 	return ds.variablesLookup[variable.Name]
 }
 
 // AddVariable adds a variable to the dataset.
-func (ds *Dataset) AddVariable(variable *metadata.Variable) {
+func (ds *Dataset) AddVariable(variable *model.Variable) {
 	ds.Variables = append(ds.Variables, variable)
 	ds.variablesLookup[variable.Name] = true
 }
