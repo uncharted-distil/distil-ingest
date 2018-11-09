@@ -9,9 +9,10 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 
+	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/unchartedsoftware/distil-compute/primitive/compute/description"
+	"github.com/unchartedsoftware/distil-compute/primitive/compute/result"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/primitive/compute/description"
-	"github.com/unchartedsoftware/distil-ingest/primitive/compute/result"
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
@@ -61,8 +62,8 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 		vars[k] = v
 	}
 
-	outputMeta := metadata.NewMetadata(meta.ID, meta.Name, meta.Description)
-	outputMeta.DataResources = append(outputMeta.DataResources, metadata.NewDataResource("0", mainDR.ResType, mainDR.ResFormat))
+	outputMeta := model.NewMetadata(meta.ID, meta.Name, meta.Description)
+	outputMeta.DataResources = append(outputMeta.DataResources, model.NewDataResource("0", mainDR.ResType, mainDR.ResFormat))
 	header := rawResults[0]
 	for i, field := range header {
 		// the first column is a row idnex and should be discarded.
@@ -110,7 +111,7 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	outputMeta.DataResources[0].ResPath = relativePath
 
 	// write the new schema to file
-	err = outputMeta.WriteSchema(outputSchemaPath)
+	err = metadata.WriteSchema(outputMeta, outputSchemaPath)
 	if err != nil {
 		return errors.Wrap(err, "unable to store merged schema")
 	}
@@ -118,9 +119,9 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	return nil
 }
 
-func (s *IngestStep) mapFields(meta *metadata.Metadata) map[string]*metadata.Variable {
+func (s *IngestStep) mapFields(meta *model.Metadata) map[string]*model.Variable {
 	// cycle through each data resource, mapping field names to variables.
-	fields := make(map[string]*metadata.Variable)
+	fields := make(map[string]*model.Variable)
 	for _, dr := range meta.DataResources {
 		for _, v := range dr.Variables {
 			fields[v.Name] = v
@@ -130,8 +131,8 @@ func (s *IngestStep) mapFields(meta *metadata.Metadata) map[string]*metadata.Var
 	return fields
 }
 
-func (s *IngestStep) mapDenormFields(mainDR *metadata.DataResource) map[string]*metadata.Variable {
-	fields := make(map[string]*metadata.Variable)
+func (s *IngestStep) mapDenormFields(mainDR *model.DataResource) map[string]*model.Variable {
+	fields := make(map[string]*model.Variable)
 	for _, field := range mainDR.Variables {
 		if field.IsMediaReference() {
 			// DENORM PRIMITIVE RENAMES REFERENCE FIELDS TO `filename`

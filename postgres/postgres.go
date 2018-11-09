@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/deluge/document"
+	api "github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-ingest/conf"
-	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres/model"
 	"github.com/unchartedsoftware/plog"
 )
@@ -419,7 +419,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 }
 
 // InitializeDataset initializes the dataset with the provided metadata.
-func (d *Database) InitializeDataset(meta *metadata.Metadata) (*model.Dataset, error) {
+func (d *Database) InitializeDataset(meta *api.Metadata) (*model.Dataset, error) {
 	ds := model.NewDataset(meta.ID, meta.Name, meta.Description, meta)
 
 	return ds, nil

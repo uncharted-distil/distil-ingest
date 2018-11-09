@@ -54,6 +54,10 @@
   name = "github.com/unchartedsoftware/deluge"
 
 [[constraint]]
+  branch = "master"
+  name = "github.com/unchartedsoftware/distil-compute"
+
+[[constraint]]
   name = "gopkg.in/olivere/elastic.v5"
   version = "5.0.45"
 

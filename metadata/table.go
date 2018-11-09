@@ -5,6 +5,8 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
+
+	"github.com/unchartedsoftware/distil-compute/model"
 )
 
 // Table is a data respurce that is contained within one or many tabular files.
@@ -12,7 +14,7 @@ type Table struct {
 }
 
 // Parse extracts the data resource from the data schema document.
-func (r *Table) Parse(res *gabs.Container) (*DataResource, error) {
+func (r *Table) Parse(res *gabs.Container) (*model.DataResource, error) {
 	schemaVariables, err := res.Path("columns").Children()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse column data")
@@ -42,13 +44,13 @@ func (r *Table) Parse(res *gabs.Container) (*DataResource, error) {
 		resFormats = make([]string, 0)
 	}
 
-	dr := &DataResource{
+	dr := &model.DataResource{
 		ResID:        resID,
 		ResPath:      resPath,
-		ResType:      resTypeTable,
+		ResType:      model.ResTypeTable,
 		ResFormat:    resFormats,
 		IsCollection: false,
-		Variables:    make([]*Variable, 0),
+		Variables:    make([]*model.Variable, 0),
 	}
 
 	for _, v := range schemaVariables {

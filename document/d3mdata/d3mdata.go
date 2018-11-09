@@ -8,17 +8,17 @@ import (
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-compute/model"
 )
 
 // D3MData is a row from a CSV file
 type D3MData struct {
 	document.CSV
-	meta  *metadata.Metadata
+	meta  *model.Metadata
 	idCol int
 }
 
-func getIDColumn(meta *metadata.Metadata) (int, error) {
+func getIDColumn(meta *model.Metadata) (int, error) {
 	// NOTE: Can only handle a single data resource for now.
 	for index, v := range meta.DataResources[0].Variables {
 		if v.Name == "d3mIndex" {
@@ -29,7 +29,7 @@ func getIDColumn(meta *metadata.Metadata) (int, error) {
 }
 
 // NewD3MData instantiates and returns a new document using metadata.
-func NewD3MData(meta *metadata.Metadata) (deluge.Constructor, error) {
+func NewD3MData(meta *model.Metadata) (deluge.Constructor, error) {
 	// get id column and cache for later
 	idCol, err := getIDColumn(meta)
 	if err != nil {

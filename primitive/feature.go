@@ -109,7 +109,7 @@ func (s *IngestStep) FeaturizePrimitive(schemaFile string, dataset string,
 	mainDR.ResPath = relativePath
 
 	// write the new schema to file
-	err = meta.WriteSchema(outputSchemaPath)
+	err = metadata.WriteSchema(meta, outputSchemaPath)
 	if err != nil {
 		return errors.Wrap(err, "unable to store feature schema")
 	}

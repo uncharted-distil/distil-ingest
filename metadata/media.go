@@ -5,6 +5,8 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
+
+	"github.com/unchartedsoftware/distil-compute/model"
 )
 
 // Media is a data resource that is backed by media files.
@@ -20,7 +22,7 @@ func NewMedia(typ string) *Media {
 }
 
 // Parse extracts the data resource from the data schema document.
-func (r *Media) Parse(res *gabs.Container) (*DataResource, error) {
+func (r *Media) Parse(res *gabs.Container) (*model.DataResource, error) {
 	if res.Path("resID").Data() == nil {
 		return nil, fmt.Errorf("unable to parse resource id")
 	}
@@ -45,7 +47,7 @@ func (r *Media) Parse(res *gabs.Container) (*DataResource, error) {
 		resFormats = make([]string, 0)
 	}
 
-	dr := &DataResource{
+	dr := &model.DataResource{
 		ResID:        resID,
 		ResPath:      resPath,
 		ResType:      r.Type,
