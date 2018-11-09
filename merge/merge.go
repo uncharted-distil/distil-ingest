@@ -11,7 +11,7 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-compute/model"
 )
 
 const (
@@ -21,13 +21,13 @@ const (
 // FileLink represents a link between a dataset col and a file.
 type FileLink struct {
 	Name      string
-	IndexVar  *metadata.Variable
+	IndexVar  *model.Variable
 	Lookup    map[string][]string
 	Header    []string
-	Variables []*metadata.Variable
+	Variables []*model.Variable
 }
 
-func readFileLink(dataResource *metadata.DataResource, indexVarName string, filename string) (*FileLink, error) {
+func readFileLink(dataResource *model.DataResource, indexVarName string, filename string) (*FileLink, error) {
 	// open file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -56,8 +56,8 @@ func readFileLink(dataResource *metadata.DataResource, indexVarName string, file
 	}
 
 	// create map of indices in the dataset
-	var indexVar *metadata.Variable
-	variables := make([]*metadata.Variable, 0)
+	var indexVar *model.Variable
+	variables := make([]*model.Variable, 0)
 	for _, variable := range dataResource.Variables {
 		if variable.Name == indexVarName {
 			indexVar = variable
@@ -92,7 +92,7 @@ func readFileLink(dataResource *metadata.DataResource, indexVarName string, file
 }
 
 // InjectFileLinksFromFile traverses all file links and injests the relevant data.
-func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawDataPath string, mergedDataPath string, hasHeader bool) (*metadata.DataResource, []byte, error) {
+func InjectFileLinksFromFile(meta *model.Metadata, inputFilename string, rawDataPath string, mergedDataPath string, hasHeader bool) (*model.DataResource, []byte, error) {
 	// need to skip the header row.
 	var data []byte
 	var err error
@@ -136,16 +136,16 @@ func InjectFileLinksFromFile(meta *metadata.Metadata, inputFilename string, rawD
 }
 
 // InjectFileLinks traverses all file links and injests the relevant data.
-func InjectFileLinks(meta *metadata.Metadata, merged []byte, rawDataPath string, mergedDataPath string) (*metadata.DataResource, []byte, error) {
+func InjectFileLinks(meta *model.Metadata, merged []byte, rawDataPath string, mergedDataPath string) (*model.DataResource, []byte, error) {
 	// determine if there are any links
 	// assume the main data resource is the one with a key column
-	mergedDataResource := &metadata.DataResource{
+	mergedDataResource := &model.DataResource{
 		ResID:   "0",
 		ResPath: mergedDataPath,
 	}
-	dataResources := make(map[string]*metadata.DataResource)
-	indexColumns := make(map[string]*metadata.Variable)
-	keyColumns := make([]*metadata.Variable, 0)
+	dataResources := make(map[string]*model.DataResource)
+	indexColumns := make(map[string]*model.Variable)
+	keyColumns := make([]*model.Variable, 0)
 	references := make(map[string]map[string]interface{})
 	for _, dr := range meta.DataResources {
 		dataResources[dr.ResID] = dr
