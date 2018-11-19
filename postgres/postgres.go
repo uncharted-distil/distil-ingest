@@ -62,6 +62,10 @@ const (
 			filter_mode			varchar(40),
 			filter_min			double precision,
 			filter_max			double precision,
+			filter_min_x		double precision,
+			filter_max_x		double precision,
+			filter_min_y		double precision,
+			filter_max_y		double precision,
 			filter_categories	varchar(200),
 			filter_indices		varchar(200)
 		);`
