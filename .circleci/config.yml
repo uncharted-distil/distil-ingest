@@ -9,9 +9,12 @@ jobs:
     working_directory: /go/src/github.com/unchartedsoftware/distil-ingest
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "fb:7f:1c:95:48:cd:e3:b6:eb:7d:c3:1c:fc:b4:06:e8"
       - run:
           name: build app binary
-          command: /bin/sh -c "dep ensure;go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
+          command: /bin/sh -c "dep ensure -v;go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
 
 
 
