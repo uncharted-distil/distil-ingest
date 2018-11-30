@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:c24ef0f7dda24532712c78056521708426230d56d1e939f34d406a285ce45bbb"
+  digest = "1:35768db37daed3f5e0535a68e7dba84dc60ad2a8cedb371e4862b25fc043c243"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -40,8 +40,8 @@
     "service/sts",
   ]
   pruneopts = "UT"
-  revision = "180cc10e5ff368b86dee226b034af7d1672baec6"
-  version = "v1.15.87"
+  revision = "ceab7b7ac6f535d1397f124620720b5145f1ad59"
+  version = "v1.15.88"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -195,7 +195,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0d9010aab6b5099bee35813a1ce1d441f6842888b101203375acb50c42bf7740"
+  digest = "1:8c3ba1d643facf5cd6de8879d2c8c672cb7521896853ec2ed5cb8976b063a820"
   name = "github.com/unchartedsoftware/distil-compute"
   packages = [
     "middleware",
@@ -206,7 +206,7 @@
     "primitive/compute/result",
   ]
   pruneopts = "UT"
-  revision = "39e9f9212deebcaa8ae54a940e61a8a43add2386"
+  revision = "0ffb609b8ce5a151c2a60ce090d87c9333bd1b06"
 
 [[projects]]
   branch = "master"
