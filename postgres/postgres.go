@@ -395,7 +395,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	for _, variable := range ds.Variables {
 		varsTable = fmt.Sprintf("%s\n\"%s\" TEXT,", varsTable, variable.Name)
 		varsView = fmt.Sprintf("%s\nCOALESCE(CAST(\"%s\" AS %s), %v) AS \"%s\",",
-			varsView, variable.Name, api.MapD3MTypeToPostgresType(variable.Type), api.DefaultPostgresValueFromType(variable.Type), variable.Name)
+			varsView, variable.Name, api.MapD3MTypeToPostgresType(variable.Type), api.DefaultPostgresValueFromD3MType(variable.Type), variable.Name)
 	}
 	if len(varsTable) > 0 {
 		varsTable = varsTable[:len(varsTable)-1]
