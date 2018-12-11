@@ -62,6 +62,10 @@ const (
 			filter_mode			varchar(40),
 			filter_min			double precision,
 			filter_max			double precision,
+			filter_min_x		double precision,
+			filter_max_x		double precision,
+			filter_min_y		double precision,
+			filter_max_y		double precision,
 			filter_categories	varchar(200),
 			filter_indices		varchar(200)
 		);`
@@ -391,7 +395,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	for _, variable := range ds.Variables {
 		varsTable = fmt.Sprintf("%s\n\"%s\" TEXT,", varsTable, variable.Name)
 		varsView = fmt.Sprintf("%s\nCOALESCE(CAST(\"%s\" AS %s), %v) AS \"%s\",",
-			varsView, variable.Name, d.mapType(variable.Type), d.defaultValue(variable.Type), variable.Name)
+			varsView, variable.Name, api.MapD3MTypeToPostgresType(variable.Type), api.DefaultPostgresValueFromD3MType(variable.Type), variable.Name)
 	}
 	if len(varsTable) > 0 {
 		varsTable = varsTable[:len(varsTable)-1]
@@ -423,45 +427,6 @@ func (d *Database) InitializeDataset(meta *api.Metadata) (*model.Dataset, error)
 	ds := model.NewDataset(meta.ID, meta.Name, meta.Description, meta)
 
 	return ds, nil
-}
-
-func (d *Database) mapType(typ string) string {
-	// NOTE: current classification has issues so if numerical, assume float64.
-	switch typ {
-	case "index":
-		return "INTEGER"
-	case "integer":
-		return "FLOAT8"
-	case "float", "real":
-		return "FLOAT8"
-	case "longitude":
-		return "FLOAT8"
-	case "latitude":
-		return "FLOAT8"
-	case "realVector":
-		return "FLOAT[]"
-	default:
-		return "TEXT"
-	}
-}
-
-func (d *Database) defaultValue(typ string) interface{} {
-	switch typ {
-	case "index":
-		return int(0)
-	case "integer":
-		return float64(0)
-	case "float", "real":
-		return float64(0)
-	case "longitude":
-		return float64(0)
-	case "latitude":
-		return float64(0)
-	case "realVector":
-		return "'{}'"
-	default:
-		return "''"
-	}
 }
 
 func (d *Database) isNullVariable(typ, value string) bool {

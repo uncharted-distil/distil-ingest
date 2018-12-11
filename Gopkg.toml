@@ -27,27 +27,27 @@
 
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
-  version = "1.8.3"
-
-[[constraint]]
-  name = "github.com/golang/protobuf"
-  version = "1.1.0"
+  version = "1.15.88"
 
 [[constraint]]
   name = "github.com/go-pg/pg"
-  version = "6.4.24"
+  version = "6.15.1"
+
+[[constraint]]
+  name = "github.com/jeffail/gabs"
+  version = "1.1.1"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/unchartedsoftware/plog"
-
-[[constraint]]
-  name = "google.golang.org/grpc"
-  version = "1.11.3"
+  name = "github.com/otiai10/copy"
 
 [[constraint]]
   name = "github.com/pkg/errors"
   version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.2"
 
 [[constraint]]
   branch = "master"
@@ -58,12 +58,16 @@
   name = "github.com/unchartedsoftware/distil-compute"
 
 [[constraint]]
-  name = "gopkg.in/olivere/elastic.v5"
-  version = "5.0.45"
+  branch = "master"
+  name = "github.com/unchartedsoftware/plog"
 
 [[constraint]]
-  name = "github.com/otiai10/copy"
-  source = "git@github.com:otiai10/copy.git"
+  name = "github.com/urfave/cli"
+  version = "1.20.0"
+
+[[constraint]]
+  name = "gopkg.in/olivere/elastic.v5"
+  version = "5.0.76"
 
 [prune]
   go-tests = true

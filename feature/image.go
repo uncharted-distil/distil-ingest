@@ -37,7 +37,8 @@ func getDataResource(meta *model.Metadata, resID string) *model.DataResource {
 // FeaturizeDataset reads adds features based on referenced data resources
 // in the metadata. The features are added as a reference resource in
 // the metadata and written to the output path.
-func FeaturizeDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool, threshold float64) error {
+func FeaturizeDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string,
+	outputPathData string, outputPathSchema string, hasHeader bool, threshold float64) error {
 	// find the main data resource
 	mainDR := meta.GetMainDataResource()
 
