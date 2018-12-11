@@ -9,7 +9,7 @@ import (
 	"github.com/unchartedsoftware/distil-compute/model"
 )
 
-// Table is a data respurce that is contained within one or many tabular files.
+// Timeseries is a data resource that is contained within one or many timeseries files.
 type Timeseries struct {
 }
 

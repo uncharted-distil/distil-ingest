@@ -13,16 +13,17 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/plog"
 
+	"github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/rest"
 )
 
 type potentialFeature struct {
 	originalResPath string
-	newVariable     *metadata.Variable
+	newVariable     *model.Variable
 }
 
-func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResource {
+func getDataResource(meta *model.Metadata, resID string) *model.DataResource {
 	// main data resource has d3m index variable
 	for _, dr := range meta.DataResources {
 		if dr.ResID == resID {
@@ -36,7 +37,7 @@ func getDataResource(meta *metadata.Metadata, resID string) *metadata.DataResour
 // FeaturizeDataset reads adds features based on referenced data resources
 // in the metadata. The features are added as a reference resource in
 // the metadata and written to the output path.
-func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool, threshold float64) error {
+func FeaturizeDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool, threshold float64) error {
 	// find the main data resource
 	mainDR := meta.GetMainDataResource()
 
@@ -116,12 +117,12 @@ func FeaturizeDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer,
 	// output the schema
 	log.Infof("Writing schema to output")
 	schemaPathToWrite := path.Join(outputFolder, outputPathSchema)
-	err = meta.WriteSchema(schemaPathToWrite)
+	err = metadata.WriteSchema(meta, schemaPathToWrite)
 
 	return err
 }
 
-func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource, namePrefix string, displayName string) map[int]*potentialFeature {
+func addFeaturesToSchema(meta *model.Metadata, mainDR *model.DataResource, namePrefix string, displayName string) map[int]*potentialFeature {
 	colsToFeaturize := make(map[int]*potentialFeature)
 	for _, v := range mainDR.Variables {
 		if v.RefersTo != nil && v.RefersTo["resID"] != nil {
@@ -136,13 +137,13 @@ func addFeaturesToSchema(meta *metadata.Metadata, mainDR *metadata.DataResource,
 				indexName := fmt.Sprintf("%s%s", namePrefix, v.Name)
 
 				// add the feature variable
-				refVariable := &metadata.Variable{
+				refVariable := &model.Variable{
 					Name:             indexName,
 					DisplayName:      displayName,
 					Index:            len(mainDR.Variables),
 					Type:             "string",
 					Role:             []string{"attribute"},
-					DistilRole:       metadata.VarRoleMetadata,
+					DistilRole:       model.VarRoleMetadata,
 					OriginalVariable: v.Name,
 				}
 				mainDR.Variables = append(mainDR.Variables, refVariable)

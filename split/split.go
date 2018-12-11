@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/unchartedsoftware/distil-compute/model"
 )
 
 func isNumeric(typ string) bool {
@@ -21,7 +21,7 @@ func isNumeric(typ string) bool {
 }
 
 // GetNumericColumnIndices returns a slice with the columsn for numeric types.
-func GetNumericColumnIndices(meta *metadata.Metadata) []int {
+func GetNumericColumnIndices(meta *model.Metadata) []int {
 	// NOTE: Assume that a merged schema is being processed
 	// so all variables in a single data resource.
 	var numericCols []int
@@ -34,7 +34,7 @@ func GetNumericColumnIndices(meta *metadata.Metadata) []int {
 }
 
 // GetNumericColumns creates a new csv file of all numeric columns.
-func GetNumericColumns(filename string, meta *metadata.Metadata, hasHeader bool) ([]byte, error) {
+func GetNumericColumns(filename string, meta *model.Metadata, hasHeader bool) ([]byte, error) {
 
 	// open the left and outfiles for line-by-line by processing
 	file, err := os.Open(filename)

@@ -26,8 +26,10 @@ import (
 const (
 	datasetSuffix = "_dataset"
 
-	provenanceSimon  = "d3m.primitives.distil.simon"
-	provenanceSchema = "schema"
+	// ProvenanceSimon identifies the type provenance as Simon
+	ProvenanceSimon = "d3m.primitives.distil.simon"
+	// ProvenanceSchema identifies the type provenance as schema
+	ProvenanceSchema = "schema"
 
 	schemaVersion = "3.1.1"
 	license       = "Unknown"
@@ -482,7 +484,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 	variable.SuggestedTypes = append(variable.SuggestedTypes, &model.SuggestedType{
 		Type:        variable.Type,
 		Probability: 2,
-		Provenance:  provenanceSchema,
+		Provenance:  ProvenanceSchema,
 	})
 
 	return variable, nil
@@ -536,7 +538,7 @@ func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*ga
 		suggested = append(suggested, &model.SuggestedType{
 			Type:        cleanVarType(m, name, typ),
 			Probability: probability,
-			Provenance:  provenanceSimon,
+			Provenance:  ProvenanceSimon,
 		})
 	}
 	// sort by probability

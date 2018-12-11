@@ -13,13 +13,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/plog"
 
+	"github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/rest"
 )
 
 // ClusterDataset clusters data based on referenced data resources
 // in the metadata. The clusters are added as a variable in the metadata.
-func ClusterDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool) error {
+func ClusterDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, sourcePath string, mediaPath string, outputFolder string, outputPathData string, outputPathSchema string, hasHeader bool) error {
 	// find the main data resource
 	mainDR := meta.GetMainDataResource()
 
@@ -113,7 +114,7 @@ func ClusterDataset(meta *metadata.Metadata, imageFeaturizer *rest.Featurizer, s
 	// output the schema
 	log.Infof("Writing schema to output")
 	schemaPathToWrite := path.Join(outputFolder, outputPathSchema)
-	err = meta.WriteSchema(schemaPathToWrite)
+	err = metadata.WriteSchema(meta, schemaPathToWrite)
 
 	return err
 }
