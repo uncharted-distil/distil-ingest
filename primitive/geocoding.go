@@ -139,6 +139,7 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 	// check to see if Simon typed something as a place.
 	colsToGeocode := geocodeColumns(meta)
 	geocodedFields := make([][]*GeocodedPoint, 0)
+	datasetFolder := path.Dir(dataset)
 
 	// cycle through the columns to geocode
 	for _, col := range colsToGeocode {
@@ -148,7 +149,7 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 			return nil, errors.Wrap(err, "unable to create Goat pipeline")
 		}
 
-		datasetURI, err := s.submitPrimitive(dataset, pip)
+		datasetURI, err := s.submitPrimitive(datasetFolder, pip)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to run Goat pipeline")
 		}
@@ -196,7 +197,7 @@ func geocodeColumns(meta *model.Metadata) []string {
 	colsToGeocode := make([]string, 0)
 	for _, v := range meta.DataResources[0].Variables {
 		for _, t := range v.SuggestedTypes {
-			if isLocationType(t.Type) && t.Provenance == metadata.ProvenanceSimon {
+			if isLocationType(t.Type) {
 				colsToGeocode = append(colsToGeocode, v.Name)
 			}
 		}
@@ -206,5 +207,6 @@ func geocodeColumns(meta *model.Metadata) []string {
 }
 
 func isLocationType(typ string) bool {
-	return typ == model.AddressType || typ == model.CityType || typ == model.CountryType || typ == model.PostalCodeType || typ == model.StateType
+	return typ == model.AddressType || typ == model.CityType || typ == model.CountryType ||
+		typ == model.PostalCodeType || typ == model.StateType || typ == model.TA2LocationType
 }

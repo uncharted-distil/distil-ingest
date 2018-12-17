@@ -635,10 +635,13 @@ func loadClassificationVariables(m *model.Metadata) error {
 		return errors.Wrap(err, "Unable to parse classification probabilities")
 	}
 
+	resPath := schemaResources[0].Path("resPath").Data().(string)
+
 	// All variables now in a single dataset since it is merged
 	m.DataResources = make([]*model.DataResource, 1)
 	m.DataResources[0] = &model.DataResource{
 		Variables: make([]*model.Variable, 0),
+		ResPath:   resPath,
 	}
 
 	for index, v := range schemaVariables {
