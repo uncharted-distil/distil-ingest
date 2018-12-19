@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
@@ -26,8 +27,10 @@ import (
 const (
 	datasetSuffix = "_dataset"
 
-	provenanceSimon  = "d3m.primitives.distil.simon"
-	provenanceSchema = "schema"
+	// ProvenanceSimon identifies the type provenance as Simon
+	ProvenanceSimon = "d3m.primitives.distil.simon"
+	// ProvenanceSchema identifies the type provenance as schema
+	ProvenanceSchema = "schema"
 
 	schemaVersion = "3.1.1"
 	license       = "Unknown"
@@ -42,6 +45,10 @@ var (
 // variable type
 func SetTypeProbabilityThreshold(threshold float64) {
 	typeProbabilityThreshold = threshold
+}
+
+func IsMetadataVariable(v *model.Variable) bool {
+	return strings.HasPrefix(v.Name, "_")
 }
 
 // LoadMetadataFromOriginalSchema loads metadata from a schema file.
@@ -266,7 +273,10 @@ func LoadImportance(m *model.Metadata, importanceFile string) error {
 			return errors.Wrap(err, "features attribute missing from file")
 		}
 		for index, v := range m.DataResources[0].Variables {
-			v.Importance = int(metric[index].Data().(float64)) + 1
+			// geocoded variables added after ranking on ingest
+			if index < len(metric) {
+				v.Importance = int(metric[index].Data().(float64)) + 1
+			}
 		}
 	}
 	return nil
@@ -482,7 +492,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 	variable.SuggestedTypes = append(variable.SuggestedTypes, &model.SuggestedType{
 		Type:        variable.Type,
 		Probability: 2,
-		Provenance:  provenanceSchema,
+		Provenance:  ProvenanceSchema,
 	})
 
 	return variable, nil
@@ -517,6 +527,11 @@ func parseClassification(m *model.Metadata, index int, labels []*gabs.Container)
 }
 
 func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*gabs.Container, probabilities []*gabs.Container) ([]*model.SuggestedType, error) {
+	// variables added after classification will not have suggested types
+	if index >= len(labels) {
+		return nil, nil
+	}
+
 	// parse probabilities
 	labelsCol := labels[index]
 	probabilitiesCol := probabilities[index]
@@ -536,7 +551,7 @@ func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*ga
 		suggested = append(suggested, &model.SuggestedType{
 			Type:        cleanVarType(m, name, typ),
 			Probability: probability,
-			Provenance:  provenanceSimon,
+			Provenance:  ProvenanceSimon,
 		})
 	}
 	// sort by probability
@@ -633,10 +648,13 @@ func loadClassificationVariables(m *model.Metadata) error {
 		return errors.Wrap(err, "Unable to parse classification probabilities")
 	}
 
+	resPath := schemaResources[0].Path("resPath").Data().(string)
+
 	// All variables now in a single dataset since it is merged
 	m.DataResources = make([]*model.DataResource, 1)
 	m.DataResources[0] = &model.DataResource{
 		Variables: make([]*model.Variable, 0),
+		ResPath:   resPath,
 	}
 
 	for index, v := range schemaVariables {

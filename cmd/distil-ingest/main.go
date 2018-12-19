@@ -250,12 +250,11 @@ func main() {
 			meta, err = metadata.LoadMetadataFromMergedSchema(
 				config.SchemaPath)
 		}
-		meta.DatasetFolder = config.DatasetFolder
-
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
+		meta.DatasetFolder = config.DatasetFolder
 
 		// load importance rankings
 		err = metadata.LoadImportance(meta, config.ImportancePath)
