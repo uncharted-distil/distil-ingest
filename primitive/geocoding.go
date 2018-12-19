@@ -50,7 +50,24 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 		return errors.Wrap(err, "unable to load original schema file")
 	}
 	mainDR := meta.GetMainDataResource()
-	geocodedData, err := s.GeocodeForward(meta, dataset)
+	d3mIndexVariable := getD3MIndexField(mainDR)
+
+	// read raw data
+	dataPath := path.Join(rootDataPath, mainDR.ResPath)
+	lines, err := s.readCSVFile(dataPath, hasHeader)
+	if err != nil {
+		return errors.Wrap(err, "error reading raw data")
+	}
+
+	// index d3m indices by row since primitive returns row numbers.
+	// header row already skipped in the readCSVFile call.
+	rowIndex := make(map[int]string)
+	for i, line := range lines {
+		rowIndex[i] = line[d3mIndexVariable]
+	}
+
+	// Geocode location fields
+	geocodedData, err := s.GeocodeForward(meta, dataset, rowIndex)
 	if err != nil {
 		return err
 	}
@@ -74,15 +91,7 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 		}
 	}
 
-	// read raw data
-	dataPath := path.Join(rootDataPath, mainDR.ResPath)
-	lines, err := s.readCSVFile(dataPath, hasHeader)
-	if err != nil {
-		return errors.Wrap(err, "error reading raw data")
-	}
-
 	// add the geocoded data to the raw data
-	d3mIndexVariable := getD3MIndexField(mainDR)
 	for i, line := range lines {
 		geocodedFields := indexedData[line[d3mIndexVariable]]
 		for _, geo := range geocodedFields {
@@ -140,7 +149,7 @@ func getLatLonVariableNames(variableName string) (string, string) {
 }
 
 // GeocodeForward will geocode location columns into lat & lon values.
-func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*GeocodedPoint, error) {
+func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string, rowIndex map[int]string) ([][]*GeocodedPoint, error) {
 	// check to see if Simon typed something as a place.
 	colsToGeocode := geocodeColumns(meta)
 	geocodedFields := make([][]*GeocodedPoint, 0)
@@ -169,10 +178,6 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 		geocodedData := make([]*GeocodedPoint, len(res)-1)
 		for i, v := range res {
 			if i > 0 {
-				d3mIndex, ok := v[0].(string)
-				if !ok {
-					return nil, errors.Errorf("unable to parse d3m index from result")
-				}
 				coords, ok := v[1].([]interface{})
 				if !ok {
 					return nil, errors.Errorf("unable to parse coords from result")
@@ -187,7 +192,7 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 				}
 
 				geocodedData[i-1] = &GeocodedPoint{
-					D3MIndex:    d3mIndex,
+					D3MIndex:    rowIndex[i-1],
 					SourceField: col,
 					Latitude:    lat,
 					Longitude:   lon,
