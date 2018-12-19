@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
@@ -44,6 +45,10 @@ var (
 // variable type
 func SetTypeProbabilityThreshold(threshold float64) {
 	typeProbabilityThreshold = threshold
+}
+
+func IsMetadataVariable(v *model.Variable) bool {
+	return strings.HasPrefix(v.Name, "_")
 }
 
 // LoadMetadataFromOriginalSchema loads metadata from a schema file.
@@ -268,7 +273,10 @@ func LoadImportance(m *model.Metadata, importanceFile string) error {
 			return errors.Wrap(err, "features attribute missing from file")
 		}
 		for index, v := range m.DataResources[0].Variables {
-			v.Importance = int(metric[index].Data().(float64)) + 1
+			// geocoded variables added after ranking on ingest
+			if index < len(metric) {
+				v.Importance = int(metric[index].Data().(float64)) + 1
+			}
 		}
 	}
 	return nil
@@ -519,6 +527,11 @@ func parseClassification(m *model.Metadata, index int, labels []*gabs.Container)
 }
 
 func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*gabs.Container, probabilities []*gabs.Container) ([]*model.SuggestedType, error) {
+	// variables added after classification will not have suggested types
+	if index >= len(labels) {
+		return nil, nil
+	}
+
 	// parse probabilities
 	labelsCol := labels[index]
 	probabilitiesCol := probabilities[index]
