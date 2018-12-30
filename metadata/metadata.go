@@ -47,6 +47,8 @@ func SetTypeProbabilityThreshold(threshold float64) {
 	typeProbabilityThreshold = threshold
 }
 
+// IsMetadataVariable indicates whether or not a variable is additional metadata
+// added to the source.
 func IsMetadataVariable(v *model.Variable) bool {
 	return strings.HasPrefix(v.Name, "_")
 }
