@@ -196,7 +196,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:eab673275caec2ec389bd1fd57746f07920fe8246e8073857bd68e74a19b8bc1"
+  digest = "1:1ee59866243a63ae20a7b181e0e5118d05ae17ef075c5305f29031b7c60f3872"
   name = "github.com/unchartedsoftware/distil-compute"
   packages = [
     "middleware",
@@ -207,7 +207,7 @@
     "primitive/compute/result",
   ]
   pruneopts = "UT"
-  revision = "b5ba6205a6fab09e11d7abb90f5783efa75a4133"
+  revision = "68911984ed265b3da752f4b0d86ddc7897639398"
 
 [[projects]]
   branch = "master"
