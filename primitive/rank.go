@@ -13,15 +13,15 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
-// RankPrimitive will rank the dataset using a primitive.
-func (s *IngestStep) RankPrimitive(dataset string, outputPath string) error {
+// Rank will rank the dataset using a primitive.
+func (s *IngestStep) Rank(dataset string, outputPath string) error {
 	// create & submit the solution request
 	pip, err := description.CreatePCAFeaturesPipeline("harry", "")
 	if err != nil {
 		return errors.Wrap(err, "unable to create PCA pipeline")
 	}
 
-	datasetURI, err := s.submitPrimitive(dataset, pip)
+	datasetURI, err := s.submitPrimitive([]string{dataset}, pip)
 	if err != nil {
 		return errors.Wrap(err, "unable to run PCA pipeline")
 	}

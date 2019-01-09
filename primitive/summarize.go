@@ -12,15 +12,15 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
-// SummarizePrimitive will summarize the dataset using a primitive.
-func (s *IngestStep) SummarizePrimitive(dataset string, outputPath string) error {
+// Summarize will summarize the dataset using a primitive.
+func (s *IngestStep) Summarize(dataset string, outputPath string) error {
 	// create & submit the solution request
 	pip, err := description.CreateDukePipeline("wellington", "")
 	if err != nil {
 		return errors.Wrap(err, "unable to create Duke pipeline")
 	}
 
-	datasetURI, err := s.submitPrimitive(dataset, pip)
+	datasetURI, err := s.submitPrimitive([]string{dataset}, pip)
 	if err != nil {
 		return errors.Wrap(err, "unable to run Duke pipeline")
 	}

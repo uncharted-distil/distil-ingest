@@ -21,7 +21,7 @@ func (s *IngestStep) ClassifyPrimitive(dataset string, outputPath string) error 
 		return errors.Wrap(err, "unable to create Simon pipeline")
 	}
 
-	datasetURI, err := s.submitPrimitive(dataset, pip)
+	datasetURI, err := s.submitPrimitive([]string{dataset}, pip)
 	if err != nil {
 		return errors.Wrap(err, "unable to run Simon pipeline")
 	}

@@ -19,7 +19,7 @@ import (
 	"github.com/unchartedsoftware/distil-compute/primitive/compute"
 	"github.com/unchartedsoftware/distil-compute/primitive/compute/description"
 	"github.com/unchartedsoftware/distil-compute/primitive/compute/result"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 )
 
 const (
@@ -52,9 +52,9 @@ func NewIngestStep(client *compute.Client) *IngestStep {
 	}
 }
 
-func (s *IngestStep) submitPrimitive(dataset string, step *pipeline.PipelineDescription) (string, error) {
+func (s *IngestStep) submitPrimitive(datasets []string, step *pipeline.PipelineDescription) (string, error) {
 
-	res, err := s.client.ExecutePipeline(context.Background(), dataset, step)
+	res, err := s.client.ExecutePipeline(context.Background(), datasets, step)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to dispatch mocked pipeline")
 	}
@@ -97,7 +97,7 @@ func (s *IngestStep) readCSVFile(filename string, hasHeader bool) ([][]string, e
 }
 
 func (s *IngestStep) appendFeature(dataset string, d3mIndexField int, hasHeader bool, feature *FeatureRequest, lines [][]string) ([][]string, error) {
-	datasetURI, err := s.submitPrimitive(dataset, feature.Step)
+	datasetURI, err := s.submitPrimitive([]string{dataset}, feature.Step)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to run pipeline primitive")
 	}

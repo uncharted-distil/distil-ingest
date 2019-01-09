@@ -163,7 +163,7 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string, rowInd
 			return nil, errors.Wrap(err, "unable to create Goat pipeline")
 		}
 
-		datasetURI, err := s.submitPrimitive(datasetFolder, pip)
+		datasetURI, err := s.submitPrimitive([]string{datasetFolder}, pip)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to run Goat pipeline")
 		}

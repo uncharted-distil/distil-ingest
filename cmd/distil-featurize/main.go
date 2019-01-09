@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
 	"github.com/unchartedsoftware/distil-compute/primitive/compute"
@@ -104,7 +104,7 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// create featurizer
-		err = step.FeaturizePrimitive(schemaPath, datasetPath, rootDataPath, outputPath, hasHeader)
+		err = step.Featurize(schemaPath, datasetPath, rootDataPath, outputPath, hasHeader)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
