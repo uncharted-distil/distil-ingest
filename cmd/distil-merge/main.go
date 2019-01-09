@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
 	"github.com/unchartedsoftware/distil-compute/primitive/compute"
@@ -98,7 +98,7 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// merge the dataset into a single file
-		err = step.MergePrimitive(dataset, outputFolderPath)
+		err = step.Merge(dataset, outputFolderPath)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

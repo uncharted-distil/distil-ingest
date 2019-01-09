@@ -20,8 +20,8 @@ var (
 	pythonDictRE = regexp.MustCompile("'([^'\"]*)'")
 )
 
-// FeaturizePrimitive will featurize the dataset fields using a primitive.
-func (s *IngestStep) FeaturizePrimitive(schemaFile string, dataset string,
+// Featurize will featurize the dataset fields using a primitive.
+func (s *IngestStep) Featurize(schemaFile string, dataset string,
 	rootDataPath string, outputFolder string, hasHeader bool) error {
 	outputSchemaPath := path.Join(outputFolder, D3MSchemaPathRelative)
 	outputDataPath := path.Join(outputFolder, D3MDataPathRelative)

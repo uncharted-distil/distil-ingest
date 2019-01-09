@@ -16,8 +16,8 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
-// MergePrimitive will merge data resources into a single data resource.
-func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
+// Merge will merge data resources into a single data resource.
+func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 	outputSchemaPath := path.Join(outputFolder, D3MSchemaPathRelative)
 	outputDataPath := path.Join(outputFolder, D3MDataPathRelative)
 	sourceFolder := path.Dir(dataset)
@@ -39,7 +39,7 @@ func (s *IngestStep) MergePrimitive(dataset string, outputFolder string) error {
 	}
 
 	// pipeline execution assumes datasetDoc.json as schema file
-	datasetURI, err := s.submitPrimitive(sourceFolder, pip)
+	datasetURI, err := s.submitPrimitive([]string{sourceFolder}, pip)
 	if err != nil {
 		return errors.Wrap(err, "unable to run denormalize pipeline")
 	}

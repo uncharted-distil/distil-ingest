@@ -18,8 +18,8 @@ const (
 	slothResultFieldName   = "0"
 )
 
-// ClusterPrimitive will cluster the dataset fields using a primitive.
-func (s *IngestStep) ClusterPrimitive(schemaFile string, dataset string,
+// Cluster will cluster the dataset fields using a primitive.
+func (s *IngestStep) Cluster(schemaFile string, dataset string,
 	rootDataPath string, outputFolder string, hasHeader bool) error {
 	outputSchemaPath := path.Join(outputFolder, D3MSchemaPathRelative)
 	outputDataPath := path.Join(outputFolder, D3MDataPathRelative)
