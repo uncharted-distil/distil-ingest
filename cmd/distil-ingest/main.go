@@ -12,14 +12,14 @@ import (
 	"github.com/unchartedsoftware/deluge"
 	delugeElastic "github.com/unchartedsoftware/deluge/elastic/v5"
 	"github.com/urfave/cli"
-	"gopkg.in/olivere/elastic.v5"
+	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-ingest/conf"
 	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
 	"github.com/unchartedsoftware/distil-ingest/postgres"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 )
 
 const (
@@ -329,7 +329,7 @@ func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *model.
 	}
 
 	// Ingest the dataset info into the metadata index
-	err = metadata.IngestMetadata(elasticClient, metadataIndexName, datasetPrefix, meta)
+	err = metadata.IngestMetadata(elasticClient, metadataIndexName, datasetPrefix, metadata.Seed, meta)
 	if err != nil {
 		return err
 	}

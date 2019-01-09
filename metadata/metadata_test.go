@@ -7,7 +7,7 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/olivere/elastic.v5"
+	elastic "gopkg.in/olivere/elastic.v5"
 )
 
 func TestMetadataFromSchema(t *testing.T) {
@@ -83,6 +83,6 @@ func TestIngestMetadata(t *testing.T) {
 	meta, err := LoadMetadataFromOriginalSchema("./testdata/datasetDoc.json")
 	assert.NoError(t, err)
 
-	err = IngestMetadata(client, "test_index", "", meta)
+	err = IngestMetadata(client, "test_index", "", Seed, meta)
 	assert.NoError(t, err)
 }

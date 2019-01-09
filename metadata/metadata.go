@@ -16,13 +16,16 @@ import (
 
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
-	"gopkg.in/olivere/elastic.v5"
+	log "github.com/unchartedsoftware/plog"
+	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-ingest/rest"
 	"github.com/unchartedsoftware/distil-ingest/smmry"
 )
+
+// DatasetSource flags the type of ingest action that created a dataset
+type DatasetSource string
 
 const (
 	datasetSuffix = "_dataset"
@@ -34,6 +37,12 @@ const (
 
 	schemaVersion = "3.1.1"
 	license       = "Unknown"
+
+	// Seed flags a dataset as being pre-ingested from seed data
+	Seed DatasetSource = "seed"
+
+	// Contrib flags a dataset as being contributed through run-time operations
+	Contrib DatasetSource = "contrib"
 )
 
 var (
@@ -760,7 +769,7 @@ func WriteSchema(m *model.Metadata, path string) error {
 
 // IngestMetadata adds a document consisting of the metadata to the
 // provided index.
-func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, meta *model.Metadata) error {
+func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, datasetSource DatasetSource, meta *model.Metadata) error {
 	// filter variables for surce object
 	if len(meta.DataResources) > 1 {
 		return errors.New("metadata variables not merged into a single dataset")
@@ -783,6 +792,7 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 		"numBytes":       meta.NumBytes,
 		"variables":      meta.DataResources[0].Variables,
 		"datasetFolder":  meta.DatasetFolder,
+		"source":         datasetSource,
 	}
 
 	bytes, err := json.Marshal(source)
