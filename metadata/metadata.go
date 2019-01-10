@@ -38,11 +38,14 @@ const (
 	schemaVersion = "3.1.1"
 	license       = "Unknown"
 
-	// Seed flags a dataset as being pre-ingested from seed data
+	// Seed flags a dataset as ingested from seed data
 	Seed DatasetSource = "seed"
 
-	// Contrib flags a dataset as being contributed through run-time operations
+	// Contrib flags a dataset as being ingested from contributed data
 	Contrib DatasetSource = "contrib"
+
+	// Augmented flags a dataset as being ingested from augmented data
+	Augmented DatasetSource = "augmented"
 )
 
 var (
