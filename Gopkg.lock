@@ -207,7 +207,7 @@
     "primitive/compute/result",
   ]
   pruneopts = "UT"
-  revision = "96acf44e9e5b079bf90f45072b5e9d86ed8cf93f"
+  revision = "8edc0c64668307f9d618eb83e136c986c844e6a5"
 
 [[projects]]
   branch = "master"

@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/distil-ingest/rest"
 
+	"github.com/unchartedsoftware/distil-compute/model"
 	"github.com/unchartedsoftware/distil-compute/primitive/compute/description"
 	"github.com/unchartedsoftware/distil-compute/primitive/compute/result"
 	"github.com/unchartedsoftware/distil-ingest/util"
@@ -41,7 +42,8 @@ func (s *IngestStep) Classify(dataset string, outputPath string) error {
 			if err != nil {
 				return err
 			}
-			labels[colIndex] = toStringArray(v[1].([]interface{}))
+			fieldLabels := toStringArray(v[1].([]interface{}))
+			labels[colIndex] = mapClassifiedTypes(fieldLabels)
 			probs, err := toFloat64Array(v[2].([]interface{}))
 			if err != nil {
 				return err
@@ -67,4 +69,12 @@ func (s *IngestStep) Classify(dataset string, outputPath string) error {
 	}
 
 	return nil
+}
+
+func mapClassifiedTypes(types []string) []string {
+	for i, typ := range types {
+		types[i] = model.MapSimonType(typ)
+	}
+
+	return types
 }
