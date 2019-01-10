@@ -431,6 +431,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 	varType := ""
 	if v.Path("colType").Data() != nil {
 		varType = v.Path("colType").Data().(string)
+		varType = model.MapLLType(varType)
 	}
 
 	varIndex := 0
