@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
 	"github.com/unchartedsoftware/distil-compute/primitive/compute"
@@ -78,7 +78,7 @@ func main() {
 		step := primitive.NewIngestStep(client)
 
 		// classify the file
-		err = step.ClassifyPrimitive(path, outputFilePath)
+		err = step.Classify(path, outputFilePath)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

@@ -13,8 +13,8 @@ import (
 	"github.com/unchartedsoftware/distil-ingest/util"
 )
 
-// ClassifyPrimitive will classify the dataset using a primitive.
-func (s *IngestStep) ClassifyPrimitive(dataset string, outputPath string) error {
+// Classify will classify the dataset using a primitive.
+func (s *IngestStep) Classify(dataset string, outputPath string) error {
 	// create & submit the solution request
 	pip, err := description.CreateSimonPipeline("says", "")
 	if err != nil {
