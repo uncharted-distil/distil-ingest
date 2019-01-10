@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
 	"github.com/unchartedsoftware/distil-compute/primitive/compute"
