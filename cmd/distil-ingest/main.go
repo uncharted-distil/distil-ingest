@@ -377,7 +377,7 @@ func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *model
 func ingestPostgres(config *conf.Conf, meta *model.Metadata) error {
 	log.Info("Starting ingestion")
 
-	dbTableName := fmt.Sprintf("d_%s", meta.ID)
+	dbTableName := model.NormalizeDatasetID(meta.ID)
 
 	// Connect to the database.
 	pg, err := postgres.NewDatabase(config)
