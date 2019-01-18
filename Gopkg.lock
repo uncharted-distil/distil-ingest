@@ -196,7 +196,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a3d17875d0b997c023ba8ef912f953514289f89e309bc2466dd41646838066cb"
+  digest = "1:ae0447a7102c72b72617efbc99092d20da23288e5ea0415390749524ac74a733"
   name = "github.com/unchartedsoftware/distil-compute"
   packages = [
     "middleware",
