@@ -135,6 +135,7 @@ func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*mo
 	meta := &model.Metadata{
 		ID:           directory,
 		Name:         directory,
+		StorageName:  model.NormalizeDatasetID(directory),
 		SchemaSource: model.SchemaSourceRaw,
 	}
 
@@ -453,9 +454,18 @@ func loadAbout(m *model.Metadata) error {
 	if m.Schema.Path("about.description").Data() != nil {
 		m.Description = m.Schema.Path("about.description").Data().(string)
 	}
+
+	// default to using the normalized id as storage name
+	if m.Schema.Path("about.storageName").Data() != nil {
+		m.StorageName = m.Schema.Path("about.storageName").Data().(string)
+	} else {
+		m.StorageName = model.NormalizeDatasetID(m.Schema.Path("about.datasetID").Data().(string))
+	}
+
 	if m.Schema.Path("about.redacted").Data() != nil {
 		m.Redacted = m.Schema.Path("about.redacted").Data().(bool)
 	}
+
 	return nil
 }
 
@@ -772,6 +782,7 @@ func WriteMergedSchema(m *model.Metadata, path string, mergedDataResource *model
 		"about": map[string]interface{}{
 			"datasetID":            m.ID,
 			"datasetName":          m.Name,
+			"storageName":          m.StorageName,
 			"description":          m.Description,
 			"datasetSchemaVersion": schemaVersion,
 			"license":              license,
@@ -800,6 +811,7 @@ func WriteSchema(m *model.Metadata, path string) error {
 		"about": map[string]interface{}{
 			"datasetID":            m.ID,
 			"datasetName":          m.Name,
+			"storageName":          m.StorageName,
 			"description":          m.Description,
 			"datasetSchemaVersion": schemaVersion,
 			"license":              license,
@@ -831,11 +843,10 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 		v.RefersTo = nil
 	}
 
-	adjustedID := datasetPrefix + meta.ID
-
 	source := map[string]interface{}{
 		"datasetName":    meta.Name,
-		"datasetID":      adjustedID,
+		"datasetID":      meta.ID,
+		"storageName":    meta.StorageName,
 		"description":    meta.Description,
 		"summary":        meta.Summary,
 		"summaryMachine": meta.SummaryMachine,
@@ -855,7 +866,7 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	_, err = client.Index().
 		Index(index).
 		Type("metadata").
-		Id(adjustedID).
+		Id(meta.ID).
 		BodyString(string(bytes)).
 		Do(context.Background())
 	if err != nil {
@@ -966,6 +977,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                                 "ignore_above": 256
                             }
                         }
+                    },
+                    "storageName": {
+                        "type": "text"
                     },
                     "datasetFolder": {
                         "type": "text"
