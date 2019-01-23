@@ -273,7 +273,7 @@ func loadRawVariables(datasetPath string) (*model.DataResource, error) {
 			"",
 			"",
 			"",
-			nil,
+			[]string{"attribute"},
 			model.VarRoleData,
 			nil,
 			dataResource.Variables,
