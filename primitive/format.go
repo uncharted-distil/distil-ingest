@@ -27,7 +27,14 @@ func (s *IngestStep) Format(schemaFile string, dataset string,
 	if !checkD3MIndexExists(meta) {
 		err = s.addD3MIndex(schemaFile, dataset, meta, outputFolder, hasHeader)
 		if err != nil {
-			return errors.Wrap(err, "unable to load original schema file")
+			return errors.Wrap(err, "unable to add d3m index")
+		}
+	} else {
+		// copy to output for standard structure going forward
+		os.MkdirAll(outputFolder, os.ModePerm)
+		err := copy.Copy(path.Dir(dataset), outputFolder)
+		if err != nil {
+			return errors.Wrap(err, "unable to copy source data")
 		}
 	}
 
@@ -103,6 +110,7 @@ func (s *IngestStep) addD3MIndex(schemaFile string, dataset string, meta *model.
 
 	relativePath := getRelativePath(path.Dir(outputSchemaPath), outputDataPath)
 	dr.ResPath = relativePath
+	dr.ResType = model.ResTypeTable
 
 	// write the new schema to file
 	err = metadata.WriteSchema(meta, outputSchemaPath)
