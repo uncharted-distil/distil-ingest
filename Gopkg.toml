@@ -38,8 +38,8 @@
   version = "1.1.1"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/otiai10/copy"
+  revision = "7e9a647135a142c2669943d4a4d29be015ce9392"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -50,16 +50,16 @@
   version = "1.2.2"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/unchartedsoftware/deluge"
+  revision = "2fed02d559eb90bb6c0cb7f8212c25a474f911e3"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/unchartedsoftware/distil-compute"
-
-[[constraint]]
   branch = "master"
+
+[[override]]
   name = "github.com/unchartedsoftware/plog"
+  revision = "34d2bbd3c0a9458feb0752af2b578a23eb8ddc4f"
 
 [[constraint]]
   name = "github.com/urfave/cli"
