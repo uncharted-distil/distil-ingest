@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -53,6 +54,11 @@ var (
 	nameRegex                = regexp.MustCompile("[^a-zA-Z0-9]")
 )
 
+type classificationData struct {
+	labels        []*gabs.Container
+	probabilities []*gabs.Container
+}
+
 // SetTypeProbabilityThreshold below which a suggested type is not used as
 // variable type
 func SetTypeProbabilityThreshold(threshold float64) {
@@ -86,7 +92,7 @@ func LoadMetadataFromOriginalSchema(schemaPath string) (*model.Metadata, error) 
 	if err != nil {
 		return nil, err
 	}
-	err = loadOriginalSchemaVariables(meta)
+	err = loadOriginalSchemaVariables(meta, schemaPath)
 	if err != nil {
 		return nil, err
 	}
@@ -132,14 +138,26 @@ func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*mo
 		StorageName:  model.NormalizeDatasetID(directory),
 		SchemaSource: model.SchemaSourceRaw,
 	}
-	err := loadClassification(meta, classificationPath)
+
+	dr, err := loadRawVariables(datasetPath)
 	if err != nil {
 		return nil, err
 	}
-	err = loadRawVariables(meta, datasetPath, classificationPath)
-	if err != nil {
-		return nil, err
+	meta.DataResources = []*model.DataResource{dr}
+
+	if classificationPath != "" {
+		classification, err := loadClassification(classificationPath)
+		if err != nil {
+			return nil, err
+		}
+		meta.Classification = classification
+
+		err = addClassificationTypes(meta, classificationPath)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	return meta, nil
 }
 
@@ -151,12 +169,13 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	}
 
 	// If classification can't be loaded, try to load from merged schema.
-	err := loadClassification(meta, classificationPath)
+	classification, err := loadClassification(classificationPath)
 	if err != nil {
 		log.Warnf("unable to load classification file: %v", err)
 		log.Warnf("attempting to load from merged schema")
 		return LoadMetadataFromMergedSchema(schemaPath)
 	}
+	meta.Classification = classification
 
 	err = loadMergedSchema(meta, schemaPath)
 	if err != nil {
@@ -181,33 +200,68 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	return meta, nil
 }
 
-func loadRawVariables(m *model.Metadata, datasetPath string, classificationPath string) error {
+func parseClassificationFile(classificationPath string) (*classificationData, error) {
+	classification, err := loadClassification(classificationPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load classification")
+	}
+
+	labels, err := classification.Path("labels").Children()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse classification labels")
+	}
+
+	probabilities, err := classification.Path("label_probabilities").Children()
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to parse classification probabilities")
+	}
+
+	return &classificationData{
+		labels:        labels,
+		probabilities: probabilities,
+	}, nil
+}
+
+func addClassificationTypes(m *model.Metadata, classificationPath string) error {
+	classification, err := parseClassificationFile(classificationPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse classification file")
+	}
+
+	for index, variable := range m.DataResources[0].Variables {
+		// get suggested types
+		suggestedTypes, err := parseSuggestedTypes(m, variable.Name, index, classification.labels, classification.probabilities)
+		if err != nil {
+			return err
+		}
+		variable.SuggestedTypes = append(variable.SuggestedTypes, suggestedTypes...)
+		// set type to that with highest probability
+		if len(variable.SuggestedTypes) > 0 && variable.SuggestedTypes[0].Probability >= typeProbabilityThreshold {
+			variable.Type = variable.SuggestedTypes[0].Type
+		} else {
+			variable.Type = model.DefaultVarType
+		}
+	}
+
+	return nil
+}
+
+func loadRawVariables(datasetPath string) (*model.DataResource, error) {
 	// read header from the raw datafile.
 	csvFile, err := os.Open(datasetPath)
 	if err != nil {
-		return errors.Wrap(err, "failed to open raw data file")
+		return nil, errors.Wrap(err, "failed to open raw data file")
 	}
 	defer csvFile.Close()
 
 	reader := csv.NewReader(csvFile)
 	fields, err := reader.Read()
 	if err != nil {
-		return errors.Wrap(err, "failed to read header line")
-	}
-
-	labels, err := m.Classification.Path("labels").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse classification labels")
-	}
-
-	probabilities, err := m.Classification.Path("label_probabilities").Children()
-	if err != nil {
-		return errors.Wrap(err, "Unable to parse classification probabilities")
+		return nil, errors.Wrap(err, "failed to read header line")
 	}
 
 	// All variables now in a single dataset since it is merged
-	m.DataResources = make([]*model.DataResource, 1)
-	m.DataResources[0] = &model.DataResource{
+	dataResource := &model.DataResource{
 		Variables: make([]*model.Variable, 0),
 	}
 
@@ -219,26 +273,15 @@ func loadRawVariables(m *model.Metadata, datasetPath string, classificationPath 
 			"",
 			"",
 			"",
-			nil,
+			[]string{"attribute"},
 			model.VarRoleData,
 			nil,
-			m.DataResources[0].Variables,
+			dataResource.Variables,
 			false)
-		// get suggested types
-		suggestedTypes, err := parseSuggestedTypes(m, variable.Name, index, labels, probabilities)
-		if err != nil {
-			return err
-		}
-		variable.SuggestedTypes = append(variable.SuggestedTypes, suggestedTypes...)
-		// set type to that with highest probability
-		if len(variable.SuggestedTypes) > 0 && variable.SuggestedTypes[0].Probability >= typeProbabilityThreshold {
-			variable.Type = variable.SuggestedTypes[0].Type
-		} else {
-			variable.Type = model.DefaultVarType
-		}
-		m.DataResources[0].Variables = append(m.DataResources[0].Variables, variable)
+		variable.Type = model.TextType
+		dataResource.Variables = append(dataResource.Variables, variable)
 	}
-	return nil
+	return dataResource, nil
 }
 
 func loadSchema(m *model.Metadata, schemaPath string) error {
@@ -263,13 +306,12 @@ func loadMergedSchema(m *model.Metadata, schemaPath string) error {
 	return nil
 }
 
-func loadClassification(m *model.Metadata, classificationPath string) error {
+func loadClassification(classificationPath string) (*gabs.Container, error) {
 	classification, err := gabs.ParseJSONFile(classificationPath)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse classification file")
+		return nil, errors.Wrap(err, "failed to parse classification file")
 	}
-	m.Classification = classification
-	return nil
+	return classification, nil
 }
 
 // LoadImportance wiull load the importance feature selection metric.
@@ -586,7 +628,7 @@ func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*ga
 	return suggested, nil
 }
 
-func loadOriginalSchemaVariables(m *model.Metadata) error {
+func loadOriginalSchemaVariables(m *model.Metadata, schemaPath string) error {
 	dataResources, err := m.Schema.Path("dataResources").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse data resources")
@@ -610,6 +652,11 @@ func loadOriginalSchemaVariables(m *model.Metadata) error {
 			break
 		case model.ResTypeTime:
 			parser = &Timeseries{}
+			break
+		case model.ResTypeRaw:
+			parser = &Raw{
+				rootPath: path.Dir(schemaPath),
+			}
 			break
 		default:
 			return errors.Errorf("Unrecognized resource type '%s'", resType)
