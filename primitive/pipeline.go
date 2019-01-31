@@ -38,6 +38,7 @@ type FeatureRequest struct {
 	OutputVariableName  string
 	Variable            *model.Variable
 	Step                *pipeline.PipelineDescription
+	Clustering          bool
 }
 
 // IngestStep is a step in the ingest process.
@@ -123,7 +124,11 @@ func (s *IngestStep) appendFeature(dataset string, d3mIndexField int, hasHeader 
 		// skip header
 		if i > 0 {
 			d3mIndex := v[0].(string)
-			labels := v[labelIndex].(string)
+			label := v[labelIndex].(string)
+			if feature.Clustering {
+				label = createFriendlyLabel(label)
+			}
+			labels := label
 			features[d3mIndex] = labels
 		}
 	}
@@ -171,6 +176,7 @@ func getFeatureVariables(meta *model.Metadata, prefix string) ([]*FeatureRequest
 					OutputVariableName:  fmt.Sprintf("%s_object_label", indexName),
 					Variable:            v,
 					Step:                step,
+					Clustering:          false,
 				})
 			}
 		}
@@ -219,6 +225,7 @@ func getClusterVariables(meta *model.Metadata, prefix string) ([]*FeatureRequest
 					OutputVariableName:  outputName,
 					Variable:            v,
 					Step:                step,
+					Clustering:          true,
 				})
 			}
 		}
@@ -336,4 +343,9 @@ func getTimeValueCols(dr *model.DataResource) (*timeValueCols, bool) {
 		}
 	}
 	return nil, false
+}
+
+func createFriendlyLabel(label string) string {
+	// label is a char between 1 and cluster max
+	return fmt.Sprintf("Pattern %s", string('A'-'0'+label[0]))
 }
