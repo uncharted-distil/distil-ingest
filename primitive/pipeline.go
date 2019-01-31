@@ -347,5 +347,5 @@ func getTimeValueCols(dr *model.DataResource) (*timeValueCols, bool) {
 
 func createFriendlyLabel(label string) string {
 	// label is a char between 1 and cluster max
-	return fmt.Sprintf("Pattern %s", string('A'-'1'+label[0]))
+	return fmt.Sprintf("Pattern %s", string('A'-'0'+label[0]))
 }
