@@ -163,7 +163,7 @@ func LoadMetadataFromRawFile(datasetPath string, classificationPath string) (*mo
 
 // LoadMetadataFromClassification loads metadata from a merged schema and
 // classification file.
-func LoadMetadataFromClassification(schemaPath string, classificationPath string) (*model.Metadata, error) {
+func LoadMetadataFromClassification(schemaPath string, classificationPath string, normalizeVariableNames bool) (*model.Metadata, error) {
 	meta := &model.Metadata{
 		SchemaSource: model.SchemaSourceClassification,
 	}
@@ -193,7 +193,7 @@ func LoadMetadataFromClassification(schemaPath string, classificationPath string
 	if err != nil {
 		return nil, err
 	}
-	err = loadClassificationVariables(meta)
+	err = loadClassificationVariables(meta, normalizeVariableNames)
 	if err != nil {
 		return nil, err
 	}
@@ -699,7 +699,7 @@ func loadMergedSchemaVariables(m *model.Metadata) error {
 	return nil
 }
 
-func loadClassificationVariables(m *model.Metadata) error {
+func loadClassificationVariables(m *model.Metadata, normalizeVariableNames bool) error {
 	schemaResources, err := m.Schema.Path("dataResources").Children()
 	if err != nil {
 		return errors.Wrap(err, "failed to parse merged resource data")
@@ -730,7 +730,7 @@ func loadClassificationVariables(m *model.Metadata) error {
 	}
 
 	for index, v := range schemaVariables {
-		variable, err := parseSchemaVariable(v, m.DataResources[0].Variables, true)
+		variable, err := parseSchemaVariable(v, m.DataResources[0].Variables, normalizeVariableNames)
 		if err != nil {
 			return err
 		}
