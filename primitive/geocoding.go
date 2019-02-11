@@ -45,7 +45,7 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 	os.Remove(outputSchemaPath)
 	os.Remove(outputDataPath)
 	// load metadata from original schema
-	meta, err := metadata.LoadMetadataFromClassification(schemaFile, classificationPath)
+	meta, err := metadata.LoadMetadataFromClassification(schemaFile, classificationPath, false)
 	if err != nil {
 		return errors.Wrap(err, "unable to load original schema file")
 	}

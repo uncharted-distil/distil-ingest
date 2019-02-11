@@ -244,7 +244,8 @@ func main() {
 			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationPath, config.SchemaPath)
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,
-				config.ClassificationPath)
+				config.ClassificationPath,
+				true)
 		} else {
 			log.Infof("Loading metadata from schema file")
 			meta, err = metadata.LoadMetadataFromMergedSchema(
