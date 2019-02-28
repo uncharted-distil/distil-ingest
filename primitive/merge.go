@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/unchartedsoftware/distil-compute/pipeline"
 	"github.com/unchartedsoftware/distil-compute/primitive/compute/description"
 	"github.com/unchartedsoftware/distil-compute/primitive/compute/result"
 	"github.com/unchartedsoftware/distil-ingest/metadata"
@@ -32,10 +33,25 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 	os.Remove(outputSchemaPath)
 	os.Remove(outputDataPath)
 
-	// create & submit the solution request
-	pip, err := description.CreateDenormalizePipeline("3NF", "")
+	// need to manually build the metadata and output it.
+	meta, err := metadata.LoadMetadataFromOriginalSchema(dataset)
 	if err != nil {
-		return errors.Wrap(err, "unable to create denormalize pipeline")
+		return errors.Wrap(err, "unable to load original metadata")
+	}
+
+	// create & submit the solution request
+	var pip *pipeline.PipelineDescription
+	timeseries, mainResID, refIndex := isTimeseriesDataset(meta)
+	if timeseries {
+		pip, err = description.CreateTimeseriesFormatterPipeline("Time Cop", "", mainResID, refIndex)
+		if err != nil {
+			return errors.Wrap(err, "unable to create denormalize pipeline")
+		}
+	} else {
+		pip, err = description.CreateDenormalizePipeline("3NF", "")
+		if err != nil {
+			return errors.Wrap(err, "unable to create denormalize pipeline")
+		}
 	}
 
 	// pipeline execution assumes datasetDoc.json as schema file
@@ -48,12 +64,6 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 	rawResults, err := result.ParseResultCSV(datasetURI)
 	if err != nil {
 		return errors.Wrap(err, "unable to parse denormalize result")
-	}
-
-	// need to manually build the metadata and output it.
-	meta, err := metadata.LoadMetadataFromOriginalSchema(dataset)
-	if err != nil {
-		return errors.Wrap(err, "unable to load original metadata")
 	}
 	mainDR := meta.GetMainDataResource()
 	vars := s.mapFields(meta)
@@ -74,6 +84,10 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 			}
 
 			v := vars[fieldName]
+			if v == nil {
+				// create new variables (ex: series_id)
+				v = model.NewVariable(i, fieldName, fieldName, fieldName, model.TextType, model.TextType, []string{"attribute"}, model.VarRoleData, nil, outputMeta.DataResources[0].Variables, false)
+			}
 			v.Index = i - 1
 			outputMeta.DataResources[0].Variables = append(outputMeta.DataResources[0].Variables, v)
 		}
@@ -140,4 +154,31 @@ func (s *IngestStep) mapDenormFields(mainDR *model.DataResource) map[string]*mod
 		}
 	}
 	return fields
+}
+
+func isTimeseriesDataset(meta *model.Metadata) (bool, string, int) {
+	mainDR := meta.GetMainDataResource()
+
+	// check references to see if any point to a time series
+	for _, v := range mainDR.Variables {
+		if v.RefersTo != nil {
+			resID := v.RefersTo["resID"].(string)
+			res := getResource(meta, resID)
+			if res != nil && res.ResType == "timeseries" {
+				return true, mainDR.ResID, v.Index
+			}
+		}
+	}
+
+	return false, "", -1
+}
+
+func getResource(meta *model.Metadata, resID string) *model.DataResource {
+	for _, dr := range meta.DataResources {
+		if dr.ResID == resID {
+			return dr
+		}
+	}
+
+	return nil
 }
