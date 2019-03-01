@@ -265,6 +265,16 @@ func toFloat64Array(in []interface{}) ([]float64, error) {
 	return strArr, nil
 }
 
+func getFieldIndex(header []string, fieldName string) int {
+	for i, f := range header {
+		if f == fieldName {
+			return i
+		}
+	}
+
+	return -1
+}
+
 func getDataResource(meta *model.Metadata, resID string) *model.DataResource {
 	// main data resource has d3m index variable
 	for _, dr := range meta.DataResources {

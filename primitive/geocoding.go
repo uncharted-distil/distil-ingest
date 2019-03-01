@@ -59,15 +59,8 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 		return errors.Wrap(err, "error reading raw data")
 	}
 
-	// index d3m indices by row since primitive returns row numbers.
-	// header row already skipped in the readCSVFile call.
-	rowIndex := make(map[int]string)
-	for i, line := range lines {
-		rowIndex[i] = line[d3mIndexVariable]
-	}
-
 	// Geocode location fields
-	geocodedData, err := s.GeocodeForward(meta, dataset, rowIndex)
+	geocodedData, err := s.GeocodeForward(meta, dataset)
 	if err != nil {
 		return err
 	}
@@ -81,8 +74,7 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 			model.NewVariable(len(mainDR.Variables), latName, "label", latName, "string", "string", []string{"attribute"}, model.VarRoleMetadata, nil, mainDR.Variables, false),
 			model.NewVariable(len(mainDR.Variables)+1, lonName, "label", lonName, "string", "string", []string{"attribute"}, model.VarRoleMetadata, nil, mainDR.Variables, false),
 		}
-		mainDR.Variables = append(mainDR.Variables, fields[field[0].SourceField][0])
-		mainDR.Variables = append(mainDR.Variables, fields[field[0].SourceField][1])
+		mainDR.Variables = append(mainDR.Variables, fields[field[0].SourceField]...)
 		for _, gc := range field {
 			if indexedData[gc.D3MIndex] == nil {
 				indexedData[gc.D3MIndex] = make([]*GeocodedPoint, 0)
@@ -149,7 +141,7 @@ func getLatLonVariableNames(variableName string) (string, string) {
 }
 
 // GeocodeForward will geocode location columns into lat & lon values.
-func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string, rowIndex map[int]string) ([][]*GeocodedPoint, error) {
+func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*GeocodedPoint, error) {
 	// check to see if Simon typed something as a place.
 	colsToGeocode := geocodeColumns(meta)
 	geocodedFields := make([][]*GeocodedPoint, 0)
@@ -174,29 +166,30 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string, rowInd
 			return nil, errors.Wrap(err, "unable to parse Goat pipeline result")
 		}
 
-		// result should be row index, [lat, lon]
+		// result should be row index, input data, <col>_lat, <col>_lon
+		// pull the d3m index as well as the lat & lon
 		geocodedData := make([]*GeocodedPoint, len(res)-1)
-		for i, v := range res {
-			if i > 0 {
-				coords, ok := v[1].([]interface{})
-				if !ok {
-					return nil, errors.Errorf("unable to parse coords from result")
-				}
-				lat, err := strconv.ParseFloat(coords[0].(string), 64)
-				if err != nil {
-					return nil, errors.Wrap(err, "unable to parse latitude from result")
-				}
-				lon, err := strconv.ParseFloat(coords[1].(string), 64)
-				if err != nil {
-					return nil, errors.Wrap(err, "unable to parse longitude from result")
-				}
+		header := toStringArray(res[0])
+		latIndex := getFieldIndex(header, fmt.Sprintf("%s_lat", col))
+		lonIndex := getFieldIndex(header, fmt.Sprintf("%s_lon", col))
+		d3mIndexIndex := getFieldIndex(header, model.D3MIndexName)
+		for i, v := range res[1:] {
+			lat, err := strconv.ParseFloat(v[latIndex].(string), 64)
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to parse latitude from result")
+			}
+			lon, err := strconv.ParseFloat(v[lonIndex].(string), 64)
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to parse longitude from result")
+			}
 
-				geocodedData[i-1] = &GeocodedPoint{
-					D3MIndex:    rowIndex[i-1],
-					SourceField: col,
-					Latitude:    lat,
-					Longitude:   lon,
-				}
+			d3mIndex := v[d3mIndexIndex].(string)
+
+			geocodedData[i-1] = &GeocodedPoint{
+				D3MIndex:    d3mIndex,
+				SourceField: col,
+				Latitude:    lat,
+				Longitude:   lon,
 			}
 		}
 
