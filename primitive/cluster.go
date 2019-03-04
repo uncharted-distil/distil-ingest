@@ -9,8 +9,8 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/util"
+	"github.com/uncharted-distil/distil-ingest/metadata"
+	"github.com/uncharted-distil/distil-ingest/util"
 )
 
 const (

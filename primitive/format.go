@@ -10,9 +10,9 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-compute/model"
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/util"
+	"github.com/uncharted-distil/distil-compute/model"
+	"github.com/uncharted-distil/distil-ingest/metadata"
+	"github.com/uncharted-distil/distil-ingest/util"
 )
 
 // Format will format a dataset to have the required structures for D3M.

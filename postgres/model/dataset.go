@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/uncharted-distil/distil-compute/model"
 )
 
 // Dataset is a struct containing the metadata of a dataset being processed.

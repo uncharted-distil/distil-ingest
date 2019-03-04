@@ -9,9 +9,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/unchartedsoftware/deluge/document"
-	api "github.com/unchartedsoftware/distil-compute/model"
-	"github.com/unchartedsoftware/distil-ingest/conf"
-	"github.com/unchartedsoftware/distil-ingest/postgres/model"
+	api "github.com/uncharted-distil/distil-compute/model"
+	"github.com/uncharted-distil/distil-ingest/conf"
+	"github.com/uncharted-distil/distil-ingest/postgres/model"
 	"github.com/unchartedsoftware/plog"
 )
 

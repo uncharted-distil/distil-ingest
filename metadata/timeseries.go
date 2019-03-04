@@ -6,7 +6,7 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/uncharted-distil/distil-compute/model"
 )
 
 // Timeseries is a data resource that is contained within one or many timeseries files.

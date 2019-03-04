@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/plog"
 
-	"github.com/unchartedsoftware/distil-compute/model"
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/rest"
+	"github.com/uncharted-distil/distil-compute/model"
+	"github.com/uncharted-distil/distil-ingest/metadata"
+	"github.com/uncharted-distil/distil-ingest/rest"
 )
 
 // ClusterDataset clusters data based on referenced data resources

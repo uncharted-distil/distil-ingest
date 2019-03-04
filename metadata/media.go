@@ -6,7 +6,7 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/uncharted-distil/distil-compute/model"
 )
 
 // Media is a data resource that is backed by media files.

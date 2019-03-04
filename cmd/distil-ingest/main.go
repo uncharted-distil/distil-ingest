@@ -14,11 +14,11 @@ import (
 	"github.com/urfave/cli"
 	elastic "gopkg.in/olivere/elastic.v5"
 
-	"github.com/unchartedsoftware/distil-compute/model"
-	"github.com/unchartedsoftware/distil-ingest/conf"
-	"github.com/unchartedsoftware/distil-ingest/document/d3mdata"
-	"github.com/unchartedsoftware/distil-ingest/metadata"
-	"github.com/unchartedsoftware/distil-ingest/postgres"
+	"github.com/uncharted-distil/distil-compute/model"
+	"github.com/uncharted-distil/distil-ingest/conf"
+	"github.com/uncharted-distil/distil-ingest/document/d3mdata"
+	"github.com/uncharted-distil/distil-ingest/metadata"
+	"github.com/uncharted-distil/distil-ingest/postgres"
 	log "github.com/unchartedsoftware/plog"
 )
 

@@ -3,7 +3,7 @@ package metadata
 import (
 	"github.com/jeffail/gabs"
 
-	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/uncharted-distil/distil-compute/model"
 )
 
 // DataResourceParser is a parser for a data resource in the schema document.

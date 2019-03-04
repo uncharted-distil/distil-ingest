@@ -11,8 +11,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/unchartedsoftware/distil-compute/primitive/compute"
-	"github.com/unchartedsoftware/distil-ingest/primitive"
+	"github.com/uncharted-distil/distil-compute/primitive/compute"
+	"github.com/uncharted-distil/distil-ingest/primitive"
 )
 
 func splitAndTrim(arg string) []string {

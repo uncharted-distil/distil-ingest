@@ -8,7 +8,7 @@ import (
 	"github.com/unchartedsoftware/deluge"
 	"github.com/unchartedsoftware/deluge/document"
 
-	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/uncharted-distil/distil-compute/model"
 )
 
 // D3MData is a row from a CSV file

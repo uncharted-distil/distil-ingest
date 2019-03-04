@@ -6,7 +6,7 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/unchartedsoftware/distil-ingest/metadata"
+	"github.com/uncharted-distil/distil-ingest/metadata"
 )
 
 func TestGetSource(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"github.com/jeffail/gabs"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/distil-compute/model"
+	"github.com/uncharted-distil/distil-compute/model"
 )
 
 // Table is a data respurce that is contained within one or many tabular files.
