@@ -185,8 +185,8 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 		// pull the d3m index as well as the lat & lon
 		geocodedData := make([]*GeocodedPoint, len(res)-1)
 		header := toStringArray(res[0])
-		latIndex := getFieldIndex(header, fmt.Sprintf("%s_lat", col))
-		lonIndex := getFieldIndex(header, fmt.Sprintf("%s_lon", col))
+		latIndex := getFieldIndex(header, fmt.Sprintf("%s_latitude", col))
+		lonIndex := getFieldIndex(header, fmt.Sprintf("%s_longitude", col))
 		d3mIndexIndex := getFieldIndex(header, model.D3MIndexName)
 		for i, v := range res[1:] {
 			lat, err := strconv.ParseFloat(v[latIndex].(string), 64)
