@@ -6,3 +6,5 @@ vendor
 .vscode
 debug.test
 .history
+.vendor-new
+Gopkg.lock
