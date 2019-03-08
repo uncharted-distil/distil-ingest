@@ -23,10 +23,10 @@ import (
 	"github.com/go-pg/pg"
 	"github.com/pkg/errors"
 
-	"github.com/unchartedsoftware/deluge/document"
 	api "github.com/uncharted-distil/distil-compute/model"
 	"github.com/uncharted-distil/distil-ingest/conf"
 	"github.com/uncharted-distil/distil-ingest/postgres/model"
+	"github.com/unchartedsoftware/deluge/document"
 	"github.com/unchartedsoftware/plog"
 )
 
