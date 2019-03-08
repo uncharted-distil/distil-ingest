@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
@@ -38,8 +37,8 @@ import (
 type GeocodedPoint struct {
 	D3MIndex    string
 	SourceField string
-	Latitude    float64
-	Longitude   float64
+	Latitude    string
+	Longitude   string
 }
 
 // GeocodeForwardUpdate will geocode location columns into lat & lon values
@@ -102,8 +101,8 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 	for i, line := range lines {
 		geocodedFields := indexedData[line[d3mIndexVariable]]
 		for _, geo := range geocodedFields {
-			line = append(line, fmt.Sprintf("%f", geo.Latitude))
-			line = append(line, fmt.Sprintf("%f", geo.Longitude))
+			line = append(line, fmt.Sprintf("%s", geo.Latitude))
+			line = append(line, fmt.Sprintf("%s", geo.Longitude))
 		}
 		lines[i] = line
 	}
@@ -189,18 +188,12 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 		lonIndex := getFieldIndex(header, fmt.Sprintf("%s_longitude", col))
 		d3mIndexIndex := getFieldIndex(header, model.D3MIndexName)
 		for i, v := range res[1:] {
-			lat, err := strconv.ParseFloat(v[latIndex].(string), 64)
-			if err != nil {
-				return nil, errors.Wrap(err, "unable to parse latitude from result")
-			}
-			lon, err := strconv.ParseFloat(v[lonIndex].(string), 64)
-			if err != nil {
-				return nil, errors.Wrap(err, "unable to parse longitude from result")
-			}
+			lat := v[latIndex].(string)
+			lon := v[lonIndex].(string)
 
 			d3mIndex := v[d3mIndexIndex].(string)
 
-			geocodedData[i-1] = &GeocodedPoint{
+			geocodedData[i] = &GeocodedPoint{
 				D3MIndex:    d3mIndex,
 				SourceField: col,
 				Latitude:    lat,
