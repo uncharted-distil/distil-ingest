@@ -25,3 +25,9 @@ jobs:
       - run:
           name: build app binary
           command: /bin/sh -c "dep ensure -v;go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
+      - run:
+          name: build distil
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              curl -v -X POST https://circleci.com/api/v1.1/project/github/uncharted-distil/distil/tree/$CIRCLE_BRANCH?circle-token=$D3MBUILD_KEY
+            fi
