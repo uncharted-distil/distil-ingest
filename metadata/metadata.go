@@ -630,6 +630,12 @@ func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*ga
 		prob := varProbabilities[index]
 		typ := label.Data().(string)
 		probability := prob.Data().(float64)
+
+		// adjust the probability for complex suggested types
+		if !model.IsBasicSimonType(typ) {
+			probability = probability * 1.5
+		}
+
 		suggested = append(suggested, &model.SuggestedType{
 			Type:        cleanVarType(m, name, typ),
 			Probability: probability,
