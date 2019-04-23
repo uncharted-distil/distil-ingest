@@ -963,6 +963,17 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                         "max_gram": 20
                     }
                 },
+				"tokenizer": {
+					"search_tokenizer": {
+						"type": "edge_ngram",
+						"min_gram": 1,
+						"max_gram": 20,
+						"token_chars": [
+							"letter",
+							"digit"
+						]
+					}
+				},
                 "analyzer": {
                     "ngram_analyzer": {
                         "type": "custom",
@@ -974,20 +985,26 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
                     },
                     "search_analyzer": {
                         "type": "custom",
-                        "tokenizer": "standard",
+                        "tokenizer": "search_tokenizer",
                         "filter": [
                             "lowercase",
                             "search_filter"
                         ]
-                    }
+                    },
+					"id_analyzer": {
+						"type":      "pattern",
+						"pattern":   "\\W|_",
+						"lowercase": true
+					}
                 }
             }
         },
         "mappings": {
             "metadata": {
                 "properties": {
-                    "datasetId": {
-                        "type": "text"
+                    "datasetID": {
+                        "type": "text",
+                        "analyzer": "search_analyzer"
                     },
                     "datasetName": {
                         "type": "text",
