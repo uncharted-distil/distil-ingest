@@ -889,6 +889,7 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 		Type("metadata").
 		Id(meta.ID).
 		BodyString(string(bytes)).
+		Refresh("true").
 		Do(context.Background())
 	if err != nil {
 		return errors.Wrapf(err, "failed to add document to index `%s`", index)
@@ -935,7 +936,9 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 	// delete the index if it already exists
 	if exists {
 		if overwrite {
-			deleted, err := client.DeleteIndex(index).Do(context.Background())
+			deleted, err := client.
+				DeleteIndex(index).
+				Do(context.Background())
 			if err != nil {
 				return errors.Wrapf(err, "failed to delete index %s", index)
 			}
@@ -1083,7 +1086,10 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
     }`
 
 	// create index
-	created, err := client.CreateIndex(index).BodyString(body).Do(context.Background())
+	created, err := client.
+		CreateIndex(index).
+		BodyString(body).
+		Do(context.Background())
 	if err != nil {
 		return errors.Wrapf(err, "failed to create index %s", index)
 	}
