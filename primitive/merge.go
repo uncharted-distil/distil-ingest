@@ -91,21 +91,18 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 	outputMeta.DataResources = append(outputMeta.DataResources, model.NewDataResource("0", mainDR.ResType, mainDR.ResFormat))
 	header := rawResults[0]
 	for i, field := range header {
-		// the first column is a row idnex and should be discarded.
-		if i > 0 {
-			fieldName, ok := field.(string)
-			if !ok {
-				return errors.Errorf("unable to cast field name")
-			}
-
-			v := vars[fieldName]
-			if v == nil {
-				// create new variables (ex: series_id)
-				v = model.NewVariable(i, fieldName, fieldName, fieldName, model.TextType, model.TextType, []string{"attribute"}, model.VarRoleData, nil, outputMeta.DataResources[0].Variables, false)
-			}
-			v.Index = i - 1
-			outputMeta.DataResources[0].Variables = append(outputMeta.DataResources[0].Variables, v)
+		fieldName, ok := field.(string)
+		if !ok {
+			return errors.Errorf("unable to cast field name")
 		}
+
+		v := vars[fieldName]
+		if v == nil {
+			// create new variables (ex: series_id)
+			v = model.NewVariable(i, fieldName, fieldName, fieldName, model.TextType, model.TextType, []string{"attribute"}, model.VarRoleData, nil, outputMeta.DataResources[0].Variables, false)
+		}
+		v.Index = i
+		outputMeta.DataResources[0].Variables = append(outputMeta.DataResources[0].Variables, v)
 	}
 
 	// initialize csv writer
@@ -119,12 +116,12 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 	}
 	writer.Write(headerMetadata[0])
 
-	// rewrite the output without the first column
+	// rewrite the output
 	rawResults = rawResults[1:]
 	for _, line := range rawResults {
-		lineString := make([]string, len(line)-1)
-		for i := 1; i < len(line); i++ {
-			lineString[i-1] = line[i].(string)
+		lineString := make([]string, len(line))
+		for i := 0; i < len(line); i++ {
+			lineString[i] = line[i].(string)
 		}
 		writer.Write(lineString)
 	}
