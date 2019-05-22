@@ -18,7 +18,6 @@ package primitive
 import (
 	"encoding/json"
 	"os"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/uncharted-distil/distil-ingest/rest"
@@ -48,18 +47,15 @@ func (s *IngestStep) Classify(dataset string, outputPath string) error {
 		return errors.Wrap(err, "unable to parse Simon pipeline result")
 	}
 
-	// First row is header, then all other rows are col index, types, probabilities.
+	// First row is header, then all other rows are types, probabilities.
 	probabilities := make([][]float64, len(res)-1)
 	labels := make([][]string, len(res)-1)
 	for i, v := range res {
 		if i > 0 {
-			colIndex, err := strconv.ParseInt(v[0].(string), 10, 64)
-			if err != nil {
-				return err
-			}
-			fieldLabels := toStringArray(v[1].([]interface{}))
+			colIndex := i - 1
+			fieldLabels := toStringArray(v[0].([]interface{}))
 			labels[colIndex] = mapClassifiedTypes(fieldLabels)
-			probs, err := toFloat64Array(v[2].([]interface{}))
+			probs, err := toFloat64Array(v[1].([]interface{}))
 			if err != nil {
 				return err
 			}
