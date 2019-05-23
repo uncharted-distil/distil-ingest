@@ -24,11 +24,13 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/model"
+	log "github.com/unchartedsoftware/plog"
 )
 
 // VerifyAndUpdate will update the metadata when inconsistentices or errors
 // are found.
 func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
+	log.Infof("verifying metadata")
 	// read the data
 	csvFile, err := os.Open(dataPath)
 	if err != nil {
@@ -58,6 +60,8 @@ func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
 		}
 	}
 
+	log.Infof("done verifying metadata")
+
 	return nil
 }
 
@@ -66,6 +70,7 @@ func checkTypes(m *model.Metadata, row []string) error {
 	for _, v := range m.DataResources[0].Variables {
 		// set the type to text if the data doesn't match the metadata
 		if !typeMatchesData(v, row) {
+			log.Infof("updating %s type to text since the data did not match", v.Name)
 			v.Type = model.TextType
 		}
 	}
@@ -79,8 +84,14 @@ func typeMatchesData(v *model.Variable, row []string) bool {
 
 	switch v.Type {
 	case model.DateTimeType:
-		_, err := dateparse.ParseAny(val)
-		good = err == nil
+		// a date has to be at least 8 characters (yyyymmdd)
+		// the library is a bit too permissive
+		if len(val) < 8 {
+			good = false
+		} else {
+			_, err := dateparse.ParseAny(val)
+			good = err == nil
+		}
 		break
 	}
 
