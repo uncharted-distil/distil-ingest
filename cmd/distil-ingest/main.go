@@ -302,6 +302,13 @@ func main() {
 			os.Exit(1)
 		}
 
+		// check and fix metadata issues
+		err = metadata.VerifyAndUpdate(meta, config.DatasetPath)
+		if err != nil {
+			log.Error(err)
+			os.Exit(1)
+		}
+
 		if config.ESEndpoint != "" && !config.MetadataOnly {
 			// create elasticsearch client
 			elasticClient, err := elastic.NewClient(
