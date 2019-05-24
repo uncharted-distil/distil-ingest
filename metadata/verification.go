@@ -91,6 +91,9 @@ func typeMatchesData(v *model.Variable, row []string) bool {
 		} else {
 			_, err := dateparse.ParseAny(val)
 			good = err == nil
+			if err != nil {
+				log.Warnf("error attempting to parse date value '%s': %v", val, err)
+			}
 		}
 		break
 	}
