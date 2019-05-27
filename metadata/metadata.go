@@ -5,7 +5,7 @@
 //   you may not use this file except in compliance with the License.
 //   You may obtain a copy of the License at
 //
-//       http://www.apache.org/licenses/LICENSE-2.0
+//	   http://www.apache.org/licenses/LICENSE-2.0
 //
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
@@ -803,6 +803,7 @@ func WriteMergedSchema(m *model.Metadata, path string, mergedDataResource *model
 		"about": map[string]interface{}{
 			"datasetID":            m.ID,
 			"datasetName":          m.Name,
+			"parentDatasetIDs":     m.ParentDatasetIDs,
 			"storageName":          m.StorageName,
 			"description":          m.Description,
 			"datasetSchemaVersion": schemaVersion,
@@ -813,7 +814,7 @@ func WriteMergedSchema(m *model.Metadata, path string, mergedDataResource *model
 		},
 		"dataResources": []*model.DataResource{mergedDataResource},
 	}
-	bytes, err := json.MarshalIndent(output, "", "    ")
+	bytes, err := json.MarshalIndent(output, "", "	")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal merged schema file output")
 	}
@@ -832,6 +833,7 @@ func WriteSchema(m *model.Metadata, path string) error {
 		"about": map[string]interface{}{
 			"datasetID":            m.ID,
 			"datasetName":          m.Name,
+			"parentDatasetIDs":     m.ParentDatasetIDs,
 			"storageName":          m.StorageName,
 			"description":          m.Description,
 			"datasetSchemaVersion": schemaVersion,
@@ -843,7 +845,7 @@ func WriteSchema(m *model.Metadata, path string) error {
 		"dataResources": dataResources,
 	}
 
-	bytes, err := json.MarshalIndent(output, "", "    ")
+	bytes, err := json.MarshalIndent(output, "", "	")
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal merged schema file output")
 	}
@@ -865,17 +867,18 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	}
 
 	source := map[string]interface{}{
-		"datasetName":    meta.Name,
-		"datasetID":      meta.ID,
-		"storageName":    meta.StorageName,
-		"description":    meta.Description,
-		"summary":        meta.Summary,
-		"summaryMachine": meta.SummaryMachine,
-		"numRows":        meta.NumRows,
-		"numBytes":       meta.NumBytes,
-		"variables":      meta.DataResources[0].Variables,
-		"datasetFolder":  meta.DatasetFolder,
-		"source":         datasetSource,
+		"datasetName":      meta.Name,
+		"datasetID":        meta.ID,
+		"parentDatasetIDs": meta.ParentDatasetIDs,
+		"storageName":      meta.StorageName,
+		"description":      meta.Description,
+		"summary":          meta.Summary,
+		"summaryMachine":   meta.SummaryMachine,
+		"numRows":          meta.NumRows,
+		"numBytes":         meta.NumBytes,
+		"variables":        meta.DataResources[0].Variables,
+		"datasetFolder":    meta.DatasetFolder,
+		"source":           datasetSource,
 	}
 
 	bytes, err := json.Marshal(source)
@@ -952,20 +955,20 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 
 	// create body
 	body := `{
-        "settings": {
-            "analysis": {
-                "filter": {
-                    "ngram_filter": {
-                        "type": "ngram",
-                        "min_gram": 4,
-                        "max_gram": 20
-                    },
-                    "search_filter": {
-                        "type": "edge_ngram",
-                        "min_gram": 1,
-                        "max_gram": 20
-                    }
-                },
+		"settings": {
+			"analysis": {
+				"filter": {
+					"ngram_filter": {
+						"type": "ngram",
+						"min_gram": 4,
+						"max_gram": 20
+					},
+					"search_filter": {
+						"type": "edge_ngram",
+						"min_gram": 1,
+						"max_gram": 20
+					}
+				},
 				"tokenizer": {
 					"search_tokenizer": {
 						"type": "edge_ngram",
@@ -977,113 +980,117 @@ func CreateMetadataIndex(client *elastic.Client, index string, overwrite bool) e
 						]
 					}
 				},
-                "analyzer": {
-                    "ngram_analyzer": {
-                        "type": "custom",
-                        "tokenizer": "standard",
-                        "filter": [
-                            "lowercase",
-                            "ngram_filter"
-                        ]
-                    },
-                    "search_analyzer": {
-                        "type": "custom",
-                        "tokenizer": "search_tokenizer",
-                        "filter": [
-                            "lowercase",
-                            "search_filter"
-                        ]
-                    },
+				"analyzer": {
+					"ngram_analyzer": {
+						"type": "custom",
+						"tokenizer": "standard",
+						"filter": [
+							"lowercase",
+							"ngram_filter"
+						]
+					},
+					"search_analyzer": {
+						"type": "custom",
+						"tokenizer": "search_tokenizer",
+						"filter": [
+							"lowercase",
+							"search_filter"
+						]
+					},
 					"id_analyzer": {
-						"type":      "pattern",
+						"type":	  "pattern",
 						"pattern":   "\\W|_",
 						"lowercase": true
 					}
-                }
-            }
-        },
-        "mappings": {
-            "metadata": {
-                "properties": {
-                    "datasetID": {
-                        "type": "text",
-                        "analyzer": "search_analyzer"
-                    },
-                    "datasetName": {
-                        "type": "text",
-                        "analyzer": "search_analyzer",
-                        "fields": {
-                            "keyword": {
-                                "type": "keyword",
-                                "ignore_above": 256
-                            }
-                        }
-                    },
-                    "storageName": {
-                        "type": "text"
-                    },
-                    "datasetFolder": {
-                        "type": "text"
-                    },
-                    "description": {
-                        "type": "text",
-                        "analyzer": "search_analyzer"
-                    },
-                    "summary": {
-                        "type": "text",
-                        "analyzer": "search_analyzer"
-                    },
-                    "summaryMachine": {
-                        "type": "text",
-                        "analyzer": "search_analyzer"
-                    },
-                    "numRows": {
-                        "type": "long"
-                    },
-                    "numBytes": {
-                        "type": "long"
-                    },
-                    "variables": {
-                        "properties": {
-                            "varDescription": {
-                                "type": "text"
-                            },
-                            "varName": {
-                                "type": "text",
-                                "analyzer": "search_analyzer",
-                                "include_in_all": true,
-                                "term_vector": "yes"
-                            },
-                            "colName": {
-                                "type": "text",
-                                "analyzer": "search_analyzer",
-                                "include_in_all": true,
-                                "term_vector": "yes"
-                            },
-                            "varRole": {
-                                "type": "text"
-                            },
-                            "varType": {
-                                "type": "text"
-                            },
-                            "varOriginalType": {
-                                "type": "text"
-                            },
-                            "varOriginalName": {
-                                "type": "text"
-                            },
-                            "varDisplayName": {
-                                "type": "text"
-                            },
-                            "importance": {
-                                "type": "integer"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }`
+				}
+			}
+		},
+		"mappings": {
+			"metadata": {
+				"properties": {
+					"datasetID": {
+						"type": "text",
+						"analyzer": "search_analyzer"
+					},
+					"datasetName": {
+						"type": "text",
+						"analyzer": "search_analyzer",
+						"fields": {
+							"keyword": {
+								"type": "keyword",
+								"ignore_above": 256
+							}
+						}
+					},
+					"parentDatasetIDs": {
+						"type": "text",
+						"analyzer": "search_analyzer"
+					},
+					"storageName": {
+						"type": "text"
+					},
+					"datasetFolder": {
+						"type": "text"
+					},
+					"description": {
+						"type": "text",
+						"analyzer": "search_analyzer"
+					},
+					"summary": {
+						"type": "text",
+						"analyzer": "search_analyzer"
+					},
+					"summaryMachine": {
+						"type": "text",
+						"analyzer": "search_analyzer"
+					},
+					"numRows": {
+						"type": "long"
+					},
+					"numBytes": {
+						"type": "long"
+					},
+					"variables": {
+						"properties": {
+							"varDescription": {
+								"type": "text"
+							},
+							"varName": {
+								"type": "text",
+								"analyzer": "search_analyzer",
+								"include_in_all": true,
+								"term_vector": "yes"
+							},
+							"colName": {
+								"type": "text",
+								"analyzer": "search_analyzer",
+								"include_in_all": true,
+								"term_vector": "yes"
+							},
+							"varRole": {
+								"type": "text"
+							},
+							"varType": {
+								"type": "text"
+							},
+							"varOriginalType": {
+								"type": "text"
+							},
+							"varOriginalName": {
+								"type": "text"
+							},
+							"varDisplayName": {
+								"type": "text"
+							},
+							"importance": {
+								"type": "integer"
+							}
+						}
+					}
+				}
+			}
+		}
+	}`
 
 	// create index
 	created, err := client.
