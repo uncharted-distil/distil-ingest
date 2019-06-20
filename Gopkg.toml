@@ -55,7 +55,7 @@
 
 [[constraint]]
   name = "github.com/uncharted-distil/distil-compute"
-  branch = "master"
+  branch = "update-timeseries-pipeline"
 
 [[override]]
   name = "github.com/unchartedsoftware/plog"
@@ -70,8 +70,8 @@
   version = "=5.0.76"
 
 [[constraint]]
-  name = "github.com/araddon/dateparse"
-  revision = "d2ba70357e924a4dc132001c6faebb8a5ea9878a"
+  name = "github.com/phorne-uncharted/dateparse"
+  branch = "master"
 
 [prune]
   go-tests = true
