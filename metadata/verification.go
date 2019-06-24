@@ -71,7 +71,7 @@ func checkTypes(m *model.Metadata, row []string) error {
 		// set the type to text if the data doesn't match the metadata
 		if !typeMatchesData(v, row) {
 			log.Infof("updating %s type to text since the data did not match", v.Name)
-			v.Type = model.TextType
+			v.Type = model.StringType
 		}
 	}
 
