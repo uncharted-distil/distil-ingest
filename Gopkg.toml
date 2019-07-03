@@ -71,7 +71,7 @@
 
 [[constraint]]
   name = "github.com/araddon/dateparse"
-  revision = "d2ba70357e924a4dc132001c6faebb8a5ea9878a"
+  branch = "master"
 
 [prune]
   go-tests = true
