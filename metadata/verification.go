@@ -20,7 +20,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/phorne-uncharted/dateparse"
+	"github.com/araddon/dateparse"
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/model"
