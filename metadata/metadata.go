@@ -865,6 +865,13 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	for _, v := range meta.DataResources[0].Variables {
 		v.RefersTo = nil
 	}
+	var origin map[string]interface{}
+	if meta.SearchResult != "" {
+		origin = map[string]interface{}{
+			"searchResult": meta.SearchResult,
+			"provenance":   meta.SearchProvenance,
+		}
+	}
 
 	source := map[string]interface{}{
 		"datasetName":      meta.Name,
@@ -879,6 +886,7 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 		"variables":        meta.DataResources[0].Variables,
 		"datasetFolder":    meta.DatasetFolder,
 		"source":           datasetSource,
+		"datasetOrigin":    origin,
 	}
 
 	bytes, err := json.Marshal(source)
