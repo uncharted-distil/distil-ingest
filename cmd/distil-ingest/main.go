@@ -16,22 +16,20 @@
 package main
 
 import (
-	"bufio"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	"github.com/unchartedsoftware/deluge"
-	delugeElastic "github.com/unchartedsoftware/deluge/elastic/v5"
 	"github.com/urfave/cli"
 	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/uncharted-distil/distil-compute/model"
 	"github.com/uncharted-distil/distil-ingest/conf"
-	"github.com/uncharted-distil/distil-ingest/document/d3mdata"
 	"github.com/uncharted-distil/distil-ingest/metadata"
 	"github.com/uncharted-distil/distil-ingest/postgres"
 	log "github.com/unchartedsoftware/plog"
@@ -360,43 +358,6 @@ func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *model.
 	return nil
 }
 
-func ingestES(config *conf.Conf, delugeClient *delugeElastic.Client, meta *model.Metadata) error {
-	input, err := deluge.NewFileInput([]string{config.DatasetPath}, nil)
-	if err != nil {
-		return err
-	}
-
-	doc, err := d3mdata.NewD3MData(meta)
-	if err != nil {
-		return err
-	}
-
-	// create ingestor
-	ingestor, err := deluge.NewIngestor(
-		deluge.SetDocument(doc),
-		deluge.SetInput(input),
-		deluge.SetClient(delugeClient),
-		deluge.SetIndex(config.ESIndex),
-		deluge.SetErrorThreshold(config.ErrThreshold),
-		deluge.SetActiveConnections(config.NumActiveConnections),
-		deluge.SetNumWorkers(config.NumWorkers),
-		deluge.SetBulkByteSize(config.BulkByteSize),
-		deluge.SetScanBufferSize(config.ScanBufferSize),
-		deluge.ClearExistingIndex(config.ClearExisting),
-		deluge.SetNumReplicas(1))
-	if err != nil {
-		return err
-	}
-
-	// ingest
-	err = ingestor.Ingest()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func ingestPostgres(config *conf.Conf, meta *model.Metadata) error {
 	log.Info("Starting ingestion")
 
@@ -456,14 +417,25 @@ func ingestPostgres(config *conf.Conf, meta *model.Metadata) error {
 	log.Infof("Done creating result table")
 
 	// Load the data.
-	reader, err := os.Open(config.DatasetPath)
-	scanner := bufio.NewScanner(reader)
+	// open the file
+	csvFile, err := os.Open(config.DatasetPath)
+	if err != nil {
+		return err
+	}
+	defer csvFile.Close()
+	reader := csv.NewReader(csvFile)
 
 	// skip header
-	scanner.Scan()
+	reader.Read()
 	count := 0
-	for scanner.Scan() {
-		line := scanner.Text()
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
 		// Raw schema source will have header row.
 		if count > 0 || meta.SchemaSource != model.SchemaSourceRaw {
 			err = pg.AddWordStems(line)

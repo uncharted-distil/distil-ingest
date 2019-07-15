@@ -50,10 +50,6 @@
   version = "=1.2.2"
 
 [[constraint]]
-  name = "github.com/unchartedsoftware/deluge"
-  revision = "2fed02d559eb90bb6c0cb7f8212c25a474f911e3"
-
-[[constraint]]
   name = "github.com/uncharted-distil/distil-compute"
   branch = "master"
 

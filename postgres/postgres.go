@@ -26,7 +26,6 @@ import (
 	api "github.com/uncharted-distil/distil-compute/model"
 	"github.com/uncharted-distil/distil-ingest/conf"
 	"github.com/uncharted-distil/distil-ingest/postgres/model"
-	"github.com/unchartedsoftware/deluge/document"
 	"github.com/unchartedsoftware/plog"
 )
 
@@ -280,28 +279,21 @@ func (d *Database) DeleteDataset(name string) {
 
 // IngestRow parses the raw csv data and stores it to the table specified.
 // The previously parsed metadata is used to map columns.
-func (d *Database) IngestRow(tableName string, data string) error {
+func (d *Database) IngestRow(tableName string, data []string) error {
 	ds := d.Tables[tableName]
 
 	insertStatement := ""
 	variables := ds.Variables
 	values := make([]interface{}, len(variables))
-	doc := &document.CSV{}
-	doc.SetData(data)
-
-	// If a row ends in a delimeter, deluge does not add the last field.
-	if len(doc.Cols) == len(variables)-1 && strings.HasSuffix(data, ",") {
-		doc.Cols = append(doc.Cols, "")
-	}
 	for i := 0; i < len(variables); i++ {
 		// Default columns that have an empty column.
 		var val interface{}
-		if d.isNullVariable(variables[i].Type, doc.Cols[i]) {
+		if d.isNullVariable(variables[i].Type, data[i]) {
 			val = nil
 		} else if d.isArray(variables[i].Type) {
-			val = fmt.Sprintf("{%s}", doc.Cols[i])
+			val = fmt.Sprintf("{%s}", data[i])
 		} else {
-			val = doc.Cols[i]
+			val = data[i]
 		}
 		insertStatement = fmt.Sprintf("%s, ?", insertStatement)
 		values[i] = val
@@ -343,16 +335,12 @@ func (d *Database) InsertRemainingRows() error {
 }
 
 // AddWordStems builds the word stemming lookup in the database.
-func (d *Database) AddWordStems(data string) error {
+func (d *Database) AddWordStems(data []string) error {
 	ds := d.Tables[wordStemTableName]
 
-	// process every field (assume csv).
-	doc := &document.CSV{}
-	doc.SetData(data)
-
-	for i := 0; i < len(doc.Cols); i++ {
+	for i := 0; i < len(data); i++ {
 		// split the field into tokens.
-		fields := strings.Fields(doc.Cols[i])
+		fields := strings.Fields(data[i])
 		for _, f := range fields {
 			fieldValue := wordRegex.ReplaceAllString(f, "")
 			if fieldValue == "" {
