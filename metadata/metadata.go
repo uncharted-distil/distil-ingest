@@ -868,8 +868,9 @@ func IngestMetadata(client *elastic.Client, index string, datasetPrefix string, 
 	var origin map[string]interface{}
 	if meta.SearchResult != "" {
 		origin = map[string]interface{}{
-			"searchResult": meta.SearchResult,
-			"provenance":   meta.SearchProvenance,
+			"searchResult":  meta.SearchResult,
+			"provenance":    meta.SearchProvenance,
+			"sourceDataset": meta.SourceDataset,
 		}
 	}
 
