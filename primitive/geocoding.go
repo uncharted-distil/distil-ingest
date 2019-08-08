@@ -195,7 +195,7 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 
 			geocodedData[i] = &GeocodedPoint{
 				D3MIndex:    d3mIndex,
-				SourceField: col,
+				SourceField: col.Name,
 				Latitude:    lat,
 				Longitude:   lon,
 			}
@@ -207,13 +207,13 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 	return geocodedFields, nil
 }
 
-func geocodeColumns(meta *model.Metadata) []string {
+func geocodeColumns(meta *model.Metadata) []*model.Variable {
 	// cycle throught types to determine columns to geocode.
-	colsToGeocode := make([]string, 0)
+	colsToGeocode := make([]*model.Variable, 0)
 	for _, v := range meta.DataResources[0].Variables {
 		for _, t := range v.SuggestedTypes {
 			if isLocationType(t.Type) {
-				colsToGeocode = append(colsToGeocode, v.Name)
+				colsToGeocode = append(colsToGeocode, v)
 			}
 		}
 	}
