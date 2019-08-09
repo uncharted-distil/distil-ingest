@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/uncharted-distil/distil-ingest.svg?style=svg&circle-token=b53431703f25a09b518e948735d679a8bfb7b04a)](https://circleci.com/gh/uncharted-distil/distil-ingest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/uncharted-distil/distil-ingest)](https://goreportcard.com/report/github.com/uncharted-distil/distil-ingest)
-
+[![GolangCI](https://golangci.com/badges/github.com/uncharted-distil/distil-ingest.svg)](https://golangci.com/r/github.com/uncharted-distil/distil-ingest)
 ## Dependencies
 
 Requires the [Go](https://golang.org/) programming language binaries with the `GOPATH` environment variable specified and `$GOPATH/bin` in your `PATH`.
