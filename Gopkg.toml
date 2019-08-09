@@ -51,7 +51,7 @@
 
 [[constraint]]
   name = "github.com/uncharted-distil/distil-compute"
-  branch = "goat-column-update"
+  branch = "master"
 
 [[override]]
   name = "github.com/unchartedsoftware/plog"
