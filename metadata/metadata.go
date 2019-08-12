@@ -26,7 +26,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -44,8 +43,6 @@ import (
 type DatasetSource string
 
 const (
-	datasetSuffix = "_dataset"
-
 	// ProvenanceSimon identifies the type provenance as Simon
 	ProvenanceSimon = "d3m.primitives.distil.simon"
 	// ProvenanceSchema identifies the type provenance as schema
@@ -66,7 +63,6 @@ const (
 
 var (
 	typeProbabilityThreshold = 0.8
-	nameRegex                = regexp.MustCompile("[^a-zA-Z0-9]")
 )
 
 type classificationData struct {

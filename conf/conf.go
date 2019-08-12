@@ -15,8 +15,6 @@
 
 package conf
 
-var config *Conf
-
 // Conf represents all the ingest runtime flags passed to the binary.
 type Conf struct {
 	// elasticsearch config

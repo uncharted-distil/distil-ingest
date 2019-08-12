@@ -37,7 +37,6 @@ import (
 
 const (
 	timeout                  = time.Second * 60 * 5
-	errSampleSize            = 10
 	metadataIndexName        = "datasets"
 	typeSourceClassification = "classification"
 )
