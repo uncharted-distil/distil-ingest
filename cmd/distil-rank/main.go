@@ -16,13 +16,9 @@
 package main
 
 import (
-	"bytes"
-	"encoding/csv"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/unchartedsoftware/plog"
@@ -31,18 +27,6 @@ import (
 	"github.com/uncharted-distil/distil-compute/primitive/compute"
 	"github.com/uncharted-distil/distil-ingest/primitive"
 )
-
-func splitAndTrim(arg string) []string {
-	var res []string
-	if arg == "" {
-		return res
-	}
-	split := strings.Split(arg, ",")
-	for _, str := range split {
-		res = append(res, strings.TrimSpace(str))
-	}
-	return res
-}
 
 func main() {
 
@@ -142,50 +126,4 @@ func main() {
 	}
 	// run app
 	app.Run(os.Args)
-}
-
-func getMergedData(header []string, datasetPath string, hasHeader bool, rowLimit int) ([]byte, error) {
-	// Copy source to destination.
-	file, err := os.Open(datasetPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open source file")
-	}
-
-	reader := csv.NewReader(file)
-
-	// output writer
-	output := &bytes.Buffer{}
-	writer := csv.NewWriter(output)
-	if header != nil && len(header) > 0 {
-		err := writer.Write(header)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to write header to file")
-		}
-	}
-
-	count := 0
-	for {
-		line, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, errors.Wrap(err, "failed to read line from file")
-		}
-		if (count > 0 || !hasHeader) && count < rowLimit {
-			err := writer.Write(line)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to write line to file")
-			}
-		}
-		count++
-	}
-	// flush writer
-	writer.Flush()
-
-	// close left
-	err = file.Close()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to close input file")
-	}
-	return output.Bytes(), nil
 }
