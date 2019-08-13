@@ -26,7 +26,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -44,8 +43,6 @@ import (
 type DatasetSource string
 
 const (
-	datasetSuffix = "_dataset"
-
 	// ProvenanceSimon identifies the type provenance as Simon
 	ProvenanceSimon = "d3m.primitives.distil.simon"
 	// ProvenanceSchema identifies the type provenance as schema
@@ -66,7 +63,6 @@ const (
 
 var (
 	typeProbabilityThreshold = 0.8
-	nameRegex                = regexp.MustCompile("[^a-zA-Z0-9]")
 )
 
 type classificationData struct {
@@ -667,18 +663,14 @@ func loadOriginalSchemaVariables(m *model.Metadata, schemaPath string) error {
 		switch resType {
 		case model.ResTypeAudio, model.ResTypeImage, model.ResTypeText:
 			parser = NewMedia(resType)
-			break
 		case model.ResTypeTable:
 			parser = &Table{}
-			break
 		case model.ResTypeTime:
 			parser = &Timeseries{}
-			break
 		case model.ResTypeRaw:
 			parser = &Raw{
 				rootPath: path.Dir(schemaPath),
 			}
-			break
 		default:
 			return errors.Errorf("Unrecognized resource type '%s'", resType)
 		}

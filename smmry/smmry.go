@@ -46,13 +46,16 @@ func summaryAPICall(str string, lines int, apiKey string) ([]byte, error) {
 	url := fmt.Sprintf("http://api.smmry.com/&SM_API_KEY=%s&SM_LENGTH=%d", apiKey, lines)
 	// post req
 	req, err := http.NewRequest("POST", url, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create summary request")
+	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	// client
 	client := &http.Client{}
 	// send it
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "Summary request failed")
+		return nil, errors.Wrap(err, "summary request failed")
 	}
 	defer resp.Body.Close()
 	// parse response body

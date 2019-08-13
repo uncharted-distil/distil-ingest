@@ -101,8 +101,8 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 	for i, line := range lines {
 		geocodedFields := indexedData[line[d3mIndexVariable]]
 		for _, geo := range geocodedFields {
-			line = append(line, fmt.Sprintf("%s", geo.Latitude))
-			line = append(line, fmt.Sprintf("%s", geo.Longitude))
+			line = append(line, geo.Latitude)
+			line = append(line, geo.Longitude)
 		}
 		lines[i] = line
 	}
@@ -184,8 +184,8 @@ func (s *IngestStep) GeocodeForward(meta *model.Metadata, dataset string) ([][]*
 		// pull the d3m index as well as the lat & lon
 		geocodedData := make([]*GeocodedPoint, len(res)-1)
 		header := toStringArray(res[0])
-		latIndex := getFieldIndex(header, fmt.Sprintf("%s_latitude", col))
-		lonIndex := getFieldIndex(header, fmt.Sprintf("%s_longitude", col))
+		latIndex := getFieldIndex(header, fmt.Sprintf("%s_latitude", col.Name))
+		lonIndex := getFieldIndex(header, fmt.Sprintf("%s_longitude", col.Name))
 		d3mIndexIndex := getFieldIndex(header, model.D3MIndexName)
 		for i, v := range res[1:] {
 			lat := v[latIndex].(string)

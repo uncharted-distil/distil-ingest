@@ -19,7 +19,6 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/unchartedsoftware/plog"
@@ -28,18 +27,6 @@ import (
 	"github.com/uncharted-distil/distil-compute/primitive/compute"
 	"github.com/uncharted-distil/distil-ingest/primitive"
 )
-
-func splitAndTrim(arg string) []string {
-	var res []string
-	if arg == "" {
-		return res
-	}
-	split := strings.Split(arg, ",")
-	for _, str := range split {
-		res = append(res, strings.TrimSpace(str))
-	}
-	return res
-}
 
 func main() {
 

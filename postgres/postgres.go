@@ -223,6 +223,9 @@ func (d *Database) CreateResultTable(tableName string) error {
 	// an error is returned. May as well ignore it since a serious problem
 	// will cause errors on the other statements as well.
 	err := d.DropTable(resultTableName)
+	if err != nil {
+		return err
+	}
 
 	// Create the variable table.
 	log.Infof("Creating result table %s", resultTableName)
@@ -243,6 +246,9 @@ func (d *Database) StoreMetadata(tableName string) error {
 	// an error is returned. May as well ignore it since a serious problem
 	// will cause errors on the other statements as well.
 	err := d.DropTable(variableTableName)
+	if err != nil {
+		return err
+	}
 
 	// Create the variable table.
 	log.Infof("Creating variable table %s", variableTableName)
@@ -367,7 +373,7 @@ func (d *Database) AddWordStems(data []string) error {
 // DropTable drops the specified table from the database.
 func (d *Database) DropTable(tableName string) error {
 	log.Infof("Dropping table %s", tableName)
-	drop := fmt.Sprintf("DROP TABLE %s;", tableName)
+	drop := fmt.Sprintf("DROP TABLE IF EXISTS %s;", tableName)
 	_, err := d.DB.Exec(drop)
 	log.Infof("Dropped table %s", tableName)
 
@@ -377,7 +383,7 @@ func (d *Database) DropTable(tableName string) error {
 // DropView drops the specified view from the database.
 func (d *Database) DropView(viewName string) error {
 	log.Infof("Dropping view %s", viewName)
-	drop := fmt.Sprintf("DROP VIEW %s;", viewName)
+	drop := fmt.Sprintf("DROP VIEW IF EXISTS %s;", viewName)
 	_, err := d.DB.Exec(drop)
 	log.Infof("Dropped view %s", viewName)
 

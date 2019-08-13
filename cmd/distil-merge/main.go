@@ -28,10 +28,6 @@ import (
 	"github.com/uncharted-distil/distil-ingest/primitive"
 )
 
-const (
-	d3mIndexColName = "d3mIndex"
-)
-
 func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
