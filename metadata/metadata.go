@@ -663,18 +663,14 @@ func loadOriginalSchemaVariables(m *model.Metadata, schemaPath string) error {
 		switch resType {
 		case model.ResTypeAudio, model.ResTypeImage, model.ResTypeText:
 			parser = NewMedia(resType)
-			break
 		case model.ResTypeTable:
 			parser = &Table{}
-			break
 		case model.ResTypeTime:
 			parser = &Timeseries{}
-			break
 		case model.ResTypeRaw:
 			parser = &Raw{
 				rootPath: path.Dir(schemaPath),
 			}
-			break
 		default:
 			return errors.Errorf("Unrecognized resource type '%s'", resType)
 		}

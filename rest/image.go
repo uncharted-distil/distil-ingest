@@ -56,7 +56,7 @@ func (f *Featurizer) FeaturizeImage(filename string) (*ImageResult, error) {
 	}
 
 	// response is a json of objects and text found in the image
-	imageData := make(map[string]interface{}, 0)
+	imageData := make(map[string]interface{})
 	err = json.Unmarshal(result, &imageData)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to unmarshal image response")
@@ -89,7 +89,7 @@ func (f *Featurizer) ClusterImages(filenames []string) (*ImageResult, error) {
 	}
 
 	// response is a json of objects and text found in the image
-	imageData := make(map[string]interface{}, 0)
+	imageData := make(map[string]interface{})
 	err = json.Unmarshal(result, &imageData)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to unmarshal image response")
