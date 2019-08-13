@@ -108,7 +108,7 @@ func ClusterDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, sour
 			l = append(l, clusteredImages[imagePath])
 		}
 
-		writer.Write(l)
+		err = writer.Write(l)
 		if err != nil {
 			return errors.Wrap(err, "error storing featured output")
 		}

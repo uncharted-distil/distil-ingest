@@ -112,7 +112,7 @@ func FeaturizeDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, so
 			line = append(line, feature)
 		}
 
-		writer.Write(line)
+		err = writer.Write(line)
 		if err != nil {
 			return errors.Wrap(err, "error storing featured output")
 		}
