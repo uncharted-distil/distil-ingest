@@ -56,9 +56,9 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 
 	// create & submit the solution request
 	var pip *pipeline.PipelineDescription
-	timeseries, refResId, _ := isTimeseriesDataset(meta)
+	timeseries, refResID, _ := isTimeseriesDataset(meta)
 	if timeseries {
-		pip, err = description.CreateTimeseriesFormatterPipeline("Time Cop", "", refResId)
+		pip, err = description.CreateTimeseriesFormatterPipeline("Time Cop", "", refResID)
 		if err != nil {
 			return errors.Wrap(err, "unable to create denormalize pipeline")
 		}
