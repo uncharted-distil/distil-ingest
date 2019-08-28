@@ -36,8 +36,12 @@ func (s *IngestStep) Clean(dataset string, outputFolder string) error {
 	sourceFolder := path.Dir(dataset)
 
 	// copy the source folder to have all the linked files for merging
-	os.MkdirAll(outputFolder, os.ModePerm)
-	err := copy.Copy(sourceFolder, outputFolder)
+	err := os.MkdirAll(outputFolder, os.ModePerm)
+	if err != nil {
+		return errors.Wrap(err, "unable to make output folder")
+	}
+
+	err = copy.Copy(sourceFolder, outputFolder)
 	if err != nil {
 		return errors.Wrap(err, "unable to copy source data")
 	}
