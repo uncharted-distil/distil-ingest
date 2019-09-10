@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	unicornResultFieldName = "pred_class"
-	slothResultFieldName   = "0"
+	unicornResultFieldName = "label"
+	slothResultFieldName   = "cluster_labels"
 )
 
 // Cluster will cluster the dataset fields using a primitive.
