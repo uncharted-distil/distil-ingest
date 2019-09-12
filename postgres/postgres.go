@@ -87,7 +87,8 @@ const (
 	solutionFeatureWeightTableCreationSQL = `CREATE TABLE %s (
 			solution_id	varchar(200),
 			feature_name	varchar(100),
-			score		double precision
+			feature_index int,
+			weight		double precision
 		);`
 	solutionScoreTableCreationSQL = `CREATE TABLE %s (
 			solution_id	varchar(200),
