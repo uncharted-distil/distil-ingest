@@ -70,7 +70,7 @@ func NewIngestStep(client *compute.Client) *IngestStep {
 
 func (s *IngestStep) submitPrimitive(datasets []string, step *pipeline.PipelineDescription) (string, error) {
 
-	res, err := s.client.ExecutePipeline(context.Background(), datasets, step)
+	res, err := s.client.ExecutePipeline(context.Background(), datasets, step, true)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to dispatch mocked pipeline")
 	}
