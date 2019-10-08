@@ -16,7 +16,6 @@
 package primitive
 
 import (
-	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -70,12 +69,37 @@ func NewIngestStep(client *compute.Client) *IngestStep {
 
 func (s *IngestStep) submitPrimitive(datasets []string, step *pipeline.PipelineDescription) (string, error) {
 
-	res, err := s.client.ExecutePipeline(context.Background(), datasets, step)
+	request := compute.NewExecPipelineRequest(datasets, step)
+
+	err := request.Dispatch(s.client, nil)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to dispatch mocked pipeline")
+		return "", errors.Wrap(err, "unable to dispatch pipeline")
 	}
-	resultURI := strings.Replace(res.ResultURI, "file://", "", -1)
-	return resultURI, nil
+
+	// listen for completion
+	var errPipeline error
+	var datasetURI string
+	err = request.Listen(func(status compute.ExecPipelineStatus) {
+		// check for error
+		if status.Error != nil {
+			errPipeline = status.Error
+		}
+
+		if status.Progress == compute.RequestCompletedStatus {
+			datasetURI = status.ResultURI
+		}
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "unable to listen to pipeline")
+	}
+
+	if errPipeline != nil {
+		return "", errors.Wrap(errPipeline, "error executing pipeline")
+	}
+
+	datasetURI = strings.Replace(datasetURI, "file://", "", -1)
+
+	return datasetURI, nil
 }
 
 func (s *IngestStep) readCSVFile(filename string, hasHeader bool) ([][]string, error) {
