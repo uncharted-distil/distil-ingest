@@ -18,6 +18,7 @@ package main
 import (
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/pkg/errors"
 	log "github.com/unchartedsoftware/plog"
@@ -70,7 +71,7 @@ func main() {
 
 		// initialize client
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", 60, 10, true, nil)
+		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", 60*time.Second, 10, true, nil)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
