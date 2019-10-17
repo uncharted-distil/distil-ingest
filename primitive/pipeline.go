@@ -24,6 +24,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
@@ -41,6 +42,10 @@ const (
 	D3MSchemaPathRelative = "datasetDoc.json"
 	// D3MDataPathRelative is the standard name of the data file.
 	D3MDataPathRelative = "tables/learningData.csv"
+	// TA2Timeout is the maximum time to wait on a message from TA2.
+	TA2Timeout = 5 * 60 * time.Second
+	// TA2PullMax is the maximum messages to pull while waiting for results from TA2.
+	TA2PullMax = 1000
 
 	denormFieldName = "filename"
 )
@@ -90,7 +95,7 @@ func (s *IngestStep) submitPrimitive(datasets []string, step *pipeline.PipelineD
 		}
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "unable to listen to pipeline")
+		return "", err
 	}
 
 	if errPipeline != nil {
