@@ -84,9 +84,11 @@ func (s *IngestStep) GeocodeForwardUpdate(schemaFile string, classificationPath 
 	fields := make(map[string][]*model.Variable)
 	for _, field := range geocodedData {
 		latName, lonName := getLatLonVariableNames(field[0].SourceField)
+		latDesc := fmt.Sprintf("latitude obtained from field %s", field[0].SourceField)
+		lonDesc := fmt.Sprintf("longitude obtained from field %s", field[0].SourceField)
 		fields[field[0].SourceField] = []*model.Variable{
-			model.NewVariable(len(mainDR.Variables), latName, "label", latName, "string", "string", []string{"attribute"}, model.VarRoleMetadata, nil, mainDR.Variables, false),
-			model.NewVariable(len(mainDR.Variables)+1, lonName, "label", lonName, "string", "string", []string{"attribute"}, model.VarRoleMetadata, nil, mainDR.Variables, false),
+			model.NewVariable(len(mainDR.Variables), latName, "label", latName, "string", "string", latDesc, []string{"attribute"}, model.VarRoleMetadata, nil, mainDR.Variables, false),
+			model.NewVariable(len(mainDR.Variables)+1, lonName, "label", lonName, "string", "string", lonDesc, []string{"attribute"}, model.VarRoleMetadata, nil, mainDR.Variables, false),
 		}
 		mainDR.Variables = append(mainDR.Variables, fields[field[0].SourceField]...)
 		for _, gc := range field {

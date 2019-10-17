@@ -42,13 +42,14 @@ const (
 			value		varchar(200)
 		);`
 
-	requestTableName        = "request"
-	solutionTableName       = "solution"
-	solutionResultTableName = "solution_result"
-	solutionScoreTableName  = "solution_score"
-	requestFeatureTableName = "request_feature"
-	requestFilterTableName  = "request_filter"
-	wordStemTableName       = "word_stem"
+	requestTableName               = "request"
+	solutionTableName              = "solution"
+	solutionFeatureWeightTableName = "solution_feature"
+	solutionResultTableName        = "solution_result"
+	solutionScoreTableName         = "solution_score"
+	requestFeatureTableName        = "request_feature"
+	requestFilterTableName         = "request_filter"
+	wordStemTableName              = "word_stem"
 
 	requestTableCreationSQL = `CREATE TABLE %s (
 			request_id			varchar(200),
@@ -82,6 +83,12 @@ const (
 			filter_max_y		double precision,
 			filter_categories	varchar(200),
 			filter_indices		varchar(200)
+		);`
+	solutionFeatureWeightTableCreationSQL = `CREATE TABLE %s (
+			solution_id	varchar(200),
+			feature_name	varchar(100),
+			feature_index int,
+			weight		double precision
 		);`
 	solutionScoreTableCreationSQL = `CREATE TABLE %s (
 			solution_id	varchar(200),
@@ -173,6 +180,12 @@ func (d *Database) CreateSolutionMetadataTables() error {
 
 	d.DropTable(solutionTableName)
 	_, err = d.DB.Exec(fmt.Sprintf(solutionTableCreationSQL, solutionTableName))
+	if err != nil {
+		return err
+	}
+
+	d.DropTable(solutionFeatureWeightTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(solutionFeatureWeightTableCreationSQL, solutionFeatureWeightTableName))
 	if err != nil {
 		return err
 	}

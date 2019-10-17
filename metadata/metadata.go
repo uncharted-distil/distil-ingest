@@ -284,6 +284,7 @@ func loadRawVariables(datasetPath string) (*model.DataResource, error) {
 			"",
 			"",
 			"",
+			"",
 			[]string{"attribute"},
 			model.VarRoleData,
 			nil,
@@ -497,6 +498,11 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 		varType = model.MapLLType(varType)
 	}
 
+	varDescription := ""
+	if v.Path("colDescription").Data() != nil {
+		varDescription = v.Path("colDescription").Data().(string)
+	}
+
 	varIndex := 0
 	if v.Path("colIndex").Data() != nil {
 		varIndex = int(v.Path("colIndex").Data().(float64))
@@ -562,6 +568,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 		varOriginalName,
 		varType,
 		varType,
+		varDescription,
 		varRoles,
 		varDistilRole,
 		refersTo,

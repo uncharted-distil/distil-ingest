@@ -99,7 +99,7 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 		v := vars[fieldName]
 		if v == nil {
 			// create new variables (ex: series_id)
-			v = model.NewVariable(i, fieldName, fieldName, fieldName, model.StringType, model.StringType, []string{"attribute"}, model.VarRoleData, nil, outputMeta.DataResources[0].Variables, false)
+			v = model.NewVariable(i, fieldName, fieldName, fieldName, model.StringType, model.StringType, "", []string{"attribute"}, model.VarRoleData, nil, outputMeta.DataResources[0].Variables, false)
 		}
 		v.Index = i
 		outputMeta.DataResources[0].Variables = append(outputMeta.DataResources[0].Variables, v)
