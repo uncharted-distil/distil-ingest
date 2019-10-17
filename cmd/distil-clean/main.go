@@ -82,7 +82,7 @@ func main() {
 
 		// initialize client
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2MaxPull, true, nil)
+		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2PullMax, true, nil)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
