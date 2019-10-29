@@ -74,7 +74,7 @@ func NewIngestStep(client *compute.Client) *IngestStep {
 
 func (s *IngestStep) submitPrimitive(datasets []string, step *pipeline.PipelineDescription) (string, error) {
 
-	request := compute.NewExecPipelineRequest(datasets, step)
+	request := compute.NewExecPipelineRequest(datasets, nil, step)
 
 	err := request.Dispatch(s.client, nil)
 	if err != nil {

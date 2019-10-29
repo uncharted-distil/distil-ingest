@@ -389,6 +389,10 @@ func ingestPostgres(config *conf.Conf, meta *model.Metadata) error {
 		if err != nil {
 			log.Warn(err)
 		}
+		err = pg.DropTable(fmt.Sprintf("%s_explain", dbTableName))
+		if err != nil {
+			log.Warn(err)
+		}
 	}
 
 	// Create the database table.
