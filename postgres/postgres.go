@@ -42,14 +42,13 @@ const (
 			value		varchar(200)
 		);`
 
-	requestTableName               = "request"
-	solutionTableName              = "solution"
-	solutionFeatureWeightTableName = "solution_feature"
-	solutionResultTableName        = "solution_result"
-	solutionScoreTableName         = "solution_score"
-	requestFeatureTableName        = "request_feature"
-	requestFilterTableName         = "request_filter"
-	wordStemTableName              = "word_stem"
+	requestTableName        = "request"
+	solutionTableName       = "solution"
+	solutionResultTableName = "solution_result"
+	solutionScoreTableName  = "solution_score"
+	requestFeatureTableName = "request_feature"
+	requestFilterTableName  = "request_filter"
+	wordStemTableName       = "word_stem"
 
 	requestTableCreationSQL = `CREATE TABLE %s (
 			request_id			varchar(200),
@@ -85,10 +84,8 @@ const (
 			filter_indices		varchar(200)
 		);`
 	solutionFeatureWeightTableCreationSQL = `CREATE TABLE %s (
-			solution_id	varchar(200),
-			feature_name	varchar(100),
-			feature_index int,
-			weight		double precision
+			result_id	varchar(1000)	NOT NULL,
+			%s
 		);`
 	solutionScoreTableCreationSQL = `CREATE TABLE %s (
 			solution_id	varchar(200),
@@ -110,6 +107,7 @@ const (
 
 	resultTableSuffix   = "_result"
 	variableTableSuffix = "_variable"
+	explainTableSuffix  = "_explain"
 )
 
 var (
@@ -184,12 +182,6 @@ func (d *Database) CreateSolutionMetadataTables() error {
 		return err
 	}
 
-	d.DropTable(solutionFeatureWeightTableName)
-	_, err = d.DB.Exec(fmt.Sprintf(solutionFeatureWeightTableCreationSQL, solutionFeatureWeightTableName))
-	if err != nil {
-		return err
-	}
-
 	d.DropTable(solutionResultTableName)
 	_, err = d.DB.Exec(fmt.Sprintf(solutionResultTableCreationSQL, solutionResultTableName))
 	if err != nil {
@@ -203,7 +195,7 @@ func (d *Database) CreateSolutionMetadataTables() error {
 	}
 
 	// do not drop the word stem table as we want it to include all words.
-	_, err = d.DB.Exec(fmt.Sprintf(wordStemsTableCreationSQL, wordStemTableName))
+	d.DB.Exec(fmt.Sprintf(wordStemsTableCreationSQL, wordStemTableName))
 	// ignore the error in the word stem creation.
 	// Almost certainly due to the table already existing.
 
@@ -289,11 +281,13 @@ func (d *Database) DeleteDataset(name string) {
 	baseName := fmt.Sprintf("%s_base", name)
 	resultName := fmt.Sprintf("%s%s", name, resultTableSuffix)
 	variableName := fmt.Sprintf("%s%s", name, variableTableSuffix)
+	explainName := fmt.Sprintf("%s%s", name, explainTableSuffix)
 
 	d.DropView(name)
 	d.DropTable(baseName)
 	d.DropTable(resultName)
 	d.DropTable(variableName)
+	d.DropTable(explainName)
 }
 
 // IngestRow parses the raw csv data and stores it to the table specified.
@@ -407,21 +401,24 @@ func (d *Database) DropView(viewName string) error {
 func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	d.Tables[tableName] = ds
 
-	// Create the view and table statements.
+	// Create the view and table statements as well as the feature weight table.
 	// The table has everything stored as a string.
 	// The view uses casting to set the types.
 	createStatementTable := `CREATE TABLE %s_base (%s);`
 	createStatementView := `CREATE VIEW %s AS SELECT %s FROM %s_base;`
 	varsTable := ""
 	varsView := ""
+	varsExplain := ""
 	for _, variable := range ds.Variables {
 		varsTable = fmt.Sprintf("%s\n\"%s\" TEXT,", varsTable, variable.Name)
+		varsExplain = fmt.Sprintf("%s\n\"%s\" DOUBLE PRECISION,", varsExplain, variable.Name)
 		varsView = fmt.Sprintf("%s\nCOALESCE(CAST(\"%s\" AS %s), %v) AS \"%s\",",
 			varsView, variable.Name, api.MapD3MTypeToPostgresType(variable.Type), api.DefaultPostgresValueFromD3MType(variable.Type), variable.Name)
 	}
 	if len(varsTable) > 0 {
 		varsTable = varsTable[:len(varsTable)-1]
 		varsView = varsView[:len(varsView)-1]
+		varsExplain = varsExplain[:len(varsExplain)-1]
 	}
 	createStatementTable = fmt.Sprintf(createStatementTable, tableName, varsTable)
 	log.Infof("Creating table %s_base", tableName)
@@ -435,8 +432,18 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	createStatementView = fmt.Sprintf(createStatementView, tableName, varsView, tableName)
 	log.Infof("Creating view %s", tableName)
 
-	// Create the table.
+	// Create the view.
 	_, err = d.DB.Exec(createStatementView)
+	if err != nil {
+		return err
+	}
+
+	explainName := fmt.Sprintf("%s%s", tableName, explainTableSuffix)
+	createStatementExplain := fmt.Sprintf(solutionFeatureWeightTableCreationSQL, explainName, varsExplain)
+	log.Infof("Creating table %s", explainName)
+
+	// Create the feature weight table.
+	_, err = d.DB.Exec(createStatementExplain)
 	if err != nil {
 		return err
 	}
