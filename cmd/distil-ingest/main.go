@@ -273,7 +273,6 @@ func main() {
 		err = metadata.LoadImportance(meta, config.ImportancePath)
 		if err != nil {
 			log.Error(err)
-			os.Exit(1)
 		}
 
 		// load summary
