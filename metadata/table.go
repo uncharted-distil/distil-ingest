@@ -18,7 +18,7 @@ package metadata
 import (
 	"fmt"
 
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/model"
@@ -30,9 +30,9 @@ type Table struct {
 
 // Parse extracts the data resource from the data schema document.
 func (r *Table) Parse(res *gabs.Container) (*model.DataResource, error) {
-	schemaVariables, err := res.Path("columns").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse column data")
+	schemaVariables := res.Path("columns").Children()
+	if schemaVariables == nil {
+		return nil, errors.New("failed to parse column data")
 	}
 
 	if res.Path("resID").Data() == nil {
@@ -47,9 +47,9 @@ func (r *Table) Parse(res *gabs.Container) (*model.DataResource, error) {
 
 	var resFormats []string
 	if res.Path("resFormat").Data() != nil {
-		formatsRaw, err := res.Path("resFormat").Children()
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to parse resource format")
+		formatsRaw := res.Path("resFormat").Children()
+		if formatsRaw == nil {
+			return nil, errors.New("unable to parse resource format")
 		}
 		resFormats = make([]string, len(formatsRaw))
 		for i, r := range formatsRaw {

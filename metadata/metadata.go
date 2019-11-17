@@ -29,7 +29,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/pkg/errors"
 	log "github.com/unchartedsoftware/plog"
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -217,14 +217,14 @@ func parseClassificationFile(classificationPath string) (*classificationData, er
 		return nil, errors.Wrap(err, "failed to load classification")
 	}
 
-	labels, err := classification.Path("labels").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse classification labels")
+	labels := classification.Path("labels").Children()
+	if labels == nil {
+		return nil, errors.New("failed to parse classification labels")
 	}
 
-	probabilities, err := classification.Path("label_probabilities").Children()
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to parse classification probabilities")
+	probabilities := classification.Path("label_probabilities").Children()
+	if probabilities == nil {
+		return nil, errors.New("Unable to parse classification probabilities")
 	}
 
 	return &classificationData{
@@ -337,9 +337,9 @@ func LoadImportance(m *model.Metadata, importanceFile string) error {
 	// NOTE: Assume all variables in a single resource since that is
 	// how we would submit to ranking.
 	if importance.Path("features").Data() != nil {
-		metric, err := importance.Path("features").Children()
-		if err != nil {
-			return errors.Wrap(err, "features attribute missing from file")
+		metric := importance.Path("features").Children()
+		if metric == nil {
+			return errors.New("features attribute missing from file")
 		}
 		for index, v := range m.DataResources[0].Variables {
 			// geocoded variables added after ranking on ingest
@@ -510,9 +510,9 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 
 	var varRoles []string
 	if v.Path("role").Data() != nil {
-		rolesRaw, err := v.Path("role").Children()
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to parse column role")
+		rolesRaw := v.Path("role").Children()
+		if rolesRaw == nil {
+			return nil, errors.New("unable to parse column role")
 		}
 		varRoles = make([]string, len(rolesRaw))
 		for i, r := range rolesRaw {
@@ -543,12 +543,12 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 		}
 
 		if refersToData.Path("resObject").Data() != nil {
-			resObjectMap, err := refersToData.Path("resObject").ChildrenMap()
-			if err != nil {
+			resObjectMap := refersToData.Path("resObject").ChildrenMap()
+			if resObjectMap == nil {
 				// see if it is maybe a string and if it is, ignore
 				data, ok := refersToData.Path("resObject").Data().(string)
 				if !ok {
-					return nil, errors.Wrapf(err, "unable to parse resObject")
+					return nil, errors.New("unable to parse resObject")
 				}
 				refersTo["resObject"] = data
 			} else {
@@ -600,9 +600,9 @@ func cleanVarType(m *model.Metadata, name string, typ string) string {
 func parseClassification(m *model.Metadata, index int, labels []*gabs.Container) (string, error) {
 	// parse classification
 	col := labels[index]
-	varTypeLabels, err := col.Children()
-	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", col))
+	varTypeLabels := col.Children()
+	if varTypeLabels == nil {
+		return "", errors.Errorf("failed to parse classification for column `%d`", col)
 	}
 	if len(varTypeLabels) > 0 {
 		// TODO: fix so we don't always just use first classification
@@ -620,13 +620,13 @@ func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*ga
 	// parse probabilities
 	labelsCol := labels[index]
 	probabilitiesCol := probabilities[index]
-	varTypeLabels, err := labelsCol.Children()
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse classification for column `%d`", labelsCol))
+	varTypeLabels := labelsCol.Children()
+	if varTypeLabels == nil {
+		return nil, errors.Errorf("failed to parse classification for column `%d`", labelsCol)
 	}
-	varProbabilities, err := probabilitiesCol.Children()
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed to parse probabilities for column `%d`", probabilitiesCol))
+	varProbabilities := probabilitiesCol.Children()
+	if varProbabilities == nil {
+		return nil, errors.Errorf("failed to parse probabilities for column `%d`", probabilitiesCol)
 	}
 	var suggested []*model.SuggestedType
 	for index, label := range varTypeLabels {
@@ -653,9 +653,9 @@ func parseSuggestedTypes(m *model.Metadata, name string, index int, labels []*ga
 }
 
 func loadOriginalSchemaVariables(m *model.Metadata, schemaPath string) error {
-	dataResources, err := m.Schema.Path("dataResources").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse data resources")
+	dataResources := m.Schema.Path("dataResources").Children()
+	if dataResources == nil {
+		return errors.New("failed to parse data resources")
 	}
 
 	// Parse the variables for every schema
@@ -693,14 +693,14 @@ func loadOriginalSchemaVariables(m *model.Metadata, schemaPath string) error {
 }
 
 func loadMergedSchemaVariables(m *model.Metadata) error {
-	schemaResources, err := m.Schema.Path("dataResources").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse merged resource data")
+	schemaResources := m.Schema.Path("dataResources").Children()
+	if schemaResources == nil {
+		return errors.New("failed to parse merged resource data")
 	}
 
-	schemaVariables, err := schemaResources[0].Path("columns").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse merged variable data")
+	schemaVariables := schemaResources[0].Path("columns").Children()
+	if schemaVariables == nil {
+		return errors.New("failed to parse merged variable data")
 	}
 
 	// Merged schema has only one set of variables
@@ -720,24 +720,24 @@ func loadMergedSchemaVariables(m *model.Metadata) error {
 }
 
 func loadClassificationVariables(m *model.Metadata, normalizeVariableNames bool) error {
-	schemaResources, err := m.Schema.Path("dataResources").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse merged resource data")
+	schemaResources := m.Schema.Path("dataResources").Children()
+	if schemaResources == nil {
+		return errors.New("failed to parse merged resource data")
 	}
 
-	schemaVariables, err := schemaResources[0].Path("columns").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse merged variable data")
+	schemaVariables := schemaResources[0].Path("columns").Children()
+	if schemaVariables == nil {
+		return errors.New("failed to parse merged variable data")
 	}
 
-	labels, err := m.Classification.Path("labels").Children()
-	if err != nil {
-		return errors.Wrap(err, "failed to parse classification labels")
+	labels := m.Classification.Path("labels").Children()
+	if labels == nil {
+		return errors.New("failed to parse classification labels")
 	}
 
-	probabilities, err := m.Classification.Path("label_probabilities").Children()
-	if err != nil {
-		return errors.Wrap(err, "Unable to parse classification probabilities")
+	probabilities := m.Classification.Path("label_probabilities").Children()
+	if probabilities == nil {
+		return errors.New("Unable to parse classification probabilities")
 	}
 
 	resPath := schemaResources[0].Path("resPath").Data().(string)

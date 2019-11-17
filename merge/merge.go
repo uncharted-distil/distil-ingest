@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/model"
@@ -283,9 +283,9 @@ func InjectFileLinks(meta *model.Metadata, merged []byte, rawDataPath string, me
 
 func parseD3MIndex(schema *gabs.Container, path string) (int, error) {
 	// find the row ID column and store it for quick retrieval
-	trainingArray, err := schema.Path(path).Children()
-	if err != nil {
-		return -1, err
+	trainingArray := schema.Path(path).Children()
+	if trainingArray == nil {
+		return -1, errors.Errorf("failed to parse %s", path)
 	}
 	for index, value := range trainingArray {
 		varDesc := value.Data().(map[string]interface{})

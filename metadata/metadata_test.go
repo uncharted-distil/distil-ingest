@@ -20,7 +20,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/stretchr/testify/assert"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -56,8 +56,8 @@ func TestIngestMetadata(t *testing.T) {
 		assert.Equal(t, reqBody.Path("datasetID").Data().(string), "test_dataset")
 		assert.Equal(t, reqBody.Path("description").Data().(string), string("YOU ARE STANDING AT THE END OF A ROAD BEFORE A SMALL BRICK BUILDING."))
 
-		variables, err := reqBody.Path("variables").Children()
-		assert.NoError(t, err)
+		variables := reqBody.Path("variables").Children()
+		assert.NotNil(t, variables)
 		assert.Equal(t, 3, len(variables))
 		assert.Equal(t, "bravo", variables[0].Path("colName").Data().(string))
 		roles := variables[0].Path("role").Data().([]interface{})
