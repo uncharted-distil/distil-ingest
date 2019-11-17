@@ -23,7 +23,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/pkg/errors"
 )
 

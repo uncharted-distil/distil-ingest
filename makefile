@@ -23,9 +23,7 @@ build: lint
 	@go build ./...
 
 test: build
-	@go test ./... 
+	@go test ./...
 
 install:
 	@go get -u golang.org/x/lint/golint
-	@go get -u github.com/golang/dep/cmd/dep
-	@dep ensure

@@ -16,7 +16,7 @@
 package metadata
 
 import (
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 
 	"github.com/uncharted-distil/distil-compute/model"
 )

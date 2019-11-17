@@ -18,7 +18,7 @@ package metadata
 import (
 	"path"
 
-	"github.com/jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/model"
@@ -44,9 +44,9 @@ func (r *Raw) Parse(res *gabs.Container) (*model.DataResource, error) {
 
 	var resFormats []string
 	if res.Path("resFormat").Data() != nil {
-		formatsRaw, err := res.Path("resFormat").Children()
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to parse resource format")
+		formatsRaw := res.Path("resFormat").Children()
+		if formatsRaw == nil {
+			return nil, errors.New("unable to parse resource format")
 		}
 		resFormats = make([]string, len(formatsRaw))
 		for i, r := range formatsRaw {

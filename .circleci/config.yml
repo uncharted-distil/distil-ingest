@@ -24,7 +24,7 @@ jobs:
       # specify any bash command here prefixed with `run: `
       - run:
           name: build app binary
-          command: /bin/sh -c "dep ensure -v;go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
+          command: /bin/sh -c "go build -i ./cmd/distil-ingest && go build -i ./cmd/distil-merge"
       - run:
           name: build distil
           command: |
