@@ -44,6 +44,7 @@ const (
 
 	requestTableName        = "request"
 	solutionTableName       = "solution"
+	solutionStateTableName  = "solution_state"
 	solutionResultTableName = "solution_result"
 	solutionScoreTableName  = "solution_score"
 	requestFeatureTableName = "request_feature"
@@ -60,9 +61,14 @@ const (
 	solutionTableCreationSQL = `CREATE TABLE %s (
 			request_id		varchar(200),
 			solution_id		varchar(200),
-			progress		varchar(40),
+			initial_search_solution_id varchar(200),
 			created_time	timestamp,
 			deleted         boolean
+		);`
+	solutionStateTableCreationSQL = `CREATE TABLE %s (
+			solution_id		varchar(200),
+			progress		varchar(40),
+			created_time	timestamp
 		);`
 	requestFeatureTableCreationSQL = `CREATE TABLE %s (
 			request_id		varchar(200),
@@ -178,6 +184,12 @@ func (d *Database) CreateSolutionMetadataTables() error {
 
 	d.DropTable(solutionTableName)
 	_, err = d.DB.Exec(fmt.Sprintf(solutionTableCreationSQL, solutionTableName))
+	if err != nil {
+		return err
+	}
+
+	d.DropTable(solutionStateTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(solutionStateTableCreationSQL, solutionStateTableName))
 	if err != nil {
 		return err
 	}
