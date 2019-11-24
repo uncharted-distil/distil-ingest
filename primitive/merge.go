@@ -137,7 +137,7 @@ func (s *IngestStep) Merge(dataset string, outputFolder string) error {
 	outputMeta.DataResources[0].ResPath = relativePath
 
 	// write the new schema to file
-	err = metadata.WriteSchema(outputMeta, outputSchemaPath)
+	err = metadata.WriteSchema(outputMeta, outputSchemaPath, true)
 	if err != nil {
 		return errors.Wrap(err, "unable to store merged schema")
 	}

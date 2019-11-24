@@ -124,7 +124,7 @@ func (s *IngestStep) Featurize(schemaFile string, dataset string,
 	mainDR.ResPath = relativePath
 
 	// write the new schema to file
-	err = metadata.WriteSchema(meta, outputSchemaPath)
+	err = metadata.WriteSchema(meta, outputSchemaPath, true)
 	if err != nil {
 		return errors.Wrap(err, "unable to store feature schema")
 	}

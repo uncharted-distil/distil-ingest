@@ -26,3 +26,5 @@ require (
 	gopkg.in/olivere/elastic.v5 v5.0.76
 	mellium.im/sasl v0.2.1 // indirect
 )
+
+replace github.com/uncharted-distil/distil-compute => ../distil-compute

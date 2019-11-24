@@ -48,7 +48,7 @@ const (
 	// ProvenanceSchema identifies the type provenance as schema
 	ProvenanceSchema = "schema"
 
-	schemaVersion = "3.1.1"
+	schemaVersion = "4.0.0"
 	license       = "Unknown"
 
 	// Seed flags a dataset as ingested from seed data
@@ -822,25 +822,34 @@ func WriteMergedSchema(m *model.Metadata, path string, mergedDataResource *model
 }
 
 // WriteSchema exports the current meta data as a schema file.
-func WriteSchema(m *model.Metadata, path string) error {
+func WriteSchema(m *model.Metadata, path string, extended bool) error {
 	dataResources := make([]interface{}, 0)
-	for _, dr := range m.DataResources {
-		dataResources = append(dataResources, dr)
+
+	about := map[string]interface{}{
+		"datasetID":            m.ID,
+		"datasetName":          m.Name,
+		"description":          m.Description,
+		"datasetSchemaVersion": schemaVersion,
+		"license":              license,
+		"redacted":             m.Redacted,
+	}
+
+	if extended {
+		about["parentDatasetIDs"] = m.ParentDatasetIDs
+		about["storageName"] = m.StorageName
+		about["mergedSchema"] = "false"
+		about["rawData"] = m.Raw
+		for _, dr := range m.DataResources {
+			dataResources = append(dataResources, dr)
+		}
+	} else {
+		for _, dr := range m.DataResources {
+			dataResources = append(dataResources, dr.BaseOnly())
+		}
 	}
 
 	output := map[string]interface{}{
-		"about": map[string]interface{}{
-			"datasetID":            m.ID,
-			"datasetName":          m.Name,
-			"parentDatasetIDs":     m.ParentDatasetIDs,
-			"storageName":          m.StorageName,
-			"description":          m.Description,
-			"datasetSchemaVersion": schemaVersion,
-			"license":              license,
-			"rawData":              m.Raw,
-			"redacted":             m.Redacted,
-			"mergedSchema":         "false",
-		},
+		"about":         about,
 		"dataResources": dataResources,
 	}
 
