@@ -20,7 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/uncharted-distil/distil-ingest/csv"
+	"github.com/uncharted-distil/distil-ingest/pkg/csv"
 )
 
 // SummaryResult represents a REST summary result.

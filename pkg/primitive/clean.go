@@ -25,8 +25,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/primitive/compute/description"
-	"github.com/uncharted-distil/distil-ingest/metadata"
-	"github.com/uncharted-distil/distil-ingest/util"
+	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
+	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
 
 // Clean will clean bad data for further processing.

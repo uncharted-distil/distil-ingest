@@ -24,8 +24,8 @@ import (
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 
-	"github.com/uncharted-distil/distil-ingest/metadata"
-	"github.com/uncharted-distil/distil-ingest/util"
+	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
+	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
 
 const (

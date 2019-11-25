@@ -35,8 +35,8 @@ import (
 	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/rest"
-	"github.com/uncharted-distil/distil-ingest/smmry"
+	"github.com/uncharted-distil/distil-ingest/pkg/rest"
+	"github.com/uncharted-distil/distil-ingest/pkg/smmry"
 )
 
 // DatasetSource flags the type of ingest action that created a dataset

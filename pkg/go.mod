@@ -11,7 +11,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
 	github.com/uncharted-distil/distil-compute v0.0.0-20191117195530-94b082255c3d
-	github.com/uncharted-distil/distil-ingest v0.0.0-20191117211241-2f503fbf2216
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	gopkg.in/olivere/elastic.v5 v5.0.82
 )
