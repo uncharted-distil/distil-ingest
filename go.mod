@@ -16,7 +16,7 @@ require (
 	github.com/otiai10/mint v1.3.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
-	github.com/uncharted-distil/distil-compute v0.0.0-20191117195530-94b082255c3d
+	github.com/uncharted-distil/distil-compute v0.0.0-20191124144139-7c2de416ae78
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f // indirect
@@ -27,4 +27,4 @@ require (
 	mellium.im/sasl v0.2.1 // indirect
 )
 
-replace github.com/uncharted-distil/distil-compute => ../distil-compute
+//replace github.com/uncharted-distil/distil-compute => ../distil-compute
