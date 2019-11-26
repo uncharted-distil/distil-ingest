@@ -24,8 +24,8 @@ import (
 	"github.com/pkg/errors"
 
 	api "github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/conf"
-	"github.com/uncharted-distil/distil-ingest/postgres/model"
+	"github.com/uncharted-distil/distil-ingest/pkg/conf"
+	"github.com/uncharted-distil/distil-ingest/pkg/postgres/model"
 	"github.com/unchartedsoftware/plog"
 )
 

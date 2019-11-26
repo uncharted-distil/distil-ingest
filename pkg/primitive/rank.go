@@ -21,11 +21,11 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	"github.com/uncharted-distil/distil-ingest/rest"
+	"github.com/uncharted-distil/distil-ingest/pkg/rest"
 
 	"github.com/uncharted-distil/distil-compute/primitive/compute/description"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/result"
-	"github.com/uncharted-distil/distil-ingest/util"
+	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
 
 // Rank will rank the dataset using a primitive.

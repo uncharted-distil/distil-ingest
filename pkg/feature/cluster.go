@@ -29,8 +29,8 @@ import (
 	"github.com/unchartedsoftware/plog"
 
 	"github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/metadata"
-	"github.com/uncharted-distil/distil-ingest/rest"
+	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
+	"github.com/uncharted-distil/distil-ingest/pkg/rest"
 )
 
 // ClusterDataset clusters data based on referenced data resources

@@ -26,8 +26,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/metadata"
-	"github.com/uncharted-distil/distil-ingest/util"
+	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
+	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
 
 // Format will format a dataset to have the required structures for D3M.
