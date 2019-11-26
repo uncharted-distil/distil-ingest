@@ -24,7 +24,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/primitive"
+	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
 )
 
 func main() {

@@ -28,8 +28,8 @@ import (
 	"github.com/uncharted-distil/distil-compute/pipeline"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/description"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/result"
-	"github.com/uncharted-distil/distil-ingest/metadata"
-	"github.com/uncharted-distil/distil-ingest/util"
+	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
+	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
 
 // Merge will merge data resources into a single data resource.
