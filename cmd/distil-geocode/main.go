@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
 	"github.com/uncharted-distil/distil-compute/primitive/compute"
