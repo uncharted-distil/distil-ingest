@@ -5,8 +5,8 @@ go 1.13
 require (
 	github.com/onsi/ginkgo v1.10.3 // indirect
 	github.com/onsi/gomega v1.7.1 // indirect
-	github.com/uncharted-distil/distil-compute v0.0.0-20191128174734-b065be9c96c8
-	github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191128165210-771b1e1a039c
+	github.com/uncharted-distil/distil-compute v0.0.0-20191128194323-1fddb7470845
+	github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191128175031-c34fe3ec3212
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	github.com/urfave/cli v1.22.2
 	gopkg.in/olivere/elastic.v5 v5.0.82
