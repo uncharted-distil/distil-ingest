@@ -45,18 +45,9 @@ func (r *Timeseries) Parse(res *gabs.Container) (*model.DataResource, error) {
 	}
 	resPath := res.Path("resPath").Data().(string)
 
-	var resFormats []string
-	if res.Path("resFormat").Data() != nil {
-		formatsRaw := res.Path("resFormat").Children()
-		if formatsRaw == nil {
-			return nil, errors.New("unable to parse resource format")
-		}
-		resFormats = make([]string, len(formatsRaw))
-		for i, r := range formatsRaw {
-			resFormats[i] = r.Data().(string)
-		}
-	} else {
-		resFormats = make([]string, 0)
+	resFormats, err := parseResFormats(res)
+	if err != nil {
+		return nil, err
 	}
 
 	dr := &model.DataResource{

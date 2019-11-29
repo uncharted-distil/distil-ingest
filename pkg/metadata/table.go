@@ -45,18 +45,9 @@ func (r *Table) Parse(res *gabs.Container) (*model.DataResource, error) {
 	}
 	resPath := res.Path("resPath").Data().(string)
 
-	var resFormats []string
-	if res.Path("resFormat").Data() != nil {
-		formatsRaw := res.Path("resFormat").Children()
-		if formatsRaw == nil {
-			return nil, errors.New("unable to parse resource format")
-		}
-		resFormats = make([]string, len(formatsRaw))
-		for i, r := range formatsRaw {
-			resFormats[i] = r.Data().(string)
-		}
-	} else {
-		resFormats = make([]string, 0)
+	resFormats, err := parseResFormats(res)
+	if err != nil {
+		return nil, err
 	}
 
 	dr := &model.DataResource{
@@ -77,4 +68,29 @@ func (r *Table) Parse(res *gabs.Container) (*model.DataResource, error) {
 	}
 
 	return dr, nil
+}
+
+func parseResFormats(res *gabs.Container) (map[string][]string, error) {
+	var resFormats map[string][]string
+	if res.Path("resFormat").Data() != nil {
+		formatsRaw := res.Path("resFormat").ChildrenMap()
+		if formatsRaw == nil {
+			return nil, errors.New("unable to parse resource format")
+		}
+		resFormats = make(map[string][]string)
+		for typ, r := range formatsRaw {
+			formatsNestedRaw := r.Children()
+			if formatsNestedRaw == nil {
+				return nil, errors.New("unable to parse nested resource format")
+			}
+			resFormats[typ] = make([]string, len(formatsNestedRaw))
+			for j, rn := range formatsNestedRaw {
+				resFormats[typ][j] = rn.Data().(string)
+			}
+		}
+	} else {
+		resFormats = make(map[string][]string, 0)
+	}
+
+	return resFormats, nil
 }
