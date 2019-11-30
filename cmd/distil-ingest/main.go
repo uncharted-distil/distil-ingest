@@ -29,9 +29,9 @@ import (
 	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/conf"
-	"github.com/uncharted-distil/distil-ingest/metadata"
-	"github.com/uncharted-distil/distil-ingest/postgres"
+	"github.com/uncharted-distil/distil-ingest/pkg/conf"
+	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
+	"github.com/uncharted-distil/distil-ingest/pkg/postgres"
 	log "github.com/unchartedsoftware/plog"
 )
 

@@ -23,11 +23,11 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/unchartedsoftware/plog"
+	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
 	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/primitive"
+	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
 )
 
 func splitAndTrim(arg string) []string {
