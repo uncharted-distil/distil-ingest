@@ -59,10 +59,10 @@ github.com/smartystreets/go-aws-auth v0.0.0-20180515143844-0c1422d1fdb9/go.mod h
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
-github.com/uncharted-distil/distil-compute v0.0.0-20191203030354-c100460018ab h1:XU96cmiH+RbYOYwnPE4F8dmH1InoaYSVBs/q/UBXSd4=
-github.com/uncharted-distil/distil-compute v0.0.0-20191203030354-c100460018ab/go.mod h1:lCed3xOxkH+WkNFw6ex4s92J3b3MGczFggACT5b2Eys=
-github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191203033158-620f369c775c h1:sd+8QeNOctqIpTH9uyGq4o8w8b18HZVm6FUxlyn/8G4=
-github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191203033158-620f369c775c/go.mod h1:FG1JQvqOCuT1VurrIk9VVKhXKc4vt0Ko0pq/uKyLF7c=
+github.com/uncharted-distil/distil-compute v0.0.0-20191203135301-7d8983b97cbe h1:QKw8Z7L+E9DxU+UhP4UXBIpdPXdoWylc8NykkOuip+g=
+github.com/uncharted-distil/distil-compute v0.0.0-20191203135301-7d8983b97cbe/go.mod h1:lCed3xOxkH+WkNFw6ex4s92J3b3MGczFggACT5b2Eys=
+github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191203143722-dffca8802cc4 h1:wpZ+8iy18VKnW0optaHy8T8ptCEOujqj8CWXMghhnhQ=
+github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191203143722-dffca8802cc4/go.mod h1:+uGIae/51nm7NauvMzV6ehLPVehicj8cuG+ausrsRvc=
 github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9 h1:P1B7OAnmyIdSN9UGhDvIU3s8K3/2rQcvntYV5WPi+qY=
 github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9/go.mod h1:PrytgQ5GjTc6Z5/pbL5vj1UhD716wDobDeimrd7lRKY=
 github.com/urfave/cli v1.22.2 h1:gsqYFH8bb9ekPA12kRo0hfjngWQjkJPlN9R0N78BoUo=
