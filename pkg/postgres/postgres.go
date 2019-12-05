@@ -42,14 +42,15 @@ const (
 			value		varchar(200)
 		);`
 
-	requestTableName        = "request"
-	solutionTableName       = "solution"
-	solutionStateTableName  = "solution_state"
-	solutionResultTableName = "solution_result"
-	solutionScoreTableName  = "solution_score"
-	requestFeatureTableName = "request_feature"
-	requestFilterTableName  = "request_filter"
-	wordStemTableName       = "word_stem"
+	requestTableName               = "request"
+	solutionTableName              = "solution"
+	solutionFeatureWeightTableName = "solution_weight"
+	solutionStateTableName         = "solution_state"
+	solutionResultTableName        = "solution_result"
+	solutionScoreTableName         = "solution_score"
+	requestFeatureTableName        = "request_feature"
+	requestFilterTableName         = "request_filter"
+	wordStemTableName              = "word_stem"
 
 	requestTableCreationSQL = `CREATE TABLE %s (
 			request_id			varchar(200),
@@ -64,6 +65,12 @@ const (
 			initial_search_solution_id varchar(200),
 			created_time	timestamp,
 			deleted         boolean
+		);`
+	solutionFeatureWeightTableCreationSQL = `CREATE TABLE %s (
+			solution_id	varchar(200),
+			feature_name	varchar(100),
+			feature_index int,
+			weight		double precision
 		);`
 	solutionStateTableCreationSQL = `CREATE TABLE %s (
 			solution_id		varchar(200),
@@ -89,7 +96,7 @@ const (
 			filter_categories	varchar(200),
 			filter_indices		varchar(200)
 		);`
-	solutionFeatureWeightTableCreationSQL = `CREATE TABLE %s (
+	modelFeatureWeightTableCreationSQL = `CREATE TABLE %s (
 			result_id	varchar(1000)	NOT NULL,
 			%s
 		);`
@@ -184,6 +191,12 @@ func (d *Database) CreateSolutionMetadataTables() error {
 
 	d.DropTable(solutionTableName)
 	_, err = d.DB.Exec(fmt.Sprintf(solutionTableCreationSQL, solutionTableName))
+	if err != nil {
+		return err
+	}
+
+	d.DropTable(solutionFeatureWeightTableName)
+	_, err = d.DB.Exec(fmt.Sprintf(solutionFeatureWeightTableCreationSQL, solutionFeatureWeightTableName))
 	if err != nil {
 		return err
 	}
@@ -451,7 +464,7 @@ func (d *Database) InitializeTable(tableName string, ds *model.Dataset) error {
 	}
 
 	explainName := fmt.Sprintf("%s%s", tableName, explainTableSuffix)
-	createStatementExplain := fmt.Sprintf(solutionFeatureWeightTableCreationSQL, explainName, varsExplain)
+	createStatementExplain := fmt.Sprintf(modelFeatureWeightTableCreationSQL, explainName, varsExplain)
 	log.Infof("Creating table %s", explainName)
 
 	// Create the feature weight table.
