@@ -703,10 +703,13 @@ func loadMergedSchemaVariables(m *model.Metadata) error {
 		return errors.New("failed to parse merged variable data")
 	}
 
+	resPath := schemaResources[0].Path("resPath").Data().(string)
+
 	// Merged schema has only one set of variables
 	m.DataResources = make([]*model.DataResource, 1)
 	m.DataResources[0] = &model.DataResource{
 		Variables: make([]*model.Variable, 0),
+		ResPath:   resPath,
 	}
 
 	for _, v := range schemaVariables {
