@@ -108,6 +108,8 @@ const (
 	solutionResultTableCreationSQL = `CREATE TABLE %s (
 			solution_id			varchar(200),
 			fitted_solution_id	varchar(200),
+			produce_request_id varchar(200),
+			result_type varchar(20),
 			result_uuid			varchar(200),
 			result_uri			varchar(200),
 			progress			varchar(40),
