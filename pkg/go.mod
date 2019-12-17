@@ -13,11 +13,7 @@ require (
 	github.com/otiai10/copy v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
-<<<<<<< HEAD
 	github.com/uncharted-distil/distil-compute v0.0.0-20191217153857-91464a5618c3
-=======
-	github.com/uncharted-distil/distil-compute v0.0.0-20191216033627-5f42f0ce092a
->>>>>>> master
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	gopkg.in/olivere/elastic.v5 v5.0.82
 	mellium.im/sasl v0.2.1 // indirect
