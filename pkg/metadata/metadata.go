@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -246,12 +247,7 @@ func addClassificationTypes(m *model.Metadata, classificationPath string) error 
 			return err
 		}
 		variable.SuggestedTypes = append(variable.SuggestedTypes, suggestedTypes...)
-		// set type to that with highest probability
-		if len(variable.SuggestedTypes) > 0 && variable.SuggestedTypes[0].Probability >= typeProbabilityThreshold {
-			variable.Type = variable.SuggestedTypes[0].Type
-		} else {
-			variable.Type = model.DefaultVarType
-		}
+		variable.Type = getHighestProbablySuggestedType(variable.SuggestedTypes)
 	}
 
 	return nil
@@ -576,7 +572,7 @@ func parseSchemaVariable(v *gabs.Container, existingVariables []*model.Variable,
 		normalizeName)
 	variable.SuggestedTypes = append(variable.SuggestedTypes, &model.SuggestedType{
 		Type:        variable.Type,
-		Probability: 2,
+		Probability: 0,
 		Provenance:  ProvenanceSchema,
 	})
 
@@ -763,15 +759,22 @@ func loadClassificationVariables(m *model.Metadata, normalizeVariableNames bool)
 			return err
 		}
 		variable.SuggestedTypes = append(variable.SuggestedTypes, suggestedTypes...)
-		// set type to that with highest probability
-		if len(variable.SuggestedTypes) > 0 && variable.SuggestedTypes[0].Probability >= typeProbabilityThreshold {
-			variable.Type = variable.SuggestedTypes[0].Type
-		} else {
-			variable.Type = model.DefaultVarType
-		}
+		variable.Type = getHighestProbablySuggestedType(variable.SuggestedTypes)
 		m.DataResources[0].Variables = append(m.DataResources[0].Variables, variable)
 	}
 	return nil
+}
+
+func getHighestProbablySuggestedType(suggestedTypes []*model.SuggestedType) string {
+	typ := model.DefaultVarType
+	maxProb := -math.MaxFloat64
+	for _, suggestedType := range suggestedTypes {
+		if suggestedType.Probability > maxProb {
+			maxProb = suggestedType.Probability
+			typ = suggestedType.Type
+		}
+	}
+	return typ
 }
 
 func mergeVariables(m *model.Metadata, left []*gabs.Container, right []*gabs.Container) []*gabs.Container {
