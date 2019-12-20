@@ -59,6 +59,17 @@ func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
 			return errors.Wrap(err, "unable to check data types")
 		}
 	}
+	log.Infof("done checking data types")
+
+	// check role consistency
+	for _, v := range m.DataResources[0].Variables {
+		// if the type is index, then set the role to index as well
+		if v.Type == model.IndexType {
+			log.Infof("updating %s role to index to match identified type", v.Name)
+			v.Role = []string{model.RoleIndex}
+			v.SelectedRole = model.RoleIndex
+		}
+	}
 
 	log.Infof("done verifying metadata")
 
