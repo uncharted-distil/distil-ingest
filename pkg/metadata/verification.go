@@ -73,6 +73,13 @@ func checkTypes(m *model.Metadata, row []string) error {
 			log.Infof("updating %s type to text since the data did not match", v.Name)
 			v.Type = model.StringType
 		}
+
+		// if the type is index, then set the role to index as well
+		if v.Type == model.IndexType {
+			log.Infof("updating %s role to index to match identified type", v.Name)
+			v.Role = []string{model.RoleIndex}
+			v.SelectedRole = model.RoleIndex
+		}
 	}
 
 	return nil
