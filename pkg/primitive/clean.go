@@ -111,7 +111,7 @@ func (s *IngestStep) Clean(dataset string, outputFolder string) error {
 	mainDR.ResPath = relativePath
 
 	// write the new schema to file
-	err = metadata.WriteSchema(meta, outputSchemaPath)
+	err = metadata.WriteSchema(meta, outputSchemaPath, true)
 	if err != nil {
 		return errors.Wrap(err, "unable to store cluster schema")
 	}
