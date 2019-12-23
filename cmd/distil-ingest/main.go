@@ -299,7 +299,7 @@ func main() {
 		}
 
 		// check and fix metadata issues
-		err = metadata.VerifyAndUpdate(meta, config.DatasetPath)
+		_, err = metadata.VerifyAndUpdate(meta, config.DatasetPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
