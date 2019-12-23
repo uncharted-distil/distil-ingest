@@ -129,7 +129,7 @@ func ClusterDataset(meta *model.Metadata, imageFeaturizer *rest.Featurizer, sour
 	// output the schema
 	log.Infof("Writing schema to output")
 	schemaPathToWrite := path.Join(outputFolder, outputPathSchema)
-	err = metadata.WriteSchema(meta, schemaPathToWrite)
+	err = metadata.WriteSchema(meta, schemaPathToWrite, true)
 
 	return err
 }

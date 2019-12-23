@@ -29,12 +29,13 @@ import (
 
 // VerifyAndUpdate will update the metadata when inconsistentices or errors
 // are found.
-func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
+func VerifyAndUpdate(m *model.Metadata, dataPath string) (bool, error) {
 	log.Infof("verifying metadata")
+	updated := false
 	// read the data
 	csvFile, err := os.Open(dataPath)
 	if err != nil {
-		return errors.Wrap(err, "failed to open data file")
+		return false, errors.Wrap(err, "failed to open data file")
 	}
 	defer csvFile.Close()
 	reader := csv.NewReader(csvFile)
@@ -42,7 +43,7 @@ func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
 	// skip header
 	_, err = reader.Read()
 	if err != nil {
-		return errors.Wrap(err, "failed to read header from data file")
+		return false, errors.Wrap(err, "failed to read header from data file")
 	}
 
 	// cycle through the whole dataset
@@ -51,12 +52,15 @@ func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return errors.Wrap(err, "failed to read line from data file")
+			return false, errors.Wrap(err, "failed to read line from data file")
 		}
 
-		err = checkTypes(m, line)
+		updatedType, err := checkTypes(m, line)
 		if err != nil {
-			return errors.Wrap(err, "unable to check data types")
+			return false, errors.Wrap(err, "unable to check data types")
+		}
+		if updatedType {
+			updated = true
 		}
 	}
 	log.Infof("done checking data types")
@@ -68,25 +72,28 @@ func VerifyAndUpdate(m *model.Metadata, dataPath string) error {
 			log.Infof("updating %s role to index to match identified type", v.Name)
 			v.Role = []string{model.RoleIndex}
 			v.SelectedRole = model.RoleIndex
+			updated = true
 		}
 	}
 
 	log.Infof("done verifying metadata")
 
-	return nil
+	return updated, nil
 }
 
-func checkTypes(m *model.Metadata, row []string) error {
+func checkTypes(m *model.Metadata, row []string) (bool, error) {
 	// cycle through all variables
+	updated := false
 	for _, v := range m.DataResources[0].Variables {
 		// set the type to text if the data doesn't match the metadata
 		if !typeMatchesData(v, row) {
 			log.Infof("updating %s type to text since the data did not match", v.Name)
 			v.Type = model.StringType
+			updated = true
 		}
 	}
 
-	return nil
+	return updated, nil
 }
 
 func typeMatchesData(v *model.Variable, row []string) bool {

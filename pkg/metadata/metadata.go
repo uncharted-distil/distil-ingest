@@ -49,7 +49,7 @@ const (
 	// ProvenanceSchema identifies the type provenance as schema
 	ProvenanceSchema = "schema"
 
-	schemaVersion = "3.1.1"
+	schemaVersion = "4.0.0"
 	license       = "Unknown"
 
 	// Seed flags a dataset as ingested from seed data
@@ -740,11 +740,20 @@ func loadClassificationVariables(m *model.Metadata, normalizeVariableNames bool)
 	}
 
 	resPath := schemaResources[0].Path("resPath").Data().(string)
+	resID := schemaResources[0].Path("resID").Data().(string)
+
+	resFormats, err := parseResFormats(schemaResources[0])
+	if err != nil {
+		return err
+	}
 
 	// All variables now in a single dataset since it is merged
 	m.DataResources = make([]*model.DataResource, 1)
 	m.DataResources[0] = &model.DataResource{
 		Variables: make([]*model.Variable, 0),
+		ResID:     resID,
+		ResType:   model.ResTypeTable,
+		ResFormat: resFormats,
 		ResPath:   resPath,
 	}
 
@@ -828,25 +837,30 @@ func WriteMergedSchema(m *model.Metadata, path string, mergedDataResource *model
 }
 
 // WriteSchema exports the current meta data as a schema file.
-func WriteSchema(m *model.Metadata, path string) error {
+func WriteSchema(m *model.Metadata, path string, extendedSchema bool) error {
 	dataResources := make([]interface{}, 0)
 	for _, dr := range m.DataResources {
-		dataResources = append(dataResources, dr)
+		dataResources = append(dataResources, writeDataResource(dr, extendedSchema))
+	}
+
+	about := map[string]interface{}{
+		"datasetID":            m.ID,
+		"datasetName":          m.Name,
+		"description":          m.Description,
+		"datasetSchemaVersion": schemaVersion,
+		"license":              license,
+		"redacted":             m.Redacted,
+	}
+
+	if extendedSchema {
+		about["parentDatasetIDs"] = m.ParentDatasetIDs
+		about["storageName"] = m.StorageName
+		about["rawData"] = m.Raw
+		about["mergedSchema"] = "false"
 	}
 
 	output := map[string]interface{}{
-		"about": map[string]interface{}{
-			"datasetID":            m.ID,
-			"datasetName":          m.Name,
-			"parentDatasetIDs":     m.ParentDatasetIDs,
-			"storageName":          m.StorageName,
-			"description":          m.Description,
-			"datasetSchemaVersion": schemaVersion,
-			"license":              license,
-			"rawData":              m.Raw,
-			"redacted":             m.Redacted,
-			"mergedSchema":         "false",
-		},
+		"about":         about,
 		"dataResources": dataResources,
 	}
 
@@ -856,6 +870,46 @@ func WriteSchema(m *model.Metadata, path string) error {
 	}
 	// write copy to disk
 	return ioutil.WriteFile(path, bytes, 0644)
+}
+
+func writeDataResource(resource *model.DataResource, extendedSchema bool) map[string]interface{} {
+	vars := make([]interface{}, 0)
+
+	for _, v := range resource.Variables {
+		vars = append(vars, writeVariable(v, extendedSchema))
+	}
+
+	output := map[string]interface{}{
+		"resID":        resource.ResID,
+		"resPath":      resource.ResPath,
+		"resType":      resource.ResType,
+		"resFormat":    resource.ResFormat,
+		"isCollection": resource.IsCollection,
+		"columns":      vars,
+	}
+
+	return output
+}
+
+func writeVariable(variable *model.Variable, extendedSchema bool) interface{} {
+	if extendedSchema {
+		return variable
+	}
+
+	// col type index doesn't exist for TA2
+	colType := variable.Type
+	if colType == model.IndexType {
+		colType = model.IntegerType
+	}
+
+	output := map[string]interface{}{
+		"colIndex": variable.Index,
+		"colName":  variable.DisplayName,
+		"colType":  colType,
+		"role":     variable.Role,
+	}
+
+	return output
 }
 
 // IngestMetadata adds a document consisting of the metadata to the

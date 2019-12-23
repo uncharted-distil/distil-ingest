@@ -128,7 +128,7 @@ func (s *IngestStep) addD3MIndex(schemaFile string, dataset string, meta *model.
 	dr.ResType = model.ResTypeTable
 
 	// write the new schema to file
-	err = metadata.WriteSchema(meta, outputSchemaPath)
+	err = metadata.WriteSchema(meta, outputSchemaPath, true)
 	if err != nil {
 		return errors.Wrap(err, "unable to store feature schema")
 	}
