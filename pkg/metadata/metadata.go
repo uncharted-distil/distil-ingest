@@ -896,10 +896,16 @@ func writeVariable(variable *model.Variable, extendedSchema bool) interface{} {
 		return variable
 	}
 
+	// col type index doesn't exist for TA2
+	colType := variable.Type
+	if colType == model.IndexType {
+		colType = model.IntegerType
+	}
+
 	output := map[string]interface{}{
 		"colIndex": variable.Index,
 		"colName":  variable.DisplayName,
-		"colType":  variable.Type,
+		"colType":  colType,
 		"role":     variable.Role,
 	}
 
