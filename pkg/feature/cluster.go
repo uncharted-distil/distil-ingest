@@ -28,8 +28,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/unchartedsoftware/plog"
 
+	"github.com/uncharted-distil/distil-compute/metadata"
 	"github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
 	"github.com/uncharted-distil/distil-ingest/pkg/rest"
 )
 

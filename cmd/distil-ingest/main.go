@@ -28,9 +28,9 @@ import (
 	"github.com/urfave/cli"
 	elastic "gopkg.in/olivere/elastic.v5"
 
+	"github.com/uncharted-distil/distil-compute/metadata"
 	"github.com/uncharted-distil/distil-compute/model"
 	"github.com/uncharted-distil/distil-ingest/pkg/conf"
-	"github.com/uncharted-distil/distil-ingest/pkg/metadata"
 	"github.com/uncharted-distil/distil-ingest/pkg/postgres"
 	log "github.com/unchartedsoftware/plog"
 )
@@ -276,11 +276,7 @@ func main() {
 		}
 
 		// load summary
-		err = metadata.LoadSummary(meta, config.SummaryPath, true)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
+		metadata.LoadSummary(meta, config.SummaryPath, true)
 
 		// load summary
 		err = metadata.LoadSummaryMachine(meta, config.SummaryMachinePath)
