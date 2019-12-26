@@ -64,6 +64,8 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/uncharted-distil/distil-compute v0.0.0-20191224135746-c586c6cec9ee h1:OWgCzhVmIhwmwC+hcxnqxtPlNh/BLWF4R8nZmafO/k0=
 github.com/uncharted-distil/distil-compute v0.0.0-20191224135746-c586c6cec9ee/go.mod h1:e3FalryNgmil2M4A4q6WRJickMuGLCbGytFTnQDQOi4=
+github.com/uncharted-distil/distil-compute v0.0.0-20191226232057-7ed4ab54ee14 h1:AGhiSFqH51HScGYaLyRTiPyqmxBDumR5AZH2MU4YGzQ=
+github.com/uncharted-distil/distil-compute v0.0.0-20191226232057-7ed4ab54ee14/go.mod h1:0OFz5vP7mV1nuvKvINOG7hdz8YU0+rWhjppdYBzOSew=
 github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191224140344-936d4b92655e h1:ha/uuUBBOn8GbHvLgUkaWV+lJm8j4C6jGSSOz9/N8uQ=
 github.com/uncharted-distil/distil-ingest/pkg v0.0.0-20191224140344-936d4b92655e/go.mod h1:YF+/2ymKzdP2lJuOGmRtQd5Orvxjj5mHg7RbrmUgNOc=
 github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9 h1:P1B7OAnmyIdSN9UGhDvIU3s8K3/2rQcvntYV5WPi+qY=
