@@ -20,13 +20,19 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/uncharted-distil/distil-ingest/pkg/rest"
 
 	"github.com/uncharted-distil/distil-compute/model"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/description"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/result"
 	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
+
+// ClassificationResult represents a classification result.
+type ClassificationResult struct {
+	Labels        [][]string  `json:"labels"`
+	Probabilities [][]float64 `json:"label_probabilities"`
+	Path          string      `json:"path"`
+}
 
 // Classify will classify the dataset using a primitive.
 func (s *IngestStep) Classify(dataset string, outputPath string) error {
@@ -62,7 +68,7 @@ func (s *IngestStep) Classify(dataset string, outputPath string) error {
 			probabilities[colIndex] = probs
 		}
 	}
-	classification := &rest.ClassificationResult{
+	classification := &ClassificationResult{
 		Path:          datasetURI,
 		Labels:        labels,
 		Probabilities: probabilities,

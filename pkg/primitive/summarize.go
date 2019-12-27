@@ -23,9 +23,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/description"
 	"github.com/uncharted-distil/distil-compute/primitive/compute/result"
-	"github.com/uncharted-distil/distil-ingest/pkg/rest"
 	"github.com/uncharted-distil/distil-ingest/pkg/util"
 )
+
+// SummaryResult represents a REST summary result.
+type SummaryResult struct {
+	Summary string `json:"summary"`
+}
 
 // Summarize will summarize the dataset using a primitive.
 func (s *IngestStep) Summarize(dataset string, outputPath string) error {
@@ -58,7 +62,7 @@ func (s *IngestStep) Summarize(dataset string, outputPath string) error {
 		}
 	}
 
-	sum := &rest.SummaryResult{
+	sum := &SummaryResult{
 		Summary: strings.Join(tokens, ", "),
 	}
 
