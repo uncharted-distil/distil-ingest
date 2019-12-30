@@ -14,7 +14,7 @@ require (
 	github.com/otiai10/copy v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0
-	github.com/uncharted-distil/distil-compute v0.0.0-20191226232057-7ed4ab54ee14
+	github.com/uncharted-distil/distil-compute v0.0.0-20191229192022-50cedd3a703b
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/olivere/elastic.v5 v5.0.83
