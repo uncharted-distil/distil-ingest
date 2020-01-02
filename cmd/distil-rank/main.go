@@ -17,7 +17,7 @@ package main
 
 import (
 	"os"
-	"path/filepath"
+	"path"
 	"runtime"
 
 	"github.com/pkg/errors"
@@ -68,6 +68,11 @@ func main() {
 			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The ranking output file path",
@@ -95,15 +100,11 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--ranking-output`", 1)
 		}
 
-		//classificationPath := filepath.Clean(c.String("classification"))
-		//typeSource := c.String("type-source")
-		//schemaPath := filepath.Clean(c.String("schema"))
 		endpoint := c.String("endpoint")
-		datasetPath := filepath.Clean(c.String("dataset"))
-		//rankingOutputFile := c.String("ranking-output")
-		//rowLimit := c.Int("row-limit")
-		//hasHeader := c.Bool("has-header")
-		outputFilePath := c.String("output")
+		dataset := c.String("dataset")
+		schemaPath := c.String("schema")
+		output := c.String("output")
+		input := c.String("input")
 
 		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
@@ -112,18 +113,33 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.RankingOutputPath = outputFilePath
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
-		ingestConfig := task.NewConfig(config)
-
-		// rank the dataset variable importance
-		err = task.Rank(datasetPath, "", datasetPath, ingestConfig)
+		err = env.Initialize(&config)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Ranked data written to %s", outputFilePath)
+		ingestConfig := task.NewConfig(config)
+
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
+
+		// rank the dataset variable importance
+		err = task.Rank(schemaPath, "", dataset, ingestConfig)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		log.Infof("Ranked data written to %s", output)
 
 		return nil
 	}

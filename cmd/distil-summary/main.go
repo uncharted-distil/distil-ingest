@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"runtime"
 
 	"github.com/pkg/errors"
@@ -48,6 +49,16 @@ func main() {
 			Usage: "The dataset source path",
 		},
 		cli.StringFlag{
+			Name:  "schema",
+			Value: "",
+			Usage: "The schema source path",
+		},
+		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The summary output file path",
@@ -65,8 +76,10 @@ func main() {
 		}
 
 		endpoint := c.String("endpoint")
-		path := c.String("dataset")
-		outputFilePath := c.String("output")
+		dataset := c.String("dataset")
+		schemaPath := c.String("schema")
+		output := c.String("output")
+		input := c.String("input")
 
 		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
@@ -75,18 +88,33 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.SummaryPath = outputFilePath
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
-		ingestConfig := task.NewConfig(config)
-
-		// classify the dataset
-		err = task.Summarize(path, "", path, ingestConfig)
+		err = env.Initialize(&config)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Summarized data written to %s", outputFilePath)
+		ingestConfig := task.NewConfig(config)
+
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
+
+		// classify the dataset
+		err = task.Summarize(schemaPath, "", dataset, ingestConfig)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		log.Infof("Summarized data written to %s", output)
 
 		return nil
 	}

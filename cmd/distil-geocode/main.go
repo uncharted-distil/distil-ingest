@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"runtime"
 	"strings"
 
@@ -77,6 +78,11 @@ func main() {
 			Usage: "The dataset file type",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The path to use as output for the geocoded data",
@@ -95,12 +101,10 @@ func main() {
 		}
 
 		endpoint := c.String("endpoint")
-		datasetPath := c.String("dataset")
+		dataset := c.String("dataset")
 		schemaPath := c.String("schema")
-		outputPath := c.String("output")
-		//hasHeader := c.Bool("has-header")
-		//classificationPath := filepath.Clean(c.String("classification"))
-		//rootDataPath := path.Dir(datasetPath)
+		output := c.String("output")
+		input := c.String("input")
 
 		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
@@ -109,14 +113,28 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.GeocodingOutputDataRelative = outputPath
-		config.GeocodingOutputSchemaRelative = outputPath
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 		ingestConfig := task.NewConfig(config)
 
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
+
 		// geocode the file
-		geocodePath, err := task.GeocodeForwardDataset(metadata.Seed, schemaPath, "", datasetPath, ingestConfig)
+		geocodePath, err := task.GeocodeForwardDataset(metadata.Seed, schemaPath, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

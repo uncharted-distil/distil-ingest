@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 
@@ -55,6 +56,11 @@ func main() {
 			Usage: "The schema source path",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The cleaned output file path",
@@ -77,25 +83,41 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
 
-		outputFolderPath := filepath.Clean(c.String("output"))
+		output := filepath.Clean(c.String("output"))
+		schemaPath := c.String("schema")
 		endpoint := filepath.Clean(c.String("endpoint"))
 		dataset := filepath.Clean(c.String("dataset"))
+		input := c.String("input")
 
-		// initialize client
+		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
 		config, err := env.LoadConfig()
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.CleanOutputDataRelative = outputFolderPath
-		config.CleanOutputSchemaRelative = outputFolderPath
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 		ingestConfig := task.NewConfig(config)
 
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
+
 		// create featurizer
-		cleanOutput, err := task.Clean(metadata.Seed, dataset, "", dataset, ingestConfig)
+		cleanOutput, err := task.Clean(metadata.Seed, schemaPath, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
