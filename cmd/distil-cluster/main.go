@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"runtime"
 
 	"github.com/pkg/errors"
@@ -108,7 +109,7 @@ func main() {
 		}
 		config.SolutionComputeEndpoint = endpoint
 		config.D3MInputDir = input
-		config.D3MOutputDir = output
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
 		err = env.Initialize(&config)
 		if err != nil {
