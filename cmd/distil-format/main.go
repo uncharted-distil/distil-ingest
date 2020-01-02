@@ -17,7 +17,6 @@ package main
 
 import (
 	"os"
-	"path"
 	"runtime"
 	"strings"
 
@@ -25,8 +24,9 @@ import (
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
+	"github.com/uncharted-distil/distil-compute/metadata"
+	"github.com/uncharted-distil/distil/api/env"
+	"github.com/uncharted-distil/distil/api/task"
 )
 
 func splitAndTrim(arg string) []string {
@@ -95,28 +95,32 @@ func main() {
 		}
 
 		endpoint := c.String("endpoint")
-		datasetPath := c.String("dataset")
+		//datasetPath := c.String("dataset")
 		schemaPath := c.String("schema")
 		output := c.String("output")
-		hasHeader := c.Bool("has-header")
-		rootDataPath := path.Dir(datasetPath)
+		//hasHeader := c.Bool("has-header")
+		//rootDataPath := path.Dir(datasetPath)
 
-		// initialize client
+		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2PullMax, true, nil)
+		config, err := env.LoadConfig()
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		step := primitive.NewIngestStep(client)
+		config.FormatOutputDataRelative = output
+		config.FormatOutputSchemaRelative = output
+		config.SolutionComputeEndpoint = endpoint
+
+		ingestConfig := task.NewConfig(config)
 
 		// create featurizer
-		err = step.Format(schemaPath, datasetPath, rootDataPath, output, hasHeader)
+		formatPath, err := task.Format(metadata.Seed, schemaPath, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Formatted data written to %s", output)
+		log.Infof("Formatted data written to %s", formatPath)
 
 		return nil
 	}

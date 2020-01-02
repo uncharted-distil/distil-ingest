@@ -24,8 +24,8 @@ import (
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
+	"github.com/uncharted-distil/distil/api/env"
+	"github.com/uncharted-distil/distil/api/task"
 )
 
 func main() {
@@ -105,17 +105,20 @@ func main() {
 		//hasHeader := c.Bool("has-header")
 		outputFilePath := c.String("output")
 
-		// initialize client
+		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2PullMax, true, nil)
+		config, err := env.LoadConfig()
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		step := primitive.NewIngestStep(client)
+		config.RankingOutputPath = outputFilePath
+		config.SolutionComputeEndpoint = endpoint
+
+		ingestConfig := task.NewConfig(config)
 
 		// rank the dataset variable importance
-		err = step.Rank(datasetPath, outputFilePath)
+		err = task.Rank(datasetPath, "", datasetPath, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

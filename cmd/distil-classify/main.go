@@ -24,8 +24,8 @@ import (
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
+	"github.com/uncharted-distil/distil/api/env"
+	"github.com/uncharted-distil/distil/api/task"
 )
 
 func splitAndTrim(arg string) []string {
@@ -85,15 +85,18 @@ func main() {
 
 		// initialize client
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2PullMax, true, nil)
+		config, err := env.LoadConfig()
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		step := primitive.NewIngestStep(client)
+		config.ClassificationOutputPath = outputFilePath
+		config.SolutionComputeEndpoint = endpoint
+
+		ingestConfig := task.NewConfig(config)
 
 		// classify the file
-		err = step.Classify(path, outputFilePath)
+		err = task.Classify(path, "", path, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

@@ -16,23 +16,22 @@
 package main
 
 import (
-	"encoding/csv"
-	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/uncharted-distil/distil-compute/metadata"
 	"github.com/uncharted-distil/distil-compute/model"
-	"github.com/uncharted-distil/distil-ingest/pkg/conf"
-	"github.com/uncharted-distil/distil-ingest/pkg/postgres"
 	log "github.com/unchartedsoftware/plog"
+
+	"github.com/uncharted-distil/distil/api/env"
+	"github.com/uncharted-distil/distil/api/task"
 )
 
 const (
@@ -215,48 +214,43 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--importance`", 1)
 		}
 
-		config := &conf.Conf{
-			ESEndpoint:           c.String("es-endpoint"),
-			ESIndex:              c.String("es-data-index"),
-			ESDatasetPrefix:      c.String("es-dataset-prefix"),
-			TypeSource:           c.String("type-source"),
-			DatasetFolder:        c.String("dataset-folder"),
-			ClassificationPath:   filepath.Clean(c.String("classification")),
-			SummaryPath:          filepath.Clean(c.String("summary")),
-			SummaryMachinePath:   filepath.Clean(c.String("summary-machine")),
-			ImportancePath:       filepath.Clean(c.String("importance")),
-			SchemaPath:           filepath.Clean(c.String("schema")),
-			DatasetPath:          filepath.Clean(c.String("dataset")),
-			ErrThreshold:         c.Float64("error-threshold"),
-			ProbabilityThreshold: c.Float64("probability-threshold"),
-			NumActiveConnections: c.Int("num-active-connections"),
-			NumWorkers:           c.Int("num-workers"),
-			BulkByteSize:         c.Int64("batch-size"),
-			ScanBufferSize:       c.Int("scan-size"),
-			ClearExisting:        c.Bool("clear-existing"),
-			MetadataOnly:         c.Bool("metadata-only"),
-			Database:             c.String("database"),
-			DBTable:              c.String("db-table"),
-			DBUser:               c.String("db-user"),
-			DBPassword:           c.String("db-password"),
-			DBBatchSize:          c.Int("db-batch-size"),
-			DBHost:               c.String("db-host"),
-			DBPort:               c.Int("db-port"),
+		// initialize config
+		typeSource := c.String("type-source")
+		metadataOnly := c.Bool("metadata-only")
+		config, err := env.LoadConfig()
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
 		}
+		config.ElasticEndpoint = c.String("es-endpoint")
+		config.ESDatasetsIndex = c.String("es-data-index")
+		config.ElasticDatasetPrefix = c.String("es-dataset-prefix")
+		config.ClassificationOutputPath = filepath.Clean(c.String("classification"))
+		config.SummaryPath = filepath.Clean(c.String("summary"))
+		config.SummaryMachinePath = filepath.Clean(c.String("summary-machine"))
+		config.RankingOutputPath = filepath.Clean(c.String("importance"))
+		config.SchemaPath = filepath.Clean(c.String("schema"))
+		config.ClassificationProbabilityThreshold = c.Float64("probability-threshold")
+		config.PostgresDatabase = c.String("database")
+		config.PostgresUser = c.String("db-user")
+		config.PostgresPassword = c.String("db-password")
+		config.PostgresHost = c.String("db-host")
+		config.PostgresPort = c.Int("db-port")
 
-		metadata.SetTypeProbabilityThreshold(config.ProbabilityThreshold)
+		ingestConfig := task.NewConfig(config)
+
+		metadata.SetTypeProbabilityThreshold(config.ClassificationProbabilityThreshold)
 
 		// load the metadata
-		var err error
 		var meta *model.Metadata
 		if config.SchemaPath == "" || config.SchemaPath == "." {
-			log.Infof("Loading metadata from classification file (%s) and raw file (%s)", config.ClassificationPath, config.DatasetPath)
-			meta, err = metadata.LoadMetadataFromRawFile(config.DatasetPath, config.ClassificationPath)
-		} else if config.TypeSource == typeSourceClassification {
-			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationPath, config.SchemaPath)
+			log.Infof("Loading metadata from classification file (%s) and raw file (%s)", config.ClassificationOutputPath, config.SchemaPath)
+			meta, err = metadata.LoadMetadataFromRawFile(config.SchemaPath, config.ClassificationOutputPath)
+		} else if typeSource == typeSourceClassification {
+			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationOutputPath, config.SchemaPath)
 			meta, err = metadata.LoadMetadataFromClassification(
 				config.SchemaPath,
-				config.ClassificationPath,
+				config.ClassificationOutputPath,
 				true)
 		} else {
 			log.Infof("Loading metadata from schema file")
@@ -267,10 +261,10 @@ func main() {
 			log.Error(err)
 			os.Exit(1)
 		}
-		meta.DatasetFolder = config.DatasetFolder
+		meta.DatasetFolder = config.SchemaPath
 
 		// load importance rankings
-		err = metadata.LoadImportance(meta, config.ImportancePath)
+		err = metadata.LoadImportance(meta, config.RankingOutputPath)
 		if err != nil {
 			log.Error(err)
 		}
@@ -288,23 +282,23 @@ func main() {
 		}
 
 		// load stats
-		err = metadata.LoadDatasetStats(meta, config.DatasetPath)
+		err = metadata.LoadDatasetStats(meta, config.SchemaPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
 
 		// check and fix metadata issues
-		_, err = metadata.VerifyAndUpdate(meta, config.DatasetPath)
+		_, err = metadata.VerifyAndUpdate(meta, config.SchemaPath)
 		if err != nil {
 			log.Error(err)
 			os.Exit(1)
 		}
 
-		if config.ESEndpoint != "" && !config.MetadataOnly {
+		if config.ElasticEndpoint != "" && !metadataOnly {
 			// create elasticsearch client
 			elasticClient, err := elastic.NewClient(
-				elastic.SetURL(config.ESEndpoint),
+				elastic.SetURL(config.ElasticEndpoint),
 				elastic.SetHttpClient(&http.Client{Timeout: timeout}),
 				elastic.SetMaxRetries(10),
 				elastic.SetSniff(false),
@@ -315,15 +309,15 @@ func main() {
 			}
 
 			// ingest the metadata
-			err = ingestMetadata(metadataIndexName, config.ESDatasetPrefix, meta, elasticClient)
+			err = ingestMetadata(metadataIndexName, config.ElasticDatasetPrefix, meta, elasticClient)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
 			}
 		}
 
-		if config.Database != "" {
-			err := ingestPostgres(config, meta)
+		if config.PostgresDatabase != "" {
+			err := ingestPostgres(&config, ingestConfig, meta)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -352,109 +346,13 @@ func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *model.
 	return nil
 }
 
-func ingestPostgres(config *conf.Conf, meta *model.Metadata) error {
-	log.Info("Starting ingestion")
+func ingestPostgres(config *env.Config, ingestConfig *task.IngestTaskConfig, meta *model.Metadata) error {
+	log.Info("Starting ingest")
 
-	dbTableName := meta.StorageName
-
-	// Connect to the database.
-	pg, err := postgres.NewDatabase(config)
+	err := task.IngestDataset(metadata.Seed, nil, nil, "", config.SchemaPath, nil, ingestConfig)
 	if err != nil {
 		return err
 	}
-
-	err = pg.CreateSolutionMetadataTables()
-	if err != nil {
-		return err
-	}
-	log.Infof("Done creating solution metadata tables")
-
-	if config.MetadataOnly {
-		log.Info("Only loading metadata")
-		return nil
-	}
-
-	// Drop the current table if requested.
-	if config.ClearExisting {
-		err = pg.DropView(dbTableName)
-		if err != nil {
-			log.Warn(err)
-		}
-		err = pg.DropTable(fmt.Sprintf("%s_base", dbTableName))
-		if err != nil {
-			log.Warn(err)
-		}
-		err = pg.DropTable(fmt.Sprintf("%s_explain", dbTableName))
-		if err != nil {
-			log.Warn(err)
-		}
-	}
-
-	// Create the database table.
-	ds, err := pg.InitializeDataset(meta)
-	if err != nil {
-		return err
-	}
-
-	err = pg.InitializeTable(dbTableName, ds)
-	if err != nil {
-		return err
-	}
-	log.Infof("Done table initialization")
-
-	err = pg.StoreMetadata(dbTableName)
-	if err != nil {
-		return err
-	}
-	log.Infof("Done storing metadata")
-
-	err = pg.CreateResultTable(dbTableName)
-	if err != nil {
-		return err
-	}
-	log.Infof("Done creating result table")
-
-	// Load the data.
-	// open the file
-	csvFile, err := os.Open(config.DatasetPath)
-	if err != nil {
-		return err
-	}
-	defer csvFile.Close()
-	reader := csv.NewReader(csvFile)
-
-	// skip header
-	reader.Read()
-	count := 0
-	for {
-		line, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		// Raw schema source will have header row.
-		if count > 0 || meta.SchemaSource != model.SchemaSourceRaw {
-			err = pg.AddWordStems(line)
-			if err != nil {
-				log.Warn(fmt.Sprintf("%v", err))
-			}
-
-			err = pg.IngestRow(dbTableName, line)
-			if err != nil {
-				log.Warn(fmt.Sprintf("%v", err))
-			}
-		}
-		count = count + 1
-	}
-
-	err = pg.InsertRemainingRows()
-	if err != nil {
-		log.Warn(fmt.Sprintf("%v", err))
-	}
-
-	log.Info("Done ingestion")
 
 	return nil
 }

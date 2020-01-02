@@ -24,8 +24,9 @@ import (
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
+	"github.com/uncharted-distil/distil-compute/metadata"
+	"github.com/uncharted-distil/distil/api/env"
+	"github.com/uncharted-distil/distil/api/task"
 )
 
 func main() {
@@ -99,22 +100,26 @@ func main() {
 		endpoint := filepath.Clean(c.String("endpoint"))
 		dataset := filepath.Clean(c.String("dataset"))
 
-		// initialize client
+		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2PullMax, true, nil)
+		config, err := env.LoadConfig()
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		step := primitive.NewIngestStep(client)
+		config.MergedOutputDataPath = outputFolderPath
+		config.MergedOutputSchemaPath = outputFolderPath
+		config.SolutionComputeEndpoint = endpoint
+
+		ingestConfig := task.NewConfig(config)
 
 		// merge the dataset into a single file
-		err = step.Merge(dataset, outputFolderPath)
+		mergedPath, err := task.Merge(metadata.Seed, dataset, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Merged data written to %s", outputFolderPath)
+		log.Infof("Merged data written to %s", mergedPath)
 
 		return nil
 	}
