@@ -100,7 +100,7 @@ func main() {
 		//hasHeader := c.Bool("has-header")
 		//rootDataPath := path.Dir(datasetPath)
 
-		// initialize client
+		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
 		config, err := env.LoadConfig()
 		if err != nil {

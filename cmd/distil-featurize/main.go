@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"runtime"
 
 	"github.com/pkg/errors"
@@ -64,6 +65,11 @@ func main() {
 			Usage: "The path to the folder containing the media subfolder that is accessible for featurization",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The path to use as output for the featurized data",
@@ -91,7 +97,8 @@ func main() {
 		//mediaPath := c.String("media-path")
 		//outputData := c.String("output-data")
 		schemaPath := c.String("schema")
-		outputPath := c.String("output")
+		output := c.String("output")
+		input := c.String("input")
 		//hasHeader := c.Bool("has-header")
 		//rootDataPath := path.Dir(datasetPath)
 		//threshold := c.Float64("threshold")
@@ -103,10 +110,15 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.FeaturizationOutputDataRelative = outputPath
-		config.FeaturizationOutputSchemaRelative = outputPath
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 		ingestConfig := task.NewConfig(config)
 
 		// create featurizer
