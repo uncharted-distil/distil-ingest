@@ -105,6 +105,7 @@ func main() {
 		output := filepath.Clean(c.String("output"))
 		endpoint := filepath.Clean(c.String("endpoint"))
 		dataset := filepath.Clean(c.String("dataset"))
+		schema := filepath.Clean(c.String("schema"))
 		input := c.String("input")
 
 		// initialize config
@@ -126,7 +127,7 @@ func main() {
 		ingestConfig := task.NewConfig(config)
 
 		// merge the dataset into a single file
-		mergedPath, err := task.Merge(metadata.Seed, dataset, "", dataset, ingestConfig)
+		mergedPath, err := task.Merge(metadata.Seed, schema, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
