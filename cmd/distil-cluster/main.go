@@ -89,7 +89,7 @@ func main() {
 		endpoint := c.String("endpoint")
 		datasetPath := c.String("dataset")
 		schemaPath := c.String("schema")
-		//output := c.String("output")
+		output := c.String("output")
 		//hasHeader := c.Bool("has-header")
 		//rootDataPath := path.Dir(datasetPath)
 
@@ -101,7 +101,13 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MOutputDir = output
 
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 		ingestConfig := task.NewConfig(config)
 
 		// create featurizer
