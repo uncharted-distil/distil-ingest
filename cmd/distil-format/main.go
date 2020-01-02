@@ -101,7 +101,7 @@ func main() {
 		}
 
 		endpoint := c.String("endpoint")
-		//datasetPath := c.String("dataset")
+		dataset := c.String("dataset")
 		schemaPath := c.String("schema")
 		output := c.String("output")
 		input := c.String("input")
@@ -136,7 +136,7 @@ func main() {
 		task.SetClient(client)
 
 		// create featurizer
-		formatPath, err := task.Format(metadata.Seed, schemaPath, ingestConfig)
+		formatPath, err := task.Format(metadata.Seed, schemaPath, dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
