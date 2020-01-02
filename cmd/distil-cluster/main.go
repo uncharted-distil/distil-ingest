@@ -118,6 +118,15 @@ func main() {
 		}
 		ingestConfig := task.NewConfig(config)
 
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
+
 		// create featurizer
 		clusterPath, err := task.ClusterDataset(metadata.Seed, schemaPath, "", datasetPath, ingestConfig)
 		if err != nil {

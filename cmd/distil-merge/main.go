@@ -126,6 +126,15 @@ func main() {
 		}
 		ingestConfig := task.NewConfig(config)
 
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
+
 		// merge the dataset into a single file
 		mergedPath, err := task.Merge(metadata.Seed, schema, "", dataset, ingestConfig)
 		if err != nil {
