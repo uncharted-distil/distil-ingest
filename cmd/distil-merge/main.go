@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 
@@ -60,6 +61,11 @@ func main() {
 			Usage: "The raw dat a file path",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The merged output folder",
@@ -96,9 +102,10 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--output`", 1)
 		}
 
-		outputFolderPath := filepath.Clean(c.String("output"))
+		output := filepath.Clean(c.String("output"))
 		endpoint := filepath.Clean(c.String("endpoint"))
 		dataset := filepath.Clean(c.String("dataset"))
+		input := c.String("input")
 
 		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)
@@ -107,10 +114,15 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.MergedOutputDataPath = outputFolderPath
-		config.MergedOutputSchemaPath = outputFolderPath
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 		ingestConfig := task.NewConfig(config)
 
 		// merge the dataset into a single file
