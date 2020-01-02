@@ -64,6 +64,11 @@ func main() {
 			Usage: "The clustering output file path",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "media-path",
 			Value: "",
 			Usage: "The path to the folder containing the media subfolder that is accessible for clustering",
@@ -90,6 +95,7 @@ func main() {
 		datasetPath := c.String("dataset")
 		schemaPath := c.String("schema")
 		output := c.String("output")
+		input := c.String("input")
 		//hasHeader := c.Bool("has-header")
 		//rootDataPath := path.Dir(datasetPath)
 
@@ -101,6 +107,7 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
 		config.D3MOutputDir = output
 
 		err = env.Initialize(&config)
