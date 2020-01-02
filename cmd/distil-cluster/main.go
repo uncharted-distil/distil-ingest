@@ -89,7 +89,7 @@ func main() {
 		endpoint := c.String("endpoint")
 		datasetPath := c.String("dataset")
 		schemaPath := c.String("schema")
-		output := c.String("output")
+		//output := c.String("output")
 		//hasHeader := c.Bool("has-header")
 		//rootDataPath := path.Dir(datasetPath)
 
@@ -100,8 +100,6 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.ClusteringOutputDataRelative = output
-		config.ClusteringOutputSchemaRelative = output
 		config.SolutionComputeEndpoint = endpoint
 
 		ingestConfig := task.NewConfig(config)
