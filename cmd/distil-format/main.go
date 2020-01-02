@@ -17,6 +17,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"runtime"
 	"strings"
 
@@ -72,6 +73,11 @@ func main() {
 			Usage: "The dataset file type",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The formatted output file path",
@@ -98,6 +104,7 @@ func main() {
 		//datasetPath := c.String("dataset")
 		schemaPath := c.String("schema")
 		output := c.String("output")
+		input := c.String("input")
 		//hasHeader := c.Bool("has-header")
 		//rootDataPath := path.Dir(datasetPath)
 
@@ -108,11 +115,25 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		config.FormatOutputDataRelative = output
-		config.FormatOutputSchemaRelative = output
 		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
 
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
 		ingestConfig := task.NewConfig(config)
+
+		// initialize client
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		defer client.Close()
+		task.SetClient(client)
 
 		// create featurizer
 		formatPath, err := task.Format(metadata.Seed, schemaPath, ingestConfig)
