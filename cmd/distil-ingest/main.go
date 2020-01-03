@@ -16,7 +16,6 @@
 package main
 
 import (
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -24,10 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/uncharted-distil/distil-compute/metadata"
-	"github.com/uncharted-distil/distil-compute/model"
 	log "github.com/unchartedsoftware/plog"
 
 	"github.com/uncharted-distil/distil/api/env"
@@ -215,7 +212,7 @@ func main() {
 		}
 
 		// initialize config
-		typeSource := c.String("type-source")
+		dataset := c.String("dataset")
 		metadataOnly := c.Bool("metadata-only")
 		config, err := env.LoadConfig()
 		if err != nil {
@@ -241,75 +238,9 @@ func main() {
 
 		metadata.SetTypeProbabilityThreshold(config.ClassificationProbabilityThreshold)
 
-		// load the metadata
-		var meta *model.Metadata
-		if config.SchemaPath == "" || config.SchemaPath == "." {
-			log.Infof("Loading metadata from classification file (%s) and raw file (%s)", config.ClassificationOutputPath, config.SchemaPath)
-			meta, err = metadata.LoadMetadataFromRawFile(config.SchemaPath, config.ClassificationOutputPath)
-		} else if typeSource == typeSourceClassification {
-			log.Infof("Loading metadata from classification file (%s) and schema file (%s)", config.ClassificationOutputPath, config.SchemaPath)
-			meta, err = metadata.LoadMetadataFromClassification(
-				config.SchemaPath,
-				config.ClassificationOutputPath,
-				true)
-		} else {
-			log.Infof("Loading metadata from schema file")
-			meta, err = metadata.LoadMetadataFromMergedSchema(
-				config.SchemaPath)
-		}
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-		meta.DatasetFolder = config.SchemaPath
-
-		// load importance rankings
-		err = metadata.LoadImportance(meta, config.RankingOutputPath)
-		if err != nil {
-			log.Error(err)
-		}
-
-		// load summary
-		metadata.LoadSummary(meta, config.SummaryPath, true)
-
-		// load summary
-		err = metadata.LoadSummaryMachine(meta, config.SummaryMachinePath)
-		if err != nil {
-			log.Error(err)
-			// NOTE: For now ignore the error as the service may not
-			// be able to provide a summary.
-			//os.Exit(1)
-		}
-
-		// load stats
-		err = metadata.LoadDatasetStats(meta, config.SchemaPath)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-
-		// check and fix metadata issues
-		_, err = metadata.VerifyAndUpdate(meta, config.SchemaPath)
-		if err != nil {
-			log.Error(err)
-			os.Exit(1)
-		}
-
 		if config.ElasticEndpoint != "" && !metadataOnly {
-			// create elasticsearch client
-			elasticClient, err := elastic.NewClient(
-				elastic.SetURL(config.ElasticEndpoint),
-				elastic.SetHttpClient(&http.Client{Timeout: timeout}),
-				elastic.SetMaxRetries(10),
-				elastic.SetSniff(false),
-				elastic.SetGzip(true))
-			if err != nil {
-				log.Error(err)
-				os.Exit(1)
-			}
-
 			// ingest the metadata
-			err = ingestMetadata(metadataIndexName, config.ElasticDatasetPrefix, meta, elasticClient)
+			err = ingestMetadata(dataset, &config, ingestConfig)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -317,7 +248,7 @@ func main() {
 		}
 
 		if config.PostgresDatabase != "" {
-			err := ingestPostgres(&config, ingestConfig, meta)
+			err := ingestPostgres(dataset, &config, ingestConfig)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -330,29 +261,26 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ingestMetadata(metadataIndexName string, datasetPrefix string, meta *model.Metadata, elasticClient *elastic.Client) error {
-	// Create the metadata index if it doesn't exist
-	err := metadata.CreateMetadataIndex(elasticClient, metadataIndexName, false)
+func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
+	log.Infof("ingesting metadata for dataset %s", dataset)
+	_, err := task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ElasticDatasetPrefix,
+		dataset, metadata.Seed, nil, ingestConfig, true)
 	if err != nil {
 		return err
 	}
-
-	// Ingest the dataset info into the metadata index
-	err = metadata.IngestMetadata(elasticClient, metadataIndexName, datasetPrefix, metadata.Seed, meta)
-	if err != nil {
-		return err
-	}
+	log.Infof("done ingesting metadata for dataset %s", dataset)
 
 	return nil
 }
 
-func ingestPostgres(config *env.Config, ingestConfig *task.IngestTaskConfig, meta *model.Metadata) error {
-	log.Info("Starting ingest")
+func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
+	log.Infof("starting postgres ingest for dataset %s", dataset)
 
-	err := task.IngestDataset(metadata.Seed, nil, nil, "", config.SchemaPath, nil, ingestConfig)
+	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, "", dataset, ingestConfig, true)
 	if err != nil {
 		return err
 	}
+	log.Infof("done postgres ingest for dataset %s", dataset)
 
 	return nil
 }
