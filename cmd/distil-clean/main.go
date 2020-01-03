@@ -122,7 +122,7 @@ func main() {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Formatted data written to %s", cleanOutput)
+		log.Infof("Cleaned data written to %s", cleanOutput)
 
 		return nil
 	}
