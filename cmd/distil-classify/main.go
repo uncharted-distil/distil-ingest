@@ -124,12 +124,12 @@ func main() {
 		task.SetClient(client)
 
 		// classify the file
-		err = task.Classify(schemaPath, "", dataset, ingestConfig)
+		classificationOutput, err := task.Classify(schemaPath, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Classification for `%s` successful", output)
+		log.Infof("Classification for `%s` successful", classificationOutput)
 
 		return nil
 	}

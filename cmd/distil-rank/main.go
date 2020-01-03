@@ -134,12 +134,12 @@ func main() {
 		task.SetClient(client)
 
 		// rank the dataset variable importance
-		err = task.Rank(schemaPath, "", dataset, ingestConfig)
+		rankingOutput, err := task.Rank(schemaPath, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Ranked data written to %s", output)
+		log.Infof("Ranked data written to %s", rankingOutput)
 
 		return nil
 	}

@@ -108,13 +108,13 @@ func main() {
 		defer client.Close()
 		task.SetClient(client)
 
-		// classify the dataset
-		err = task.Summarize(schemaPath, "", dataset, ingestConfig)
+		// summarize the dataset
+		summaryOutput, err := task.Summarize(schemaPath, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Summarized data written to %s", output)
+		log.Infof("summarized data written to %s", summaryOutput)
 
 		return nil
 	}
