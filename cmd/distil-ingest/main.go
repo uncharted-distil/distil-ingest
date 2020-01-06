@@ -263,7 +263,7 @@ func main() {
 
 func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("ingesting metadata for dataset %s", dataset)
-	_, err := task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ElasticDatasetPrefix,
+	_, err := task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ESDatasetsIndex,
 		dataset, metadata.Seed, nil, ingestConfig, true)
 	if err != nil {
 		return err
