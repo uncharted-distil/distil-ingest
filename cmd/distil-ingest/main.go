@@ -220,7 +220,7 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 		config.ElasticEndpoint = c.String("es-endpoint")
-		config.ESDatasetsIndex = c.String("es-data-index")
+		config.ESDatasetsIndex = c.String("es-metadata-index")
 		config.ElasticDatasetPrefix = c.String("es-dataset-prefix")
 		config.ClassificationOutputPath = filepath.Clean(c.String("classification"))
 		config.SummaryPath = filepath.Clean(c.String("summary"))
