@@ -276,7 +276,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("starting postgres ingest for dataset %s", dataset)
 
-	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, "", dataset, ingestConfig, true)
+	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, "", dataset, ingestConfig, true, true)
 	if err != nil {
 		return err
 	}
