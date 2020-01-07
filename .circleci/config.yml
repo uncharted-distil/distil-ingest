@@ -23,9 +23,6 @@ jobs:
 
       # specify any bash command here prefixed with `run: `
       - run:
-          name: build shared code
-          command: /bin/sh -c "cd pkg && go build -i ./..."
-      - run:
           name: build app binary
           command: /bin/sh -c "cd cmd/distil-ingest && go build -i && cd ../distil-merge && go build -i"
       - run:
