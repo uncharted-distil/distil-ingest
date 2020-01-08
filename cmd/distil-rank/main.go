@@ -17,15 +17,15 @@ package main
 
 import (
 	"os"
-	"path/filepath"
+	"path"
 	"runtime"
 
 	"github.com/pkg/errors"
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/uncharted-distil/distil-compute/primitive/compute"
-	"github.com/uncharted-distil/distil-ingest/pkg/primitive"
+	"github.com/uncharted-distil/distil/api/env"
+	"github.com/uncharted-distil/distil/api/task"
 )
 
 func main() {
@@ -68,6 +68,11 @@ func main() {
 			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
+			Name:  "input",
+			Value: "",
+			Usage: "The clustering input path",
+		},
+		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The ranking output file path",
@@ -95,32 +100,46 @@ func main() {
 			return cli.NewExitError("missing commandline flag `--ranking-output`", 1)
 		}
 
-		//classificationPath := filepath.Clean(c.String("classification"))
-		//typeSource := c.String("type-source")
-		//schemaPath := filepath.Clean(c.String("schema"))
 		endpoint := c.String("endpoint")
-		datasetPath := filepath.Clean(c.String("dataset"))
-		//rankingOutputFile := c.String("ranking-output")
-		//rowLimit := c.Int("row-limit")
-		//hasHeader := c.Bool("has-header")
-		outputFilePath := c.String("output")
+		dataset := c.String("dataset")
+		schemaPath := c.String("schema")
+		output := c.String("output")
+		input := c.String("input")
+
+		// initialize config
+		log.Infof("Using TA2 interface at `%s` ", endpoint)
+		config, err := env.LoadConfig()
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		config.SolutionComputeEndpoint = endpoint
+		config.D3MInputDir = input
+		config.D3MOutputDir = path.Dir(path.Dir(path.Dir(path.Dir(output))))
+
+		err = env.Initialize(&config)
+		if err != nil {
+			log.Errorf("%v", err)
+			return cli.NewExitError(errors.Cause(err), 2)
+		}
+		ingestConfig := task.NewConfig(config)
 
 		// initialize client
-		log.Infof("Using TA2 interface at `%s` ", endpoint)
-		client, err := compute.NewClient(endpoint, true, "distil-ingest", "TA2", primitive.TA2Timeout, primitive.TA2PullMax, true, nil)
+		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		step := primitive.NewIngestStep(client)
+		defer client.Close()
+		task.SetClient(client)
 
 		// rank the dataset variable importance
-		err = step.Rank(datasetPath, outputFilePath)
+		rankingOutput, err := task.Rank(schemaPath, "", dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
-		log.Infof("Ranked data written to %s", outputFilePath)
+		log.Infof("Ranked data written to %s", rankingOutput)
 
 		return nil
 	}
