@@ -36,7 +36,7 @@ func main() {
 	app.Name = "distil-summary"
 	app.Version = "0.1.0"
 	app.Usage = "Summarize D3M datasets"
-	app.UsageText = "distil-summary --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-summary --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "endpoint",

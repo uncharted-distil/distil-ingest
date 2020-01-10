@@ -49,7 +49,7 @@ func main() {
 	app.Name = "distil-classify"
 	app.Version = "0.1.0"
 	app.Usage = "Classify D3M merged datasets"
-	app.UsageText = "distil-classify --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-classify --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "endpoint",
@@ -60,11 +60,6 @@ func main() {
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
-		},
-		cli.StringFlag{
-			Name:  "filetype",
-			Value: "csv",
-			Usage: "The dataset file type",
 		},
 		cli.StringFlag{
 			Name:  "schema",

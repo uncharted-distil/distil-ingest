@@ -53,11 +53,6 @@ func main() {
 			Usage: "The dataset schema file path",
 		},
 		cli.StringFlag{
-			Name:  "type-source",
-			Value: "schema",
-			Usage: "The source for the type information, either `schema` or `classification`",
-		},
-		cli.StringFlag{
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
@@ -98,11 +93,6 @@ func main() {
 			Usage: "The Elasticsearch index to ingest metadata into",
 		},
 		cli.StringFlag{
-			Name:  "es-data-index",
-			Value: "",
-			Usage: "The Elasticsearch index to ingest data into",
-		},
-		cli.StringFlag{
 			Name:  "es-dataset-prefix",
 			Value: "",
 			Usage: "The Elasticsearch prefix to use for dataset ids",
@@ -137,43 +127,9 @@ func main() {
 			Value: "",
 			Usage: "The database password to use for authentication.",
 		},
-		cli.IntFlag{
-			Name:  "db-batch-size",
-			Value: 1000,
-			Usage: "The bulk batch size for database ingest",
-		},
-		cli.Int64Flag{
-			Name:  "batch-size",
-			Value: 1024 * 1024 * 20,
-			Usage: "The bulk batch size in bytes",
-		},
-		cli.IntFlag{
-			Name:  "scan-size",
-			Value: 1024 * 1024 * 2,
-			Usage: "The size of the buffer allocated for each input row",
-		},
-		cli.BoolFlag{
-			Name:  "clear-existing",
-			Usage: "Clear index before ingest",
-		},
 		cli.BoolFlag{
 			Name:  "metadata-only",
 			Usage: "Create the basic Postgres tables",
-		},
-		cli.IntFlag{
-			Name:  "num-workers",
-			Value: 8,
-			Usage: "The worker pool size",
-		},
-		cli.IntFlag{
-			Name:  "num-active-connections",
-			Value: 8,
-			Usage: "The number of concurrent outgoing connections",
-		},
-		cli.Float64Flag{
-			Name:  "error-threshold",
-			Value: 0.01,
-			Usage: "The percentage threshold of unsuccessful documents which when passed will end ingestion",
 		},
 		cli.Float64Flag{
 			Name:  "probability-threshold",
@@ -188,9 +144,6 @@ func main() {
 		}
 		if c.String("es-metadata-index") == "" && c.String("db-table") == "" {
 			return cli.NewExitError("missing commandline flag `--es-metadata-index` or `--db-table`", 1)
-		}
-		if c.String("es-data-index") == "" && c.String("db-table") == "" {
-			return cli.NewExitError("missing commandline flag `--es-data-index` or `--db-table`", 1)
 		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)

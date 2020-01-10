@@ -38,7 +38,7 @@ func main() {
 	app.Name = "distil-clean"
 	app.Version = "0.1.0"
 	app.Usage = "clean datasets"
-	app.UsageText = "distil-clean --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-clean --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "endpoint",
@@ -64,15 +64,6 @@ func main() {
 			Name:  "output",
 			Value: "",
 			Usage: "The cleaned output file path",
-		},
-		cli.StringFlag{
-			Name:  "output-schema",
-			Value: "",
-			Usage: "The path to use as output for the cleaned schema document",
-		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
