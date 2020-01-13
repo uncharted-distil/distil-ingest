@@ -38,7 +38,7 @@ func main() {
 	app.Name = "distil-merge"
 	app.Version = "0.1.0"
 	app.Usage = "Merge D3M training datasets"
-	app.UsageText = "distil-merge --schema=<filepath> --data=<filepath> --output-path=<filepath> --output-schema-path=<filepath>"
+	app.UsageText = "distil-merge --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "schema",
@@ -56,11 +56,6 @@ func main() {
 			Usage: "The pipeline runner endpoint",
 		},
 		cli.StringFlag{
-			Name:  "raw-data",
-			Value: "",
-			Usage: "The raw dat a file path",
-		},
-		cli.StringFlag{
 			Name:  "input",
 			Value: "",
 			Usage: "The clustering input path",
@@ -69,25 +64,6 @@ func main() {
 			Name:  "output",
 			Value: "",
 			Usage: "The merged output folder",
-		},
-		cli.StringFlag{
-			Name:  "output-path-relative",
-			Value: "",
-			Usage: "The merged output path relative to the schema output path",
-		},
-		cli.StringFlag{
-			Name:  "output-path-header",
-			Value: "",
-			Usage: "The merged with header output path",
-		},
-		cli.StringFlag{
-			Name:  "output-schema-path",
-			Value: "",
-			Usage: "The merged schema path",
-		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
 		},
 	}
 	app.Action = func(c *cli.Context) error {

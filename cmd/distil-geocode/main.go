@@ -50,7 +50,7 @@ func main() {
 	app.Name = "distil-geocode"
 	app.Version = "0.1.0"
 	app.Usage = "Geocode D3M merged datasets"
-	app.UsageText = "distil-geocode --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-geocode --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "endpoint",
@@ -63,19 +63,9 @@ func main() {
 			Usage: "The dataset source path",
 		},
 		cli.StringFlag{
-			Name:  "classification",
-			Value: "",
-			Usage: "The classification source path",
-		},
-		cli.StringFlag{
 			Name:  "schema",
 			Value: "",
 			Usage: "The schema source path",
-		},
-		cli.StringFlag{
-			Name:  "filetype",
-			Value: "csv",
-			Usage: "The dataset file type",
 		},
 		cli.StringFlag{
 			Name:  "input",
@@ -86,10 +76,6 @@ func main() {
 			Name:  "output",
 			Value: "",
 			Usage: "The path to use as output for the geocoded data",
-		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
 		},
 	}
 	app.Action = func(c *cli.Context) error {

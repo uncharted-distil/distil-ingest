@@ -37,7 +37,7 @@ func main() {
 	app.Name = "distil-cluster"
 	app.Version = "0.1.0"
 	app.Usage = "Cluster D3M datasets"
-	app.UsageText = "distil-cluster --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-cluster --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "endpoint",
@@ -55,11 +55,6 @@ func main() {
 			Usage: "The schema source path",
 		},
 		cli.StringFlag{
-			Name:  "filetype",
-			Value: "csv",
-			Usage: "The dataset file type",
-		},
-		cli.StringFlag{
 			Name:  "output",
 			Value: "",
 			Usage: "The clustering output file path",
@@ -68,20 +63,6 @@ func main() {
 			Name:  "input",
 			Value: "",
 			Usage: "The clustering input path",
-		},
-		cli.StringFlag{
-			Name:  "media-path",
-			Value: "",
-			Usage: "The path to the folder containing the media subfolder that is accessible for clustering",
-		},
-		cli.StringFlag{
-			Name:  "output-schema",
-			Value: "",
-			Usage: "The path to use as output for the clustered schema document",
-		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
@@ -97,8 +78,6 @@ func main() {
 		schemaPath := c.String("schema")
 		output := c.String("output")
 		input := c.String("input")
-		//hasHeader := c.Bool("has-header")
-		//rootDataPath := path.Dir(datasetPath)
 
 		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)

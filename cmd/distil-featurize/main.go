@@ -37,7 +37,7 @@ func main() {
 	app.Name = "distil-featurize"
 	app.Version = "0.1.0"
 	app.Usage = "Featurize D3M datasets"
-	app.UsageText = "distil-featurize --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-featurize --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "endpoint",
@@ -55,16 +55,6 @@ func main() {
 			Usage: "The schema source path",
 		},
 		cli.StringFlag{
-			Name:  "filetype",
-			Value: "csv",
-			Usage: "The dataset file type",
-		},
-		cli.StringFlag{
-			Name:  "media-path",
-			Value: "",
-			Usage: "The path to the folder containing the media subfolder that is accessible for featurization",
-		},
-		cli.StringFlag{
 			Name:  "input",
 			Value: "",
 			Usage: "The clustering input path",
@@ -73,15 +63,6 @@ func main() {
 			Name:  "output",
 			Value: "",
 			Usage: "The path to use as output for the featurized data",
-		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
-		},
-		cli.Float64Flag{
-			Name:  "threshold",
-			Value: 0.2,
-			Usage: "Confidence threshold to use for labels",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
@@ -94,14 +75,9 @@ func main() {
 
 		endpoint := c.String("endpoint")
 		datasetPath := c.String("dataset")
-		//mediaPath := c.String("media-path")
-		//outputData := c.String("output-data")
 		schemaPath := c.String("schema")
 		output := c.String("output")
 		input := c.String("input")
-		//hasHeader := c.Bool("has-header")
-		//rootDataPath := path.Dir(datasetPath)
-		//threshold := c.Float64("threshold")
 
 		// initialize config
 		log.Infof("Using TA2 interface at `%s` ", endpoint)

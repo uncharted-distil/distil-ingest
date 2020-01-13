@@ -36,7 +36,7 @@ func main() {
 	app.Name = "distil-rank"
 	app.Version = "0.1.0"
 	app.Usage = "Rank D3M merged datasets"
-	app.UsageText = "distil-rank --endpoint=<url> --dataset=<filepath> --output=<filepath>"
+	app.UsageText = "distil-rank --endpoint=<url> --dataset=<filepath> --schema=<filepath> --input=<filepath> --output=<filepath>"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "schema",
@@ -44,23 +44,9 @@ func main() {
 			Usage: "The dataset schema file path",
 		},
 		cli.StringFlag{
-			Name:  "type-source",
-			Value: "schema",
-			Usage: "The source for the type information, either `schema` or `classification`",
-		},
-		cli.StringFlag{
 			Name:  "dataset",
 			Value: "",
 			Usage: "The dataset source path",
-		},
-		cli.StringFlag{
-			Name:  "classification",
-			Value: "",
-			Usage: "The classification source path",
-		},
-		cli.BoolFlag{
-			Name:  "has-header",
-			Usage: "Whether or not the CSV file has a header row",
 		},
 		cli.StringFlag{
 			Name:  "endpoint",
@@ -76,16 +62,6 @@ func main() {
 			Name:  "output",
 			Value: "",
 			Usage: "The ranking output file path",
-		},
-		cli.StringFlag{
-			Name:  "ranking-output",
-			Value: "",
-			Usage: "The numeric output file path to use for for the file to rank",
-		},
-		cli.IntFlag{
-			Name:  "row-limit",
-			Value: 1000,
-			Usage: "The number of rows to send to the ranking system",
 		},
 	}
 	app.Action = func(c *cli.Context) error {
