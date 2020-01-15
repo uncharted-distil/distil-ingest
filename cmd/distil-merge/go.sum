@@ -95,10 +95,10 @@ github.com/smartystreets/go-aws-auth v0.0.0-20180515143844-0c1422d1fdb9/go.mod h
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
-github.com/uncharted-distil/distil v0.0.0-20200114192317-102823f6296a h1:D0dyXDtL44Tlq8ObZvz4wX6PHZsTTKWJdlQnwdWkDAQ=
-github.com/uncharted-distil/distil v0.0.0-20200114192317-102823f6296a/go.mod h1:lntUkhF5fHkPnVHSajWqCI//h9Q4A6Byc7RlcPtReDM=
-github.com/uncharted-distil/distil-compute v0.0.0-20200114191821-732fee587555 h1:rXeY6ReCjGAaAXVGC3KQMteeOBh0ZwWBVuYl6/VoIRo=
-github.com/uncharted-distil/distil-compute v0.0.0-20200114191821-732fee587555/go.mod h1:0OFz5vP7mV1nuvKvINOG7hdz8YU0+rWhjppdYBzOSew=
+github.com/uncharted-distil/distil v0.0.0-20200115141538-abc9d26e64a6 h1:Eenc5HLP9mnTn7SR0vdR0el8ehALod+ZVY+N3EsEqY4=
+github.com/uncharted-distil/distil v0.0.0-20200115141538-abc9d26e64a6/go.mod h1:YoXwBU4AqvOA6gmdsGpQ0Q3n+SwcNzoN8QZO/+7Eawc=
+github.com/uncharted-distil/distil-compute v0.0.0-20200115141426-815d5912a8eb h1:qjWeZPcMTjK22z0Y6Z0AJ06HvAeZRcibfSwWtTvk93g=
+github.com/uncharted-distil/distil-compute v0.0.0-20200115141426-815d5912a8eb/go.mod h1:0OFz5vP7mV1nuvKvINOG7hdz8YU0+rWhjppdYBzOSew=
 github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9 h1:P1B7OAnmyIdSN9UGhDvIU3s8K3/2rQcvntYV5WPi+qY=
 github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9/go.mod h1:PrytgQ5GjTc6Z5/pbL5vj1UhD716wDobDeimrd7lRKY=
 github.com/urfave/cli v1.22.2 h1:gsqYFH8bb9ekPA12kRo0hfjngWQjkJPlN9R0N78BoUo=
