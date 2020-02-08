@@ -217,7 +217,7 @@ func main() {
 func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("ingesting metadata for dataset %s", dataset)
 	_, err := task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ESDatasetsIndex,
-		dataset, metadata.Seed, nil, ingestConfig, true)
+		dataset, metadata.Seed, nil, ingestConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -229,7 +229,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("starting postgres ingest for dataset %s", dataset)
 
-	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, "", dataset, metadata.Seed, ingestConfig, true, true)
+	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, "", dataset, metadata.Seed, ingestConfig, true, true, true)
 	if err != nil {
 		return err
 	}
