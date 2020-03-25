@@ -24,6 +24,7 @@ import (
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
+	"github.com/uncharted-distil/distil/api/compute"
 	"github.com/uncharted-distil/distil/api/env"
 	"github.com/uncharted-distil/distil/api/task"
 )
@@ -99,6 +100,10 @@ func main() {
 			return cli.NewExitError(errors.Cause(err), 2)
 		}
 		ingestConfig := task.NewConfig(config)
+
+		// initialize the pipeline cache and queue
+		compute.InitializeCache()
+		compute.InitializeQueue(&config)
 
 		// initialize client
 		client, err := task.NewDefaultClient(config, "distil-ingest", nil)
