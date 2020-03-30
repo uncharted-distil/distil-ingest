@@ -16,6 +16,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	elastic "gopkg.in/olivere/elastic.v5"
 
 	"github.com/uncharted-distil/distil-compute/metadata"
 	log "github.com/unchartedsoftware/plog"
@@ -34,6 +36,7 @@ import (
 const (
 	timeout                  = time.Second * 60 * 5
 	metadataIndexName        = "datasets"
+	modelIndexName           = "models"
 	typeSourceClassification = "classification"
 )
 
@@ -93,6 +96,11 @@ func main() {
 			Usage: "The Elasticsearch index to ingest metadata into",
 		},
 		cli.StringFlag{
+			Name:  "es-model-index",
+			Value: modelIndexName,
+			Usage: "The Elasticsearch index to ingest models into",
+		},
+		cli.StringFlag{
 			Name:  "es-dataset-prefix",
 			Value: "",
 			Usage: "The Elasticsearch prefix to use for dataset ids",
@@ -145,6 +153,9 @@ func main() {
 		if c.String("es-metadata-index") == "" && c.String("db-table") == "" {
 			return cli.NewExitError("missing commandline flag `--es-metadata-index` or `--db-table`", 1)
 		}
+		if c.String("es-model-index") == "" && c.String("db-table") == "" {
+			return cli.NewExitError("missing commandline flag `--es-model-index` or `--db-table`", 1)
+		}
 		if c.String("dataset") == "" {
 			return cli.NewExitError("missing commandline flag `--dataset`", 1)
 		}
@@ -174,6 +185,7 @@ func main() {
 		}
 		config.ElasticEndpoint = c.String("es-endpoint")
 		config.ESDatasetsIndex = c.String("es-metadata-index")
+		config.ESModelsIndex = c.String("es-model-index")
 		config.ElasticDatasetPrefix = c.String("es-dataset-prefix")
 		config.ClassificationOutputPath = filepath.Clean(c.String("classification"))
 		config.SummaryPath = filepath.Clean(c.String("summary"))
@@ -216,7 +228,18 @@ func main() {
 
 func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("ingesting metadata for dataset %s", dataset)
-	_, err := task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ESDatasetsIndex,
+	elasticClient, err := elastic.NewClient(
+		elastic.SetURL(ingestConfig.ESEndpoint),
+		elastic.SetHttpClient(&http.Client{Timeout: time.Second * time.Duration(ingestConfig.ESTimeout)}),
+		elastic.SetMaxRetries(10),
+		elastic.SetSniff(false),
+		elastic.SetGzip(true))
+	if err != nil {
+		return errors.Wrap(err, "unable to initialize elastic client")
+	}
+
+	metadata.CreateModelIndex(elasticClient, config.ESModelsIndex, true)
+	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ESDatasetsIndex,
 		dataset, metadata.Seed, nil, ingestConfig, true, true)
 	if err != nil {
 		return err
