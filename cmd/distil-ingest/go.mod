@@ -8,4 +8,5 @@ require (
 	github.com/uncharted-distil/distil-compute v0.0.0-20200330125012-ccd71db213e6
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	github.com/urfave/cli v1.22.2
+	gopkg.in/olivere/elastic.v5 v5.0.83
 )
