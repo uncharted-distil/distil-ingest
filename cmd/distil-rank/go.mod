@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/pkg/errors v0.8.1
-	github.com/uncharted-distil/distil v0.0.0-20200407132055-098cba3f8bb6
+	github.com/uncharted-distil/distil v0.0.0-20200409122035-bae5a1a7c05e
 	github.com/unchartedsoftware/plog v0.0.0-20170413154239-34d2bbd3c0a9
 	github.com/urfave/cli v1.22.2
 )
