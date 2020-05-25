@@ -5,8 +5,10 @@ version: 2
 jobs:
   build:
     docker:
-      # specify the version
-      - image: circleci/golang:1.13
+      - image: docker.uncharted.software/distil-build:latest
+        auth:
+          username: $UNCHARTED_DOCKER_USERNAME
+          password: $UNCHARTED_DOCKER_PW
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
