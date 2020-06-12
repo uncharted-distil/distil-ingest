@@ -115,7 +115,7 @@ func main() {
 		task.SetClient(client)
 
 		// rank the dataset variable importance
-		rankingOutput, err := task.Rank(schemaPath, "", dataset, ingestConfig)
+		rankingOutput, err := task.Rank(schemaPath, dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)

@@ -16,21 +16,21 @@
 package main
 
 import (
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
-	elastic "github.com/olivere/elastic/v7"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 
 	"github.com/uncharted-distil/distil-compute/metadata"
-	log "github.com/unchartedsoftware/plog"
-
+	es "github.com/uncharted-distil/distil/api/elastic"
 	"github.com/uncharted-distil/distil/api/env"
+	api "github.com/uncharted-distil/distil/api/model"
+	elastic "github.com/uncharted-distil/distil/api/model/storage/elastic"
 	"github.com/uncharted-distil/distil/api/task"
+	log "github.com/unchartedsoftware/plog"
 )
 
 const (
@@ -228,19 +228,23 @@ func main() {
 
 func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("ingesting metadata for dataset %s", dataset)
-	elasticClient, err := elastic.NewClient(
-		elastic.SetURL(ingestConfig.ESEndpoint),
-		elastic.SetHttpClient(&http.Client{Timeout: time.Second * time.Duration(ingestConfig.ESTimeout)}),
-		elastic.SetMaxRetries(10),
-		elastic.SetSniff(false),
-		elastic.SetGzip(true))
+	esClientCtor := es.NewClient(ingestConfig.ESEndpoint, true)
+	log.Infof("creating datasets index '%s'", config.ESDatasetsIndex)
+	storageCtor := elastic.NewMetadataStorage(config.ESDatasetsIndex, true, esClientCtor)
+	storage, err := storageCtor()
 	if err != nil {
-		return errors.Wrap(err, "unable to initialize elastic client")
+		return err
 	}
 
-	metadata.CreateModelIndex(elasticClient, config.ESModelsIndex, true)
-	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, config.ESDatasetsIndex,
-		dataset, metadata.Seed, nil, ingestConfig, true, true)
+	log.Infof("creating models index '%s'", config.ESModelsIndex)
+	storageModelCtor := elastic.NewMetadataStorage(config.ESModelsIndex, true, esClientCtor)
+	_, err = storageModelCtor()
+	if err != nil {
+		return err
+	}
+
+	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, storage,
+		metadata.Seed, nil, api.DatasetTypeModelling, ingestConfig, true, true)
 	if err != nil {
 		return err
 	}
@@ -252,7 +256,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("starting postgres ingest for dataset %s", dataset)
 
-	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, "", dataset, metadata.Seed, ingestConfig, true, true, true)
+	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, metadata.Seed, ingestConfig, true, true, true)
 	if err != nil {
 		return err
 	}

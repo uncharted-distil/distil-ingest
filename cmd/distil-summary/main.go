@@ -114,7 +114,7 @@ func main() {
 		task.SetClient(client)
 
 		// summarize the dataset
-		summaryOutput, err := task.Summarize(schemaPath, "", dataset, ingestConfig)
+		summaryOutput, err := task.Summarize(schemaPath, dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
