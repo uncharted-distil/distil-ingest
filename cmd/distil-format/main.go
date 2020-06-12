@@ -25,7 +25,6 @@ import (
 	log "github.com/unchartedsoftware/plog"
 	"github.com/urfave/cli"
 
-	"github.com/uncharted-distil/distil-compute/metadata"
 	"github.com/uncharted-distil/distil/api/compute"
 	"github.com/uncharted-distil/distil/api/env"
 	"github.com/uncharted-distil/distil/api/task"
@@ -125,7 +124,7 @@ func main() {
 		task.SetClient(client)
 
 		// create featurizer
-		formatPath, err := task.Format(metadata.Seed, schemaPath, dataset, ingestConfig)
+		formatPath, err := task.Format(schemaPath, dataset, ingestConfig)
 		if err != nil {
 			log.Errorf("%v", err)
 			return cli.NewExitError(errors.Cause(err), 2)
