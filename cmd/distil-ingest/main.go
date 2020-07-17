@@ -29,6 +29,8 @@ import (
 	"github.com/uncharted-distil/distil/api/env"
 	api "github.com/uncharted-distil/distil/api/model"
 	elastic "github.com/uncharted-distil/distil/api/model/storage/elastic"
+	pg "github.com/uncharted-distil/distil/api/model/storage/postgres"
+	"github.com/uncharted-distil/distil/api/postgres"
 	"github.com/uncharted-distil/distil/api/task"
 	log "github.com/unchartedsoftware/plog"
 )
@@ -243,7 +245,15 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 		return err
 	}
 
-	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, storage,
+	pgClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort,
+		config.PostgresUser, config.PostgresPassword, config.PostgresDatabase, "none", true)
+
+	pgStorage, err := pg.NewDataStorage(pgClientCtor, nil, storageCtor)()
+	if err != nil {
+		return err
+	}
+
+	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, pgStorage, storage,
 		metadata.Seed, nil, api.DatasetTypeModelling, ingestConfig, true, true)
 	if err != nil {
 		return err
