@@ -245,15 +245,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 		return err
 	}
 
-	pgClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort,
-		config.PostgresUser, config.PostgresPassword, config.PostgresDatabase, "none", true)
-
-	pgStorage, err := pg.NewDataStorage(pgClientCtor, nil, storageCtor)()
-	if err != nil {
-		return err
-	}
-
-	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, pgStorage, storage,
+	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, nil, storage,
 		metadata.Seed, nil, api.DatasetTypeModelling, ingestConfig, true, true)
 	if err != nil {
 		return err
