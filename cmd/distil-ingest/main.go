@@ -237,7 +237,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 	}
 
 	log.Infof("creating models index '%s'", config.ESModelsIndex)
-	storageModelCtor := elastic.NewMetadataStorage(config.ESModelsIndex, true, esClientCtor)
+	storageModelCtor := elastic.NewExportedModelStorage(config.ESModelsIndex, true, esClientCtor)
 	_, err = storageModelCtor()
 	if err != nil {
 		return err
