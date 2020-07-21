@@ -29,8 +29,6 @@ import (
 	"github.com/uncharted-distil/distil/api/env"
 	api "github.com/uncharted-distil/distil/api/model"
 	elastic "github.com/uncharted-distil/distil/api/model/storage/elastic"
-	pg "github.com/uncharted-distil/distil/api/model/storage/postgres"
-	"github.com/uncharted-distil/distil/api/postgres"
 	"github.com/uncharted-distil/distil/api/task"
 	log "github.com/unchartedsoftware/plog"
 )
