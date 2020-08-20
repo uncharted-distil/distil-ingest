@@ -202,18 +202,26 @@ func main() {
 		ingestConfig := task.NewConfig(config)
 
 		metadata.SetTypeProbabilityThreshold(config.ClassificationProbabilityThreshold)
-
 		if config.ElasticEndpoint != "" && !metadataOnly {
-			// ingest the metadata
-			err = ingestMetadata(dataset, &config, ingestConfig)
+			// ingest the metadata with retries in case of transient errors
+			for i := 0; i < 3; i++ {
+				err = ingestMetadata(dataset, &config, ingestConfig)
+				if err != nil {
+					log.Warnf("error on attempt %d: %+v", i, err)
+				} else {
+					break
+				}
+
+				time.Sleep(10 * time.Second)
+			}
 			if err != nil {
-				log.Error(err)
+				log.Errorf("maximum number of retries reached with error")
 				os.Exit(1)
 			}
 		}
 
 		if config.PostgresDatabase != "" {
-			err := ingestPostgres(dataset, &config, ingestConfig)
+			err = ingestPostgres(dataset, &config, ingestConfig)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
