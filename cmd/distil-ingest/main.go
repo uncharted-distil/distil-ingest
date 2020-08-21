@@ -25,6 +25,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/uncharted-distil/distil-compute/metadata"
+	distilds "github.com/uncharted-distil/distil/api/dataset"
 	es "github.com/uncharted-distil/distil/api/elastic"
 	"github.com/uncharted-distil/distil/api/env"
 	api "github.com/uncharted-distil/distil/api/model"
@@ -256,6 +257,16 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 	if err != nil {
 		return err
 	}
+
+	if isRemoteSensing(dataset, config) {
+		log.Infof("remote sensing dataset detected, so setting grouping info")
+		// set the remote sensing group
+		rawGrouping := distilds.CreateSatelliteGrouping()
+		err = task.SetGroups(dataset, rawGrouping, storage, ingestConfig)
+		if err != nil {
+			return err
+		}
+	}
 	log.Infof("done ingesting metadata for dataset %s", dataset)
 
 	return nil
@@ -271,4 +282,19 @@ func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.Inges
 	log.Infof("done postgres ingest for dataset %s", dataset)
 
 	return nil
+}
+
+func isRemoteSensing(dataset string, config *env.Config) bool {
+	meta, err := metadata.LoadMetadataFromOriginalSchema(config.SchemaPath, false)
+	if err != nil {
+		return false
+	}
+
+	// check for band and image file variables
+	vars := map[string]bool{}
+	for _, v := range meta.GetMainDataResource().Variables {
+		vars[v.Name] = true
+	}
+
+	return vars["band"] && vars["image_file"]
 }
