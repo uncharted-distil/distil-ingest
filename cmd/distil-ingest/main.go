@@ -31,6 +31,8 @@ import (
 	"github.com/uncharted-distil/distil/api/env"
 	api "github.com/uncharted-distil/distil/api/model"
 	elastic "github.com/uncharted-distil/distil/api/model/storage/elastic"
+	pg "github.com/uncharted-distil/distil/api/model/storage/postgres"
+	"github.com/uncharted-distil/distil/api/postgres"
 	"github.com/uncharted-distil/distil/api/task"
 	log "github.com/unchartedsoftware/plog"
 )
@@ -269,6 +271,22 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 		// set the remote sensing group
 		rawGrouping := distilds.CreateSatelliteGrouping()
 		err = task.SetGroups(meta.ID, rawGrouping, storage, ingestConfig)
+		if err != nil {
+			return err
+		}
+	} else {
+		postgresClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
+			config.PostgresDatabase, config.PostgresLogLevel, false)
+		postgresBatchClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
+			config.PostgresDatabase, "error", true)
+
+		dataStorageCtor := pg.NewDataStorage(postgresClientCtor, postgresBatchClientCtor, storageCtor)
+		dataStorage, err := dataStorageCtor()
+		if err != nil {
+			return err
+		}
+
+		err = task.VerifySuggestedTypes(dataset, dataStorage, storage)
 		if err != nil {
 			return err
 		}
