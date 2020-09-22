@@ -222,9 +222,7 @@ func main() {
 				log.Errorf("maximum number of retries reached with error")
 				os.Exit(1)
 			}
-		}
-
-		if config.PostgresDatabase != "" {
+		} else if config.PostgresDatabase != "" {
 			err = ingestPostgres(dataset, &config, ingestConfig)
 			if err != nil {
 				log.Error(err)
