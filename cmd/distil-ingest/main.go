@@ -286,7 +286,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 			return err
 		}
 
-		err = task.VerifySuggestedTypes(dataset, dataStorage, storage)
+		err = task.VerifySuggestedTypes(meta.ID, dataStorage, storage)
 		if err != nil {
 			return err
 		}
