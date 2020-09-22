@@ -273,6 +273,8 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 			return err
 		}
 	} else {
+		log.Infof("about to verify suggested types")
+		time.Sleep(10 * time.Second)
 		postgresClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
 			config.PostgresDatabase, config.PostgresLogLevel, false)
 		postgresBatchClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
