@@ -267,8 +267,10 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 	if isRemoteSensing(meta) {
 		log.Infof("remote sensing dataset detected, so setting grouping info")
 		// set the remote sensing group
-		rawGrouping := distilds.CreateSatelliteGrouping()
-		err = task.SetGroups(meta.ID, rawGrouping, storage, ingestConfig)
+		multiBandImageGroup := distilds.CreateSatelliteGrouping()
+		geoBoundsGroup := distilds.CreateGeoBoundsGrouping()
+		groupList := []map[string]interface{}{multiBandImageGroup, geoBoundsGroup}
+		err = task.SetGroups(meta.ID, groupList, storage, ingestConfig)
 		if err != nil {
 			return err
 		}
