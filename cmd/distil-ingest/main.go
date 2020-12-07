@@ -314,7 +314,7 @@ func isRemoteSensing(meta *model.Metadata) bool {
 	// check for band and image file variables
 	vars := map[string]bool{}
 	for _, v := range meta.GetMainDataResource().Variables {
-		vars[v.Name] = true
+		vars[v.StorageName] = true
 	}
 
 	return vars["band"] && vars["image_file"]
