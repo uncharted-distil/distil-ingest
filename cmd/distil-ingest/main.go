@@ -205,7 +205,6 @@ func main() {
 
 		ingestConfig := task.NewConfig(config)
 
-		metadata.SetTypeProbabilityThreshold(config.ClassificationProbabilityThreshold)
 		if config.ElasticEndpoint != "" && !metadataOnly {
 			// ingest the metadata with retries in case of transient errors
 			for i := 0; i < 3; i++ {
@@ -301,7 +300,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("starting postgres ingest for dataset %s", dataset)
 
-	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, metadata.Seed, ingestConfig, true, true, true)
+	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, metadata.Seed, nil, ingestConfig, true, true, true)
 	if err != nil {
 		return err
 	}
@@ -314,7 +313,7 @@ func isRemoteSensing(meta *model.Metadata) bool {
 	// check for band and image file variables
 	vars := map[string]bool{}
 	for _, v := range meta.GetMainDataResource().Variables {
-		vars[v.StorageName] = true
+		vars[v.Key] = true
 	}
 
 	return vars["band"] && vars["image_file"]
