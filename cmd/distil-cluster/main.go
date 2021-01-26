@@ -98,7 +98,7 @@ func main() {
 		ingestConfig := task.NewConfig(config)
 
 		// initialize the pipeline cache and queue
-		compute.InitializeCache(config.PipelineCacheFilename)
+		compute.InitializeCache(config.PipelineCacheFilename, true)
 		compute.InitializeQueue(&config)
 
 		// initialize client
