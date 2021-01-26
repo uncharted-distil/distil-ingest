@@ -263,6 +263,16 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 		return err
 	}
 
+	postgresClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
+		config.PostgresDatabase, config.PostgresLogLevel, false)
+	postgresBatchClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
+		config.PostgresDatabase, "error", true)
+	dataStorageCtor := pg.NewDataStorage(postgresClientCtor, postgresBatchClientCtor, storageCtor)
+	dataStorage, err := dataStorageCtor()
+	if err != nil {
+		return err
+	}
+
 	if isRemoteSensing(meta) {
 		log.Infof("remote sensing dataset detected, so setting grouping info")
 		// set the remote sensing group
@@ -276,22 +286,18 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 	} else {
 		log.Infof("about to verify suggested types")
 		time.Sleep(10 * time.Second)
-		postgresClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
-			config.PostgresDatabase, config.PostgresLogLevel, false)
-		postgresBatchClientCtor := postgres.NewClient(config.PostgresHost, config.PostgresPort, config.PostgresUser, config.PostgresPassword,
-			config.PostgresDatabase, "error", true)
-
-		dataStorageCtor := pg.NewDataStorage(postgresClientCtor, postgresBatchClientCtor, storageCtor)
-		dataStorage, err := dataStorageCtor()
-		if err != nil {
-			return err
-		}
-
 		err = task.VerifySuggestedTypes(meta.ID, dataStorage, storage)
 		if err != nil {
 			return err
 		}
 	}
+
+	log.Infof("updating extremas")
+	err = task.UpdateExtremas(dataset, storage, dataStorage)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("done ingesting metadata for dataset %s", dataset)
 
 	return nil
