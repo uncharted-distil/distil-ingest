@@ -293,7 +293,7 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 	}
 
 	log.Infof("updating extremas")
-	err = task.UpdateExtremas(dataset, storage, dataStorage)
+	err = task.UpdateExtremas(meta.ID, storage, dataStorage)
 	if err != nil {
 		return err
 	}
