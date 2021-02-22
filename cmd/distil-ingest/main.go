@@ -181,6 +181,7 @@ func main() {
 
 		// initialize config
 		dataset := c.String("dataset")
+		schemaPath := c.String("schema")
 		metadataOnly := c.Bool("metadata-only")
 		config, err := env.LoadConfig()
 		if err != nil {
@@ -195,7 +196,6 @@ func main() {
 		config.SummaryPath = filepath.Clean(c.String("summary"))
 		config.SummaryMachinePath = filepath.Clean(c.String("summary-machine"))
 		config.RankingOutputPath = filepath.Clean(c.String("importance"))
-		config.SchemaPath = filepath.Clean(c.String("schema"))
 		config.ClassificationProbabilityThreshold = c.Float64("probability-threshold")
 		config.PostgresDatabase = c.String("database")
 		config.PostgresUser = c.String("db-user")
@@ -208,7 +208,7 @@ func main() {
 		if config.ElasticEndpoint != "" && !metadataOnly {
 			// ingest the metadata with retries in case of transient errors
 			for i := 0; i < 3; i++ {
-				err = ingestMetadata(dataset, &config, ingestConfig)
+				err = ingestMetadata(dataset, schemaPath, &config, ingestConfig)
 				if err != nil {
 					log.Warnf("error on attempt %d: %+v", i, err)
 				} else {
@@ -222,7 +222,7 @@ func main() {
 				os.Exit(1)
 			}
 		} else if config.PostgresDatabase != "" {
-			err = ingestPostgres(dataset, &config, ingestConfig)
+			err = ingestPostgres(dataset, schemaPath, &config, ingestConfig)
 			if err != nil {
 				log.Error(err)
 				os.Exit(1)
@@ -235,7 +235,7 @@ func main() {
 	app.Run(os.Args)
 }
 
-func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
+func ingestMetadata(dataset string, schemaPath string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("ingesting metadata for dataset %s", dataset)
 	esClientCtor := es.NewClient(ingestConfig.ESEndpoint, true)
 	log.Infof("creating datasets index '%s'", config.ESDatasetsIndex)
@@ -252,13 +252,21 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 		return err
 	}
 
-	_, err = task.IngestMetadata(config.SchemaPath, config.SchemaPath, nil, storage,
-		metadata.Seed, nil, api.DatasetTypeModelling, ingestConfig, true, true)
+	params := &task.IngestParams{
+		Source: metadata.Seed,
+		Type:   api.DatasetTypeModelling,
+	}
+	steps := &task.IngestSteps{
+		VerifyMetadata: true,
+		FallbackMerged: true,
+	}
+
+	_, err = task.IngestMetadata(schemaPath, schemaPath, nil, storage, params, ingestConfig, steps)
 	if err != nil {
 		return err
 	}
 
-	meta, err := metadata.LoadMetadataFromOriginalSchema(config.SchemaPath, false)
+	meta, err := metadata.LoadMetadataFromOriginalSchema(schemaPath, false)
 	if err != nil {
 		return err
 	}
@@ -303,10 +311,17 @@ func ingestMetadata(dataset string, config *env.Config, ingestConfig *task.Inges
 	return nil
 }
 
-func ingestPostgres(dataset string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
+func ingestPostgres(dataset string, schemaPath string, config *env.Config, ingestConfig *task.IngestTaskConfig) error {
 	log.Infof("starting postgres ingest for dataset %s", dataset)
-
-	err := task.IngestPostgres(config.SchemaPath, config.SchemaPath, metadata.Seed, nil, ingestConfig, true, true, true)
+	params := &task.IngestParams{
+		Source: metadata.Seed,
+	}
+	steps := &task.IngestSteps{
+		VerifyMetadata:       true,
+		FallbackMerged:       true,
+		CreateMetadataTables: true,
+	}
+	err := task.IngestPostgres(schemaPath, schemaPath, params, ingestConfig, steps)
 	if err != nil {
 		return err
 	}
